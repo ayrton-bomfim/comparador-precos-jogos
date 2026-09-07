@@ -1,8 +1,8 @@
-# ?? Comparador de Pre�os de Jogos Digitais  
+# ?? Comparador de Preços de Jogos Digitais  
   
-Aplica��o web para compara��o de pre�os de jogos digitais nas plataformas Steam e Epic Games Store.  
+Aplicação web para comparação de preços de jogos digitais nas plataformas Steam e Epic Games Store.  
   
-## ??? Tecnologias  
+## Tecnologias  
   
 ### Backend  
 - Python 3.11+  
@@ -16,7 +16,7 @@ Aplica��o web para compara��o de pre�os de jogos digitais nas platafor
 - Recharts  
 - Tailwind CSS  
   
-## ?? Como executar  
+## Como executar  
   
 ### Backend  
   
@@ -37,6 +37,6 @@ npm install
 npm run dev  
 ```  
   
-## ?? Autor  
+## Autor  
   
 Ayrton Bomfim 
