@@ -1,4 +1,4 @@
-# ?? Comparador de Preços de Jogos Digitais  
+# Comparador de Preços de Jogos Digitais  
   
 Aplicação web para comparação de preços de jogos digitais nas plataformas Steam e Epic Games Store.  
   
