@@ -36,5 +36,4 @@ pip install -r requirements.txt
 uvicorn app:app --reload
   
 ## Autor  
-  
 Ayrton Bomfim 
