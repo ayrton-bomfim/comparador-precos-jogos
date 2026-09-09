@@ -1,8 +1,8 @@
 """
-Script de coleta de histórico de preços da Steam.
+Script de coleta de histórico de preços da Epic Games Store.
 
-Este script percorre todos os jogos cadastrados, consulta seus preços
-atuais na Steam e registra as variações na tabela de histórico.
+Este script percorre todos os jogos cadastrados na Epic,
+consulta seus preços atuais e registra as variações na tabela de histórico.
 """
 
 import sys
@@ -10,7 +10,7 @@ import os
 import asyncio
 from datetime import datetime
 from sqlalchemy import func, and_, cast, Date
-from coletores.steam_coletor import SteamColetor
+from coletores.epic_coletor import EpicScraper
 from banco_dados import SessionLocal
 from modelos import Jogo, HistoricoPreco
 
@@ -18,30 +18,40 @@ from modelos import Jogo, HistoricoPreco
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-async def coletar_historico_precos():
+async def coletar_historico_epic():
     """
-    Coleta os precos atuais de todos os jogos no banco e salva no historico.
+    Coleta os precos atuais de todos os jogos disponiveis na Epic
+    e salva no historico.
 
     Um novo registro e criado apenas se houve mudanca de preco (com tolerancia
     de R$ 0,01), mudanca de desconto, ou se a data da ultima coleta e diferente
     da data atual.
     """
     print("=" * 50)
-    print("COLETANDO HISTORICO DE PRECOS (STEAM)")
+    print("COLETANDO HISTORICO DE PRECOS (EPIC)")
     print("Novo registro: mudanca ou dia diferente")
     print("=" * 50)
     print(f"Inicio: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
 
+    scraper = EpicScraper()
+    await scraper.iniciar()
+
     db = SessionLocal()
-    coletor = SteamColetor()
     hoje = datetime.now().date()
 
     try:
-        jogos = db.query(Jogo).filter(Jogo.steam_id.isnot(None)).all()
-        print(f"\n{jlen(jogos)} jogos encontrados no banco")
+        # Busca apenas jogos com epic_id valido
+        jogos = db.query(Jogo).filter(
+            and_(
+                Jogo.epic_id.isnot(None),
+                Jogo.epic_id != "EXCLUSIVO_STEAM"
+            )
+        ).all()
+
+        print(f"\n{len(jogos)} jogos encontrados na Epic")
 
         if not jogos:
-            print("Nenhum jogo encontrado. Execute salvar_jogos_steam.py primeiro.")
+            print("Nenhum jogo encontrado na Epic.")
             return
 
         alterados = 0
@@ -49,10 +59,10 @@ async def coletar_historico_precos():
         ignorados = 0
 
         for i, jogo in enumerate(jogos, 1):
-            print(f"\n[{i}/{len(jogos)}] Coletando: {jogo.nome} (Steam ID: {jogo.steam_id})")
+            print(f"\n[{i}/{len(jogos)}] Coletando: {jogo.nome} (Epic ID: {jogo.epic_id})")
 
             try:
-                dados = await coletor.coletar_jogo(jogo.steam_id)
+                dados = await scraper.coletar_jogo(jogo.epic_id)
 
                 if "erro" in dados:
                     print(f"  Erro: {dados['erro']}")
@@ -80,17 +90,18 @@ async def coletar_historico_precos():
                     except (ValueError, AttributeError):
                         preco_original_num = 0.0
 
+                # Extrai o desconto
                 desconto_str = dados.get("desconto", "0%")
                 try:
                     desconto = int(desconto_str.replace("%", "")) if desconto_str else 0
                 except ValueError:
                     desconto = 0
 
-                # Busca o ultimo registro para este jogo na Steam
+                # Busca o ultimo registro para este jogo na Epic
                 ultimo_registro = db.query(HistoricoPreco).filter(
                     and_(
                         HistoricoPreco.jogo_id == jogo.id,
-                        HistoricoPreco.plataforma == "Steam"
+                        HistoricoPreco.plataforma == "Epic"
                     )
                 ).order_by(HistoricoPreco.data_coleta.desc()).first()
 
@@ -100,7 +111,7 @@ async def coletar_historico_precos():
 
                 if ultimo_registro is None:
                     deve_criar = True
-                    motivo = "Primeiro registro"
+                    motivo = "Primeiro registro na Epic"
                 else:
                     preco_atual_float = float(preco_num)
                     preco_anterior_float = float(ultimo_registro.preco_atual)
@@ -136,7 +147,7 @@ async def coletar_historico_precos():
                 historico = HistoricoPreco(
                     jogo_id=jogo.id,
                     nome_jogo=jogo.nome,
-                    plataforma="Steam",
+                    plataforma="Epic",
                     preco_atual=preco_num,
                     preco_sem_desconto=preco_original_num,
                     desconto=desconto,
@@ -150,9 +161,9 @@ async def coletar_historico_precos():
                       f"(original: R$ {preco_original_num:.2f}, {desconto}% off)")
                 alterados += 1
 
-                # Atualiza o preco base do jogo
+                # Atualiza o preco base do jogo na Epic
                 if preco_original_num > 0:
-                    jogo.preco_base_steam = preco_original_num
+                    jogo.preco_base_epic = preco_original_num
                     jogo.updated_at = datetime.now()
 
                 await asyncio.sleep(0.3)
@@ -164,7 +175,7 @@ async def coletar_historico_precos():
         db.commit()
 
         print("\n" + "=" * 50)
-        print("RESUMO DA COLETA")
+        print("RESUMO DA COLETA (EPIC)")
         print("=" * 50)
         print(f"  Novos registros: {alterados}")
         print(f"  Ignorados (sem mudanca): {ignorados}")
@@ -179,27 +190,35 @@ async def coletar_historico_precos():
         traceback.print_exc()
     finally:
         db.close()
+        await scraper.fechar()
 
 
-async def verificar_historico():
-    """Verifica quantos registros de historico existem por dia."""
+async def verificar_historico_epic():
+    """Verifica quantos registros de historico da Epic existem por dia."""
     db = SessionLocal()
     try:
-        count = db.query(HistoricoPreco).count()
-        ultimo = db.query(HistoricoPreco).order_by(HistoricoPreco.data_coleta.desc()).first()
+        count = db.query(HistoricoPreco).filter(
+            HistoricoPreco.plataforma == "Epic"
+        ).count()
+
+        ultimo = db.query(HistoricoPreco).filter(
+            HistoricoPreco.plataforma == "Epic"
+        ).order_by(HistoricoPreco.data_coleta.desc()).first()
 
         por_dia = db.query(
             cast(HistoricoPreco.data_coleta, Date).label("data"),
             func.count(HistoricoPreco.id).label("total")
+        ).filter(
+            HistoricoPreco.plataforma == "Epic"
         ).group_by("data").order_by("data").all()
 
-        print(f"\nHISTORICO ATUAL:")
+        print(f"\nHISTORICO EPIC:")
         print(f"  Total de registros: {count}")
         print(f"  Dias com registros: {len(por_dia)}")
 
         if ultimo:
             print(f"  Ultima coleta: {ultimo.data_coleta.strftime('%d/%m/%Y %H:%M')}")
-            print(f"  Ultimo preco: R$ {ultimo.preco_atual:.2f} ({ultimo.plataforma})")
+            print(f"  Ultimo preco: R$ {ultimo.preco_atual:.2f}")
 
         if por_dia:
             print("\n  Registros por dia:")
@@ -210,19 +229,22 @@ async def verificar_historico():
         db.close()
 
 
-async def limpar_historico_duplicado():
+async def limpar_historico_epic_duplicado():
     """
-    Remove registros duplicados do mesmo dia, mantendo apenas o mais recente.
+    Remove registros duplicados da Epic do mesmo dia,
+    mantendo apenas o mais recente.
     """
     db = SessionLocal()
     try:
-        print("Removendo registros duplicados do mesmo dia...")
+        print("Removendo registros duplicados da Epic do mesmo dia...")
 
         duplicatas = db.query(
             HistoricoPreco.jogo_id,
             HistoricoPreco.plataforma,
             cast(HistoricoPreco.data_coleta, Date).label("data"),
             func.count(HistoricoPreco.id).label("total")
+        ).filter(
+            HistoricoPreco.plataforma == "Epic"
         ).group_by(
             HistoricoPreco.jogo_id,
             HistoricoPreco.plataforma,
@@ -259,4 +281,4 @@ async def limpar_historico_duplicado():
 
 
 if __name__ == "__main__":
-    asyncio.run(coletar_historico_precos())
+    asyncio.run(coletar_historico_epic())
