@@ -1,5 +1,5 @@
-from banco_dados import SessionLocal
-from modelos import Jogo
+from ...banco_dados import SessionLocal
+from ...modelos import Jogo
 
 def testar_conexao():
     try:

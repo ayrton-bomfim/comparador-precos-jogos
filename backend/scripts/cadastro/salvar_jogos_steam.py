@@ -10,9 +10,9 @@ import os
 import asyncio
 import re
 from datetime import datetime
-from coletores.steam_coletor import SteamColetor
-from banco_dados import SessionLocal
-from modelos import Jogo
+from ...coletores.steam_coletor import SteamColetor
+from ...banco_dados import SessionLocal
+from ...modelos import Jogo
 
 # Adiciona o diretório pai ao path para importar os módulos
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -44,16 +44,18 @@ async def salvar_jogos_steam():
         for dados_jogo in dados["jogos"]:
             # Preco base (preco sem desconto)
             preco_str = dados_jogo.get("preco_sem_desconto")
-            if preco_str in ("Grátis", "N/A", None):
-                preco_str = dados_jogo["preco"]
 
-            if preco_str in ("Grátis", "N/A"):
+            if preco_str == "Grátis":
                 preco_num = 0
+            elif preco_str in ("N/A", None):
+                preco_num = None
             else:
                 try:
-                    preco_num = float(preco_str.replace("R$", "").replace(",", ".").strip())
+                    preco_num = float(
+                        preco_str.replace("R$", "").replace(",", ".").strip()
+                    )
                 except (ValueError, AttributeError):
-                    preco_num = 0
+                    preco_num = None
 
             # Data de lancamento
             data_lanc = None

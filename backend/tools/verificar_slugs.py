@@ -12,7 +12,7 @@ import asyncio
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from playwright.async_api import async_playwright
-from lista_jogos import JOGOS_STEAM, get_epic_slug
+from backend.lista_jogos import JOGOS_STEAM, get_epic_slug
 
 
 async def verificar_slugs():

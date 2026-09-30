@@ -1,0 +1,480 @@
+.pagina-sobre {
+  width: min(1240px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 72px 0 96px;
+}
+
+.sobre-hero {
+  padding: 20px 0 72px;
+}
+
+.sobre-hero h1 {
+  max-width: 980px;
+  margin: 18px 0 22px;
+  color: var(--texto);
+  font-size: clamp(2.7rem, 6vw, 5.2rem);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+}
+
+.sobre-hero > p {
+  max-width: 780px;
+  margin: 0;
+  color: var(--texto-secundario);
+  font-size: 1.16rem;
+  line-height: 1.75;
+}
+
+.sobre-resumo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 780px;
+  margin-top: 36px;
+}
+
+.sobre-resumo article,
+.sobre-card,
+.tecnologia-card,
+.plataforma-card,
+.projeto-academico,
+.limitacoes-card {
+  border: 1px solid var(--borda-tema);
+  background: var(--fundo-card);
+  border-radius: 18px;
+}
+
+.sobre-resumo article {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 20px 22px;
+}
+
+.sobre-resumo strong {
+  color: var(--texto);
+  font-size: 1.05rem;
+}
+
+.sobre-resumo span {
+  color: var(--texto-secundario);
+  font-size: 0.92rem;
+}
+
+.sobre-secao {
+  margin-top: 78px;
+}
+
+.sobre-titulo {
+  margin-bottom: 28px;
+}
+
+.sobre-titulo h2,
+.projeto-academico h2,
+.limitacoes-card h2 {
+  margin: 10px 0 0;
+  color: var(--texto);
+  font-size: clamp(1.9rem, 3vw, 2.7rem);
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+}
+
+.sobre-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.sobre-grid.quatro {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.sobre-card {
+  min-height: 230px;
+  padding: 24px;
+}
+
+.sobre-numero {
+  display: inline-flex;
+  margin-bottom: 46px;
+  color: var(--roxo-tema);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.sobre-card h3 {
+  margin: 0 0 10px;
+  color: var(--texto);
+  font-size: 1.2rem;
+}
+
+.sobre-card p,
+.tecnologia-card p,
+.previsao-texto p,
+.limitacoes-card p {
+  margin: 0;
+  color: var(--texto-secundario);
+  line-height: 1.65;
+}
+
+.fluxo-sistema {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.fluxo-sistema article {
+  flex: 1;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--borda-tema);
+  border-radius: 16px;
+  background: var(--fundo-card);
+}
+
+.fluxo-sistema article span {
+  display: block;
+  margin-bottom: 32px;
+  color: var(--roxo-tema);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.fluxo-sistema article strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--texto);
+}
+
+.fluxo-sistema article p {
+  margin: 0;
+  color: var(--texto-secundario);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.fluxo-seta {
+  display: flex;
+  align-items: center;
+  color: var(--roxo-tema);
+  font-size: 1.3rem;
+}
+
+.tecnologias-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.tecnologia-card {
+  padding: 24px;
+}
+
+.tecnologia-card > span,
+.plataforma-legenda,
+.dados-academicos span {
+  display: block;
+  color: var(--texto-secundario);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+}
+
+.tecnologia-card strong {
+  display: block;
+  margin: 14px 0 10px;
+  color: var(--texto);
+  font-size: 1.15rem;
+}
+
+.plataformas-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.plataforma-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 28px;
+}
+
+.plataforma-card h3 {
+  margin: 9px 0 0;
+  color: var(--texto);
+  font-size: 1.65rem;
+}
+
+.plataforma-card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--texto-secundario);
+  line-height: 1.9;
+}
+
+.previsao-sobre {
+  overflow: hidden;
+  border: 1px solid var(--borda-tema);
+  border-radius: 20px;
+  background: var(--fundo-card);
+}
+
+.previsao-fluxo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 24px 28px;
+  border-bottom: 1px solid var(--borda-tema);
+}
+
+.previsao-fluxo span {
+  color: var(--texto);
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.previsao-fluxo b {
+  color: var(--roxo-tema);
+  font-size: 1.2rem;
+}
+
+.previsao-texto {
+  padding: 26px 28px 30px;
+}
+
+.aviso-sobre {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-top: 24px;
+  padding: 18px 20px;
+  border-left: 3px solid var(--roxo-tema);
+  background: color-mix(in srgb, var(--roxo-tema) 8%, transparent);
+  border-radius: 0 12px 12px 0;
+}
+
+.aviso-sobre strong {
+  flex-shrink: 0;
+  color: var(--texto);
+}
+
+.aviso-sobre span {
+  color: var(--texto-secundario);
+  line-height: 1.55;
+}
+
+.sobre-final {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  gap: 16px;
+  margin-top: 78px;
+}
+
+.projeto-academico,
+.limitacoes-card {
+  padding: 30px;
+}
+
+.projeto-academico > p {
+  max-width: 720px;
+  margin: 18px 0 0;
+  color: var(--texto-secundario);
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.dados-academicos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--borda-tema);
+}
+
+.dados-academicos strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--texto);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.limitacoes-card p {
+  margin-top: 18px;
+}
+
+
+/* ==============================
+   Interações dos cards
+   ============================== */
+
+.sobre-card,
+.tecnologia-card,
+.plataforma-card {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.28s ease,
+    border-color 0.28s ease,
+    box-shadow 0.28s ease,
+    background-color 0.28s ease;
+}
+
+.sobre-card::after,
+.tecnologia-card::after,
+.plataforma-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--roxo-tema) 9%, transparent),
+    transparent 48%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+}
+
+.sobre-card:hover,
+.tecnologia-card:hover,
+.plataforma-card:hover {
+  transform: translateY(-6px);
+  border-color: color-mix(in srgb, var(--roxo-tema) 55%, var(--borda-tema));
+  box-shadow: 0 14px 30px var(--sombra-tema);
+}
+
+.sobre-card:hover::after,
+.tecnologia-card:hover::after,
+.plataforma-card:hover::after {
+  opacity: 1;
+}
+
+.sobre-card > *,
+.tecnologia-card > *,
+.plataforma-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.sobre-card h3,
+.tecnologia-card strong,
+.plataforma-card h3 {
+  transition: color 0.28s ease, transform 0.28s ease;
+}
+
+.sobre-card:hover h3,
+.tecnologia-card:hover strong,
+.plataforma-card:hover h3 {
+  color: var(--roxo-tema);
+  transform: translateX(2px);
+}
+
+.sobre-numero {
+  transition: transform 0.28s ease;
+}
+
+.sobre-card:hover .sobre-numero {
+  transform: translateX(4px);
+}
+
+/* Também deixa os blocos do fluxo do sistema interativos */
+.fluxo-sistema article {
+  transition:
+    transform 0.28s ease,
+    border-color 0.28s ease,
+    box-shadow 0.28s ease;
+}
+
+.fluxo-sistema article:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--roxo-tema) 45%, var(--borda-tema));
+  box-shadow: 0 10px 24px var(--sombra-tema);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sobre-card,
+  .tecnologia-card,
+  .plataforma-card,
+  .fluxo-sistema article,
+  .sobre-card::after,
+  .tecnologia-card::after,
+  .plataforma-card::after,
+  .sobre-card h3,
+  .tecnologia-card strong,
+  .plataforma-card h3,
+  .sobre-numero {
+    transition: none;
+  }
+
+  .sobre-card:hover,
+  .tecnologia-card:hover,
+  .plataforma-card:hover,
+  .fluxo-sistema article:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 1050px) {
+  .sobre-grid.quatro,
+  .tecnologias-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fluxo-sistema {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .fluxo-seta {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 760px) {
+  .pagina-sobre {
+    width: min(100% - 28px, 1240px);
+    padding-top: 42px;
+  }
+
+  .sobre-hero {
+    padding-bottom: 48px;
+  }
+
+  .sobre-resumo,
+  .sobre-grid.quatro,
+  .tecnologias-grid,
+  .plataformas-grid,
+  .sobre-final,
+  .dados-academicos {
+    grid-template-columns: 1fr;
+  }
+
+  .sobre-secao {
+    margin-top: 56px;
+  }
+
+  .fluxo-sistema {
+    grid-template-columns: 1fr;
+  }
+
+  .fluxo-seta {
+    transform: rotate(90deg);
+    min-height: 24px;
+  }
+
+  .previsao-fluxo {
+    flex-direction: column;
+  }
+
+  .aviso-sobre {
+    flex-direction: column;
+  }
+
+  .plataforma-card {
+    flex-direction: column;
+  }
+}

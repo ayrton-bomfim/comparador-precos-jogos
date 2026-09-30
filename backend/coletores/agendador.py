@@ -1,81 +1,165 @@
+# -*- coding: utf-8 -*-
 """
-Módulo de agendamento de coleta automatizada.
+Agendador de coleta diária de preços.
 
-Este módulo gerencia a execução periódica dos coletores de dados,
-permitindo que a coleta de preços ocorra automaticamente em intervalos
-definidos, sem intervenção manual.
+Fluxo diário:
+1. Steam -> histórico via IStoreBrowseService/GetItems em lote.
+2. Epic  -> histórico via EGDATA.
+
+Modos de execução:
+- sem argumentos: mantém um agendador residente e executa no horário configurado.
+- --agora: executa uma coleta imediatamente e encerra.
+
+O horário padrão é 03:00 e pode ser alterado pela variável
+COLETA_HORARIO no arquivo .env.
 """
 
+import argparse
 import asyncio
+import os
 import time
+from datetime import datetime
+
 import schedule
-from .steam_coletor import SteamColetor
-from .epic_coletor import EpicColetor
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
+
+from ..scripts.historico.coletar_historico import coletar_historico_precos
+from ..scripts.historico.coletar_historico_epic import coletar_historico_epic
+
+
+HORARIO_PADRAO = "03:00"
+
+
+def obter_horario_coleta():
+    """Obtém o horário da coleta a partir do .env ou usa 03:00."""
+    if load_dotenv:
+        load_dotenv()
+
+    horario = os.getenv("COLETA_HORARIO", HORARIO_PADRAO).strip()
+
+    try:
+        datetime.strptime(horario, "%H:%M")
+    except ValueError:
+        print(
+            f"Horário inválido em COLETA_HORARIO={horario!r}. "
+            f"Usando {HORARIO_PADRAO}."
+        )
+        horario = HORARIO_PADRAO
+
+    return horario
 
 
 class AgendadorColeta:
-    """
-    Agenda e executa a coleta automatizada de preços.
+    """Coordena a coleta diária de histórico das duas plataformas."""
 
-    Atributos:
-        steam (SteamColetor): Instância do coletor da Steam.
-        epic (EpicColetor): Instância do coletor da Epic Games Store.
-    """
-
-    def __init__(self):
-        """Inicializa os coletores para ambas as plataformas."""
-        self.steam = SteamColetor()
-        self.epic = EpicColetor()
+    def __init__(self, horario=None):
+        self.horario = horario or obter_horario_coleta()
+        self._coleta_em_execucao = False
 
     def iniciar(self):
-        """
-        Inicia o agendamento da coleta diária.
+        """Mantém o processo ativo e executa a coleta diariamente."""
+        print("=" * 60)
+        print("AGENDADOR DE COLETA DIÁRIA")
+        print("=" * 60)
+        print(f"Horário configurado: {self.horario}")
+        print("Steam: IStoreBrowseService/GetItems em lote")
+        print("Epic: EGDATA")
+        print("Pressione Ctrl+C para encerrar o agendador.")
+        print("=" * 60)
 
-        A coleta é programada para ocorrer diariamente às 03:00.
-        O loop principal mantém a aplicação em execução verificando
-        tarefas pendentes a cada 60 segundos.
-        """
-        print("Agendador de coleta iniciado.")
-        print("Coleta programada para rodar diariamente às 03:00")
+        schedule.clear("coleta_diaria")
+        schedule.every().day.at(self.horario).do(
+            self._executar_coleta,
+        ).tag("coleta_diaria")
 
-        schedule.every().day.at("03:00").do(self._executar_coleta)
+        try:
+            while True:
+                schedule.run_pending()
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\nAgendador encerrado pelo usuário.")
 
-        while True:
-            schedule.run_pending()
-            time.sleep(60)
+    def executar_agora(self):
+        """Executa uma coleta imediatamente e encerra o processo."""
+        self._executar_coleta()
 
     def _executar_coleta(self):
-        """
-        Executa a coleta em ambas as plataformas.
+        """Executa a rotina assíncrona completa uma única vez."""
+        if self._coleta_em_execucao:
+            print("Já existe uma coleta em execução. Ignorando nova chamada.")
+            return
 
-        Este método é chamado automaticamente pelo agendador.
-        Cria um novo loop de eventos para executar as tarefas assíncronas.
-        """
-        print("Iniciando coleta programada...")
+        self._coleta_em_execucao = True
+        inicio = datetime.now()
+
+        print("\n" + "=" * 60)
+        print("INÍCIO DA COLETA")
+        print(f"Data/hora: {inicio.strftime('%d/%m/%Y %H:%M:%S')}")
+        print("=" * 60)
+
         try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(self._coletar_ambas())
+            asyncio.run(self._coletar_ambas())
         except Exception as erro:
-            print(f"Erro durante a coleta programada: {erro}")
+            print(f"ERRO GERAL NA COLETA: {erro}")
+            raise
+        finally:
+            fim = datetime.now()
+            duracao = fim - inicio
+            print("=" * 60)
+            print(
+                f"FIM DA COLETA: {fim.strftime('%d/%m/%Y %H:%M:%S')}"
+            )
+            print(f"Duração: {duracao}")
+            print("=" * 60)
+            self._coleta_em_execucao = False
 
     async def _coletar_ambas(self):
         """
-        Coleta dados de ambas as plataformas simultaneamente.
+        Executa as duas rotinas de histórico.
 
-        Returns:
-            dict: Dicionário com os resultados da Steam e da Epic.
+        Steam:
+            coletar_historico_precos() já faz a consulta GetItems em lote.
+
+        Epic:
+            coletar_historico_epic() usa EGDATA e é assíncrona.
         """
-        steam_resultado = await self.steam.coletar_precos()
-        epic_resultado = await self.epic.coletar_precos()
+        print("\n[1/2] Coleta histórica da Steam")
+        await coletar_historico_precos()
 
-        total_jogos_steam = len(steam_resultado.get("jogos", []))
-        total_jogos_epic = len(epic_resultado.get("jogos", []))
-
-        print(f"Coleta concluída: {total_jogos_steam} jogos (Steam), "
-              f"{total_jogos_epic} jogos (Epic)")
+        print("\n[2/2] Coleta histórica da Epic (EGDATA)")
+        resultado_epic = await coletar_historico_epic()
 
         return {
-            "steam": steam_resultado,
-            "epic": epic_resultado
+            "steam": {"status": "concluida"},
+            "epic": resultado_epic or {
+                "status": "concluida",
+                "fonte": "EGDATA",
+            },
         }
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Agendador da coleta diária de preços."
+    )
+    parser.add_argument(
+        "--agora",
+        action="store_true",
+        help="executa a coleta imediatamente e encerra.",
+    )
+
+    args = parser.parse_args()
+    agendador = AgendadorColeta()
+
+    if args.agora:
+        agendador.executar_agora()
+    else:
+        agendador.iniciar()
+
+
+if __name__ == "__main__":
+    main()

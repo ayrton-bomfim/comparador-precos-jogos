@@ -9,13 +9,64 @@ import sys
 import os
 import asyncio
 from datetime import datetime
-from coletores.epic_coletor import EpicScraper
-from banco_dados import SessionLocal
-from modelos import Jogo
-from lista_jogos import JOGOS_STEAM, get_epic_slug
+from ...coletores.epic_coletor import EpicScraper
+from ...banco_dados import SessionLocal
+from ...modelos import Jogo, EpicOferta
+from ...lista_jogos import JOGOS_STEAM, get_epic_slug
 
 # Adiciona o diretório pai ao path para importar os módulos
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def salvar_oferta_epic(db, jogo, dados):
+    """
+    Salva ou atualiza a oferta principal da Epic associada ao jogo.
+
+    A oferta é identificada pelo offer_id.
+    """
+
+    offer_id = dados.get("epic_offer_id")
+    sandbox_id = dados.get("epic_sandbox_id")
+    titulo = dados.get("epic_titulo")
+    tipo = dados.get("epic_tipo")
+
+    if not offer_id or not sandbox_id:
+        print("  ⚠️ Oferta Epic não encontrada nos dados retornados.")
+        return
+
+    oferta = (
+        db.query(EpicOferta)
+        .filter(EpicOferta.offer_id == offer_id)
+        .first()
+    )
+
+    if oferta:
+        # Atualiza oferta existente
+        oferta.jogo_id = jogo.id
+        oferta.sandbox_id = sandbox_id
+        oferta.titulo = titulo or oferta.titulo
+        oferta.tipo = tipo or oferta.tipo
+        oferta.ativo = True
+
+        print(f"  Oferta Epic atualizada: {oferta.titulo}")
+
+    else:
+        # Insere nova oferta
+        oferta = EpicOferta(
+            jogo_id=jogo.id,
+            offer_id=offer_id,
+            sandbox_id=sandbox_id,
+            titulo=titulo or "N/A",
+            tipo=tipo,
+            ativo=True,
+        )
+
+        db.add(oferta)
+
+        print(f"  Oferta Epic cadastrada: {titulo}")
+        print(f"    Offer ID: {offer_id}")
+        print(f"    Sandbox ID: {sandbox_id}")
+        print(f"    Tipo: {tipo}")
 
 
 async def salvar_jogos_epic():
@@ -51,20 +102,28 @@ async def salvar_jogos_epic():
             if epic_slug is None:
                 print("  Exclusivo Steam (epic_id = NULL)")
 
-                jogo = db.query(Jogo).filter(Jogo.steam_id == str(steam_id)).first()
+                jogo = (
+                    db.query(Jogo)
+                    .filter(Jogo.steam_id == str(steam_id))
+                    .first()
+                )
 
                 if jogo:
                     jogo.epic_id = None
                     jogo.updated_at = datetime.now()
+
                     print(f"  Atualizado: {jogo.nome}")
                     exclusivos += 1
+
                 else:
                     novo_jogo = Jogo(
                         steam_id=str(steam_id),
                         epic_id=None,
                         nome=f"Jogo {steam_id}",
                     )
+
                     db.add(novo_jogo)
+
                     print(f"  Inserido: {novo_jogo.nome}")
                     exclusivos += 1
 
@@ -73,47 +132,88 @@ async def salvar_jogos_epic():
             print(f"  Slug: {epic_slug}")
 
             try:
-                dados = await scraper.coletar_jogo(epic_slug)
+                # Procura o jogo antes da coleta para que o scraper
+                # possa reutilizar uma oferta Epic já cadastrada.
+                jogo = (
+                    db.query(Jogo)
+                    .filter(Jogo.steam_id == str(steam_id))
+                    .first()
+                )
+
+                if jogo:
+                    dados = await scraper.coletar_jogo(
+                        epic_slug,
+                        jogo.id,
+                        db
+                    )
+                else:
+                    # Jogo ainda não existe no banco.
+                    # Nesse caso não há oferta para reutilizar.
+                    dados = await scraper.coletar_jogo(
+                        epic_slug
+                    )
 
                 if "erro" in dados:
                     print(f"  Erro: {dados['erro']}")
                     erros += 1
                     continue
 
-                jogo = db.query(Jogo).filter(Jogo.steam_id == str(steam_id)).first()
-
                 if jogo:
+                    # -------------------------------------------------
                     # Atualiza dados existentes
+                    # -------------------------------------------------
                     jogo.epic_id = epic_slug
                     jogo.descricao_epic = dados.get("descricao", "")
                     jogo.url_imagem_epic = dados.get("url_imagem", "")
                     jogo.url_epic = dados.get("url", "")
 
-                    # Preco base
+                    # Preço base
                     if dados.get("preco") == "Grátis":
                         jogo.preco_base_epic = 0.00
+
                     else:
-                        preco_original_str = dados.get("preco_sem_desconto", "N/A")
+                        preco_original_str = dados.get(
+                            "preco_sem_desconto",
+                            "N/A"
+                        )
+
                         if preco_original_str != "N/A":
                             try:
                                 preco_base = float(
-                                    preco_original_str.replace("R$", "").replace(",", ".").strip()
+                                    preco_original_str
+                                    .replace("R$", "")
+                                    .replace(",", ".")
+                                    .strip()
                                 )
+
                                 jogo.preco_base_epic = preco_base
+
                             except (ValueError, AttributeError):
                                 pass
 
                     jogo.updated_at = datetime.now()
 
                     print(f"  Atualizado: {jogo.nome}")
+
                     if jogo.preco_base_epic is not None:
-                        print(f"    Preco base: R$ {jogo.preco_base_epic:.2f}")
+                        print(
+                            f"    Preco base: "
+                            f"R$ {jogo.preco_base_epic:.2f}"
+                        )
                     else:
-                        print(f"    Preco base: N/A")
+                        print("    Preco base: N/A")
+
+                    # -------------------------------------------------
+                    # Salva oferta Epic
+                    # -------------------------------------------------
+                    salvar_oferta_epic(db, jogo, dados)
+
                     atualizados += 1
 
                 else:
+                    # -------------------------------------------------
                     # Insere novo jogo
+                    # -------------------------------------------------
                     novo_jogo = Jogo(
                         steam_id=str(steam_id),
                         epic_id=epic_slug,
@@ -125,19 +225,40 @@ async def salvar_jogos_epic():
 
                     if dados.get("preco") == "Grátis":
                         novo_jogo.preco_base_epic = 0.00
+
                     else:
-                        preco_original_str = dados.get("preco_sem_desconto", "N/A")
+                        preco_original_str = dados.get(
+                            "preco_sem_desconto",
+                            "N/A"
+                        )
+
                         if preco_original_str != "N/A":
                             try:
                                 preco_base = float(
-                                    preco_original_str.replace("R$", "").replace(",", ".").strip()
+                                    preco_original_str
+                                    .replace("R$", "")
+                                    .replace(",", ".")
+                                    .strip()
                                 )
+
                                 novo_jogo.preco_base_epic = preco_base
+
                             except (ValueError, AttributeError):
                                 pass
 
                     db.add(novo_jogo)
+
+                    # Garante que o ID do jogo seja gerado
+                    # antes de criar a relação com EpicOferta.
+                    db.flush()
+
                     print(f"  Inserido: {novo_jogo.nome}")
+
+                    # -------------------------------------------------
+                    # Salva oferta Epic
+                    # -------------------------------------------------
+                    salvar_oferta_epic(db, novo_jogo, dados)
+
                     atualizados += 1
 
                 await asyncio.sleep(0.8)
@@ -159,6 +280,7 @@ async def salvar_jogos_epic():
     except Exception as erro:
         db.rollback()
         print(f"\nErro ao salvar: {erro}")
+
     finally:
         db.close()
         await scraper.fechar()

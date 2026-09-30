@@ -79,3 +79,29 @@ htmlcov/
 # =============================================================================
 requisicoes_epic.json
 pagina_epic.html
+
+# =============================================================================
+# Backups locais e perfis de ferramentas
+# =============================================================================
+backend_backup/
+frontend_backup/
+steamdb_chrome_profile/
+
+# =============================================================================
+# Snapshots locais de histórico
+# =============================================================================
+steam_historico*.json
+
+# =============================================================================
+# Testes, diagnósticos e scripts temporários locais
+# =============================================================================
+backend/diagnostico_preco_getitems.py
+backend/tests/egdata_promocao_etapa1/
+
+coletar_historico_steamdb.py
+diagnostico_opengamestats.py
+teste_apis_promocao_steam.py
+teste_getitems_promocao_detalhado.py
+teste_getitems_sem_promocao.py
+teste_opengamestats_promocoes.py
+teste_salvar_oferta_epic.py

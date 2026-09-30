@@ -6,8 +6,8 @@ de jogos entre a Steam e a Epic Games Store.
 """
 
 from fastapi import APIRouter, HTTPException
-from coletores.steam_coletor import SteamColetor
-from coletores.epic_coletor import EpicColetor
+from ..coletores.steam_coletor import SteamColetor
+from ..coletores.epic_coletor import EpicColetor
 
 
 router = APIRouter(prefix="/api/comparar", tags=["comparacao"])

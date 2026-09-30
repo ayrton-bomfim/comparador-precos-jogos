@@ -1,0 +1,3636 @@
+.app {
+  min-height: 100vh;
+  background: #f7f7f8;
+}
+
+.cabecalho {
+  height: 72px;
+  padding: 0 5vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border-bottom: 1px solid #e8e8eb;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+
+.marca-icone {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: #fff;
+  background: #17171b;
+  font-size: 12px;
+}
+
+.navegacao {
+  display: flex;
+  align-items: center;
+  gap: 34px;
+  font-size: 14px;
+  color: #626269;
+}
+
+.navegacao a {
+  padding: 25px 0 22px;
+  border-bottom: 2px solid transparent;
+}
+
+.navegacao a:hover,
+.navegacao .ativo {
+  color: #111116;
+  border-bottom-color: #111116;
+}
+
+.botao-pesquisa {
+  border: 0;
+  background: transparent;
+  font-size: 26px;
+  line-height: 1;
+  color: #35353b;
+}
+
+.hero {
+  min-height: 450px;
+  display: flex;
+  align-items: center;
+  background:
+    radial-gradient(circle at 80% 25%, rgba(107, 67, 255, 0.12), transparent 32%),
+    linear-gradient(135deg, #ffffff 0%, #f1f1f4 100%);
+  border-bottom: 1px solid #e8e8eb;
+}
+
+.hero-conteudo {
+  width: min(1120px, 90%);
+  margin: 0 auto;
+  padding: 70px 0;
+}
+
+.hero-tag,
+.eyebrow {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+  color: #6c55d9;
+}
+
+.hero h1 {
+  max-width: 760px;
+  margin: 0;
+  font-size: clamp(38px, 5vw, 68px);
+  line-height: 1.02;
+  letter-spacing: -3px;
+  font-weight: 700;
+  color: #17171b;
+}
+
+.hero p {
+  max-width: 620px;
+  margin: 22px 0 34px;
+  color: #66666d;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.barra-pesquisa {
+  width: min(760px, 100%);
+  height: 58px;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dedee3;
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(20, 20, 30, 0.07);
+  overflow: hidden;
+}
+
+.icone-pesquisa {
+  padding-left: 20px;
+  color: #777780;
+  font-size: 26px;
+}
+
+.barra-pesquisa input {
+  min-width: 0;
+  flex: 1;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  padding: 0 16px;
+  background: transparent;
+  color: #17171b;
+}
+
+.barra-pesquisa input::placeholder {
+  color: #9999a0;
+}
+
+.barra-pesquisa button {
+  height: 100%;
+  padding: 0 24px;
+  border: 0;
+  background: var(--texto);
+  color: var(--fundo-card);
+  font-weight: 650;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.secao {
+  width: min(1120px, 90%);
+  margin: 0 auto;
+  padding: 64px 0;
+}
+
+.secao-catalogo + .secao-catalogo {
+  padding-top: 8px;
+}
+
+.secao-cabecalho {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.secao-cabecalho h2 {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.1;
+  letter-spacing: -1px;
+}
+
+.link-secao {
+  border: 0;
+  background: transparent;
+  color: #5742c7;
+  font-weight: 700;
+}
+
+.grade-jogos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.card-jogo {
+  overflow: hidden;
+  border: 1px solid #e3e3e7;
+  border-radius: 10px;
+  background: #fff;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.card-jogo:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 32px rgba(20, 20, 30, 0.1);
+}
+
+.imagem-jogo {
+  position: relative;
+  aspect-ratio: 460 / 215;
+  overflow: hidden;
+  background: transparent;
+}
+
+.imagem-jogo img {
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
+  margin: -1px;
+
+  display: block;
+  object-fit: cover;
+
+  transform: translateZ(0);
+  transform-origin: center center;
+
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+
+  will-change: transform;
+
+  transition: transform 0.25s ease;
+}
+
+.card-jogo:hover .imagem-jogo img {
+  transform: scale(1.03);
+}
+
+.selo-desconto {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #1d7a4c;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.conteudo-card {
+  padding: 17px;
+}
+
+.conteudo-card h3 {
+  min-height: 44px;
+  margin: 0 0 16px;
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.precos {
+  display: grid;
+  gap: 10px;
+}
+
+.precos > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rotulo-plataforma {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rotulo-plataforma.steam,
+.plataforma.steam {
+  color: #2472a8;
+}
+
+.rotulo-plataforma.epic,
+.plataforma.epic {
+  color: #5b4ca8;
+}
+
+.precos strong {
+  font-size: 14px;
+}
+
+.menor-preco {
+  display: block;
+  margin-top: 15px;
+  padding-top: 13px;
+  border-top: 1px solid #eeeeef;
+  color: #55555d;
+  font-size: 12px;
+}
+
+.secao-comparacao {
+  padding-top: 48px;
+  padding-bottom: 30px;
+}
+
+.bloco-explicativo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding: 34px;
+  border-radius: 12px;
+  background: #17171b;
+  color: #fff;
+}
+
+.explicacao h3 {
+  margin: 0 0 12px;
+  font-size: 24px;
+}
+
+.explicacao p {
+  max-width: 470px;
+  margin: 0;
+  color: #c7c7ce;
+  line-height: 1.6;
+}
+
+.mini-comparacao {
+  padding: 8px 0;
+}
+
+.linha-preco {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 17px 0;
+  border-bottom: 1px solid #34343a;
+}
+
+.linha-preco:last-child {
+  border-bottom: 0;
+}
+
+.linha-preco strong {
+  font-size: 20px;
+}
+
+footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 28px 5vw;
+  border-top: 1px solid #e1e1e4;
+  background: #fff;
+  color: #77777e;
+  font-size: 13px;
+}
+
+footer strong {
+  color: #28282e;
+}
+
+@media (max-width: 900px) {
+  .navegacao {
+    gap: 16px;
+  }
+
+  .grade-jogos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bloco-explicativo {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .cabecalho {
+    height: 64px;
+    padding: 0 20px;
+  }
+
+  .navegacao {
+    display: none;
+  }
+
+  .hero-conteudo,
+  .secao {
+    width: calc(100% - 40px);
+  }
+
+  .hero {
+    min-height: 480px;
+  }
+
+  .hero h1 {
+    letter-spacing: -1.8px;
+  }
+
+  .barra-pesquisa {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 8px;
+  }
+
+  .icone-pesquisa {
+    padding-left: 10px;
+  }
+
+  .barra-pesquisa input {
+    height: 46px;
+  }
+
+  .barra-pesquisa button {
+    width: 100%;
+    height: 46px;
+    border-radius: 7px;
+  }
+
+  .grade-jogos {
+    grid-template-columns: 1fr;
+  }
+
+  .secao-cabecalho {
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .bloco-explicativo {
+    padding: 24px;
+  }
+
+  footer {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+
+/* ============================================================
+   TRANSIÇÃO GRADUAL DO TEMA
+   A duração acompanha a animação do botão de tema (0.8s).
+   ============================================================ */
+
+@property --fundo {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #f7f7f8;
+}
+
+@property --fundo-card {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffffff;
+}
+
+@property --fundo-header {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffffff;
+}
+
+@property --fundo-hero {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffffff;
+}
+
+@property --texto {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #17171b;
+}
+
+@property --texto-secundario {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #66666d;
+}
+
+@property --texto-suave {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #77777e;
+}
+
+@property --borda-tema {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #e3e3e7;
+}
+
+@property --borda-forte {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #dedee3;
+}
+
+@property --roxo-tema {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #6c55d9;
+}
+
+@property --roxo-forte-tema {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #5742c7;
+}
+
+@property --sombra-tema {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(20, 20, 30, 0.08);
+}
+
+/* ============================================================
+   Tema e carrossel
+   Mantém os estilos originais acima e adiciona apenas os novos
+   comportamentos da Home.
+   ============================================================ */
+
+.app {
+  --fundo: #f7f7f8;
+  --fundo-card: #ffffff;
+  --fundo-header: #ffffff;
+  --fundo-hero: #ffffff;
+  --texto: #17171b;
+  --texto-secundario: #66666d;
+  --texto-suave: #77777e;
+  --borda-tema: #e3e3e7;
+  --borda-forte: #dedee3;
+  --roxo-tema: #6c55d9;
+  --roxo-forte-tema: #5742c7;
+  --sombra-tema: rgba(20, 20, 30, 0.08);
+  color: var(--texto);
+  background: var(--fundo);
+
+  /* 0.8s = mesma duração da animação do botão de tema */
+  transition:
+    --fundo 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --fundo-card 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --fundo-header 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --fundo-hero 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --texto 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --texto-secundario 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --texto-suave 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --borda-tema 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --borda-forte 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --roxo-tema 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --roxo-forte-tema 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --sombra-tema 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app.tema-escuro {
+  --fundo: #101014;
+  --fundo-card: #19191e;
+  --fundo-header: #15151a;
+  --fundo-hero: #141419;
+  --texto: #f5f5f7;
+  --texto-secundario: #b7b7c0;
+  --texto-suave: #9a9aa5;
+  --borda-tema: #303038;
+  --borda-forte: #393941;
+  --roxo-tema: #8b78ef;
+  --roxo-forte-tema: #a294ff;
+  --sombra-tema: rgba(0, 0, 0, 0.28);
+}
+
+@media (prefers-color-scheme: dark) {
+  .app.tema-sistema {
+    --fundo: #101014;
+    --fundo-card: #19191e;
+    --fundo-header: #15151a;
+    --fundo-hero: #141419;
+    --texto: #f5f5f7;
+    --texto-secundario: #b7b7c0;
+    --texto-suave: #9a9aa5;
+    --borda-tema: #303038;
+    --borda-forte: #393941;
+    --roxo-tema: #8b78ef;
+    --roxo-forte-tema: #a294ff;
+    --sombra-tema: rgba(0, 0, 0, 0.28);
+  }
+}
+
+.app.tema-escuro .cabecalho,
+.app.tema-sistema .cabecalho {
+  background: var(--fundo-header);
+  border-bottom-color: var(--borda-tema);
+}
+
+.app.tema-escuro .cabecalho,
+.app.tema-escuro .hero,
+.app.tema-escuro .card-jogo,
+.app.tema-escuro .barra-pesquisa,
+.app.tema-escuro footer,
+.app.tema-sistema .cabecalho,
+.app.tema-sistema .hero,
+.app.tema-sistema .card-jogo,
+.app.tema-sistema .barra-pesquisa,
+.app.tema-sistema footer {
+  color: var(--texto);
+}
+
+.app.tema-escuro .navegacao,
+.app.tema-sistema .navegacao {
+  color: var(--texto-secundario);
+}
+
+.app.tema-escuro .navegacao a:hover,
+.app.tema-escuro .navegacao .ativo,
+.app.tema-sistema .navegacao a:hover,
+.app.tema-sistema .navegacao .ativo {
+  color: var(--texto);
+  border-bottom-color: var(--texto);
+}
+
+.app.tema-escuro .hero,
+.app.tema-sistema .hero {
+  background:
+    radial-gradient(circle at 80% 25%, rgba(107, 67, 255, 0.18), transparent 32%),
+    linear-gradient(135deg, var(--fundo-hero) 0%, var(--fundo) 100%);
+  border-bottom-color: var(--borda-tema);
+}
+
+.app.tema-escuro .hero h1,
+.app.tema-sistema .hero h1,
+.app.tema-escuro .secao-cabecalho h2,
+.app.tema-sistema .secao-cabecalho h2 {
+  color: var(--texto);
+}
+
+.app.tema-escuro .hero p,
+.app.tema-sistema .hero p,
+.app.tema-escuro .menor-preco,
+.app.tema-sistema .menor-preco {
+  color: var(--texto-secundario);
+}
+
+.app.tema-escuro .barra-pesquisa,
+.app.tema-sistema .barra-pesquisa,
+.app.tema-escuro .card-jogo,
+.app.tema-sistema .card-jogo {
+  background: var(--fundo-card);
+  border-color: var(--borda-forte);
+  box-shadow: 0 8px 28px var(--sombra-tema);
+}
+
+.app.tema-escuro .card-jogo:hover {
+  border-color: #303038;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.34);
+}
+
+@media (prefers-color-scheme: dark) {
+  .app.tema-sistema .card-jogo {
+    border-color: #303038;
+  }
+
+  .app.tema-sistema .card-jogo:hover {
+    border-color: #303038;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.34);
+  }
+}
+
+.card-jogo:focus,
+.card-jogo:focus-visible {
+  outline: none;
+}
+
+.app.tema-escuro .barra-pesquisa input,
+.app.tema-sistema .barra-pesquisa input {
+  color: var(--texto);
+}
+
+.app.tema-escuro .barra-pesquisa input::placeholder,
+.app.tema-sistema .barra-pesquisa input::placeholder {
+  color: var(--texto-suave);
+}
+
+.app.tema-escuro .link-secao,
+.app.tema-sistema .link-secao {
+  color: var(--roxo-forte-tema);
+}
+
+.app.tema-escuro footer,
+.app.tema-sistema footer {
+  background: var(--fundo-header);
+  border-top-color: var(--borda-tema);
+  color: var(--texto-suave);
+}
+
+.app.tema-escuro footer strong,
+.app.tema-sistema footer strong {
+  color: var(--texto);
+}
+
+/* Carrossel horizontal */
+.carrossel {
+  position: relative;
+  width: 100%;
+}
+
+/*
+   A área externa é maior que a seção e possui espaço lateral para
+   permitir a sombra dos cards e o "peek" do próximo card.
+*/
+.viewport-carrossel {
+  position: relative;
+  width: calc(100% + 96px);
+  margin: -24px -48px -28px;
+  padding: 28px 48px 36px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.lista-carrossel {
+  display: flex;
+  gap: 20px;
+  overflow: visible;
+  padding: 4px 0 10px;
+  will-change: transform;
+  transition: transform 0.45s ease;
+}
+
+.item-carrossel {
+  flex: 0 0 calc((100% - 180px) / 4);
+  min-width: 0;
+}
+
+/* Fade lateral no estilo Netflix */
+.viewport-carrossel::before,
+.viewport-carrossel::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 72px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.viewport-carrossel::before {
+  left: 0;
+  background: linear-gradient(
+    to right,
+    var(--fundo) 0%,
+    transparent 100%
+  );
+}
+
+.viewport-carrossel::after {
+  right: 0;
+  background: linear-gradient(
+    to left,
+    var(--fundo) 0%,
+    transparent 100%
+  );
+}
+
+.viewport-carrossel.tem-esquerda::before,
+.viewport-carrossel.tem-direita::after {
+  opacity: 1;
+}
+
+.seta-carrossel {
+  position: absolute;
+  top: 50%;
+  z-index: 4;
+
+  width: 44px;
+  height: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+  margin: 0;
+
+  border: 1px solid var(--borda-tema);
+  border-radius: 50%;
+
+  background: var(--fundo-card);
+  color: var(--texto);
+
+  box-shadow: 0 6px 18px var(--sombra-tema);
+
+  font-size: 0;
+  line-height: 0;
+
+  opacity: 0;
+  pointer-events: none;
+
+  transform: translateY(-50%);
+
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.seta-carrossel::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  display: block;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  position: relative;
+  top: 2px;
+}
+
+.seta-carrossel.direita::before {
+  transform: rotate(45deg);
+}
+
+.seta-carrossel.esquerda::before {
+  transform: rotate(-135deg);
+}
+
+.seta-carrossel.visivel {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.seta-carrossel:hover {
+  transform: translateY(-50%) scale(1.05);
+}
+
+.seta-carrossel.esquerda {
+  left: -10px;
+}
+
+.seta-carrossel.direita {
+  right: -10px;
+}
+
+.app.tema-escuro .seta-carrossel {
+  background: #19191e;
+  border-color: #393941;
+  color: #f5f5f7;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  .app.tema-sistema .seta-carrossel {
+    background: #19191e;
+    border-color: #393941;
+    color: #f5f5f7;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.app.tema-claro .seta-carrossel {
+  background: #ffffff;
+  border-color: #dedee3;
+  color: #17171b;
+  box-shadow: 0 6px 18px rgba(20, 20, 30, 0.12);
+}
+
+@media (max-width: 900px) {
+  .item-carrossel {
+    flex-basis: calc((100% - 100px) / 2);
+  }
+
+  .viewport-carrossel {
+    width: calc(100% + 80px);
+    margin-left: -40px;
+    margin-right: -40px;
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+}
+
+@media (max-width: 620px) {
+  .item-carrossel {
+    flex-basis: 76%;
+  }
+
+  .viewport-carrossel {
+    width: calc(100% + 40px);
+    margin-left: -20px;
+    margin-right: -20px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .seta-carrossel.esquerda {
+    left: -6px;
+  }
+
+  .seta-carrossel.direita {
+    right: -6px;
+  }
+}
+
+/* Ajustes finais de acabamento do card e das setas */
+.card-jogo {
+  border: none;;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card-jogo:hover,
+.card-jogo:focus,
+.card-jogo:focus-visible,
+.card-jogo:active {
+  border-color: #e3e3e7;
+  outline: none;
+}
+
+.imagem-jogo {
+  background: transparent;
+}
+
+.app.tema-escuro .card-jogo,
+.app.tema-escuro .card-jogo:hover,
+.app.tema-escuro .card-jogo:focus,
+.app.tema-escuro .card-jogo:focus-visible,
+.app.tema-escuro .card-jogo:active {
+  border-color: #303038;
+  outline: none;
+}
+
+.app.tema-escuro .imagem-jogo {
+  background: #19191e;
+}
+
+@media (prefers-color-scheme: dark) {
+  .app.tema-sistema .card-jogo,
+  .app.tema-sistema .card-jogo:hover,
+  .app.tema-sistema .card-jogo:focus,
+  .app.tema-sistema .card-jogo:focus-visible,
+  .app.tema-sistema .card-jogo:active {
+    border-color: #303038;
+    outline: none;
+  }
+
+  .app.tema-sistema .imagem-jogo {
+    background: #19191e;
+  }
+}
+
+.seta-carrossel::before {
+  position: relative;
+  top: 2px;
+}
+
+/* ============================================================
+   BOTÃO ANIMADO DE TEMA — PASSAGEM DO DIA PARA A NOITE
+   ============================================================ */
+
+.acoes-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.botao-tema-animado {
+  position: relative;
+  width: 58px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  cursor: pointer;
+  isolation: isolate;
+
+  background:
+    linear-gradient(
+      135deg,
+      #bcecf2 0%,
+      #9edeea 55%,
+      #8ed4e1 100%
+    );
+
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(20, 20, 30, 0.08);
+
+  transition:
+    background 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s ease;
+}
+
+.botao-tema-animado:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.1),
+    0 4px 12px rgba(20, 20, 30, 0.14);
+}
+
+.tema-cenario {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+/* ============================================================
+   ASTRO ÚNICO — O MESMO ELEMENTO VIRA LUA
+   ============================================================ */
+
+.tema-astro {
+  position: absolute;
+  top: 50%;
+  left: 7px;
+
+  width: 22px;
+  height: 22px;
+
+  border-radius: 50%;
+
+  background: #ffd84d;
+
+  transform: translateY(-50%) rotate(0deg);
+
+  box-shadow:
+    0 0 0 1px rgba(255, 190, 0, 0.15),
+    0 0 12px rgba(255, 210, 60, 0.48);
+
+  transition:
+    left 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.55s ease,
+    box-shadow 0.55s ease,
+    transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/*
+   A sombra acompanha o astro e começa a cobrir o sol.
+   Como o céu também muda de cor, o círculo passa a parecer
+   uma lua crescente em vez de simplesmente desaparecer.
+*/
+.tema-astro::after {
+  content: '';
+
+  position: absolute;
+  top: -1px;
+  left: 7px;
+
+  width: 22px;
+  height: 22px;
+
+  border-radius: 50%;
+
+  background: #35296d;
+
+  opacity: 0;
+  transform: translateX(-7px) scale(0.7);
+
+  transition:
+    opacity 0.5s ease,
+    transform 0.65s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.7s ease;
+}
+
+/* ============================================================
+   NUVENS
+   ============================================================ */
+
+.tema-nuvens {
+  position: absolute;
+  inset: 0;
+
+  opacity: 1;
+  transform: translateX(0);
+
+  transition:
+    opacity 0.7s ease,
+    transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tema-nuvens i {
+  position: absolute;
+  display: block;
+
+  background: rgba(255, 255, 255, 0.58);
+  border-radius: 50%;
+}
+
+.tema-nuvens i:nth-child(1) {
+  width: 18px;
+  height: 8px;
+  left: 27px;
+  bottom: 3px;
+}
+
+.tema-nuvens i:nth-child(2) {
+  width: 12px;
+  height: 12px;
+  left: 32px;
+  bottom: 2px;
+}
+
+.tema-nuvens i:nth-child(3) {
+  width: 22px;
+  height: 7px;
+  left: 37px;
+  bottom: 3px;
+}
+
+/* ============================================================
+   ESTRELAS
+   ============================================================ */
+
+.tema-estrelas {
+  position: absolute;
+  inset: 0;
+
+  opacity: 0;
+  transform: translateX(10px) scale(0.7);
+
+  transition:
+    opacity 0.7s ease,
+    transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tema-estrelas i {
+  position: absolute;
+
+  color: #ffffff;
+  font-style: normal;
+  font-size: 7px;
+  line-height: 1;
+}
+
+.tema-estrelas i:nth-child(1) {
+  top: 6px;
+  left: 10px;
+}
+
+.tema-estrelas i:nth-child(2) {
+  top: 19px;
+  left: 24px;
+  font-size: 5px;
+}
+
+.tema-estrelas i:nth-child(3) {
+  top: 8px;
+  left: 37px;
+  font-size: 9px;
+}
+
+.tema-estrelas i:nth-child(4) {
+  top: 20px;
+  left: 47px;
+  font-size: 5px;
+}
+
+/* ============================================================
+   TRANSIÇÃO PARA NOITE
+   ============================================================ */
+
+.botao-tema-animado.escuro {
+  background:
+    linear-gradient(
+      135deg,
+      #30265f 0%,
+      #51379b 52%,
+      #292052 100%
+    );
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.botao-tema-animado.escuro .tema-astro {
+  left: 29px;
+
+  background: #f1f1f5;
+
+  transform: translateY(-50%) rotate(180deg);
+
+  box-shadow:
+    0 0 8px rgba(255, 255, 255, 0.3),
+    0 0 14px rgba(255, 255, 255, 0.12);
+}
+
+.botao-tema-animado.escuro .tema-astro::after {
+  opacity: 0;
+
+  transform: translateX(0) scale(1);
+
+  background: #51379b;
+}
+
+.botao-tema-animado.escuro .tema-nuvens {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+.botao-tema-animado.escuro .tema-estrelas {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+/* ============================================================
+   FOCO
+   ============================================================ */
+
+.botao-tema-animado:focus-visible {
+  outline: 2px solid var(--roxo-tema);
+  outline-offset: 3px;
+}
+
+/* ============================================================
+   RESPONSIVO
+   ============================================================ */
+
+@media (max-width: 620px) {
+  .botao-tema-animado {
+    width: 54px;
+    height: 30px;
+  }
+
+  .tema-astro {
+    left: 6px;
+    width: 21px;
+    height: 21px;
+  }
+
+  .botao-tema-animado.escuro .tema-astro {
+    left: 27px;
+  }
+}
+
+/* ============================================================
+   PÁGINA DE JOGOS
+   ============================================================ */
+
+.pagina-jogos {
+  width: min(1120px, 90%);
+  margin: 0 auto;
+  padding: 56px 0 90px;
+}
+
+.cabecalho-jogos {
+  margin-bottom: 34px;
+}
+
+.cabecalho-jogos h1 {
+  margin: 0 0 12px;
+  font-size: clamp(38px, 5vw, 56px);
+  line-height: 1;
+  letter-spacing: -2px;
+}
+
+.cabecalho-jogos p {
+  max-width: 680px;
+  margin: 0;
+  color: var(--texto-secundario);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.controles-jogos {
+  margin-bottom: 34px;
+  padding: 22px;
+  border: 1px solid var(--borda-tema);
+  border-radius: 12px;
+  background: var(--fundo-card);
+  box-shadow: 0 8px 28px var(--sombra-tema);
+}
+
+.pesquisa-jogos {
+  height: 54px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--borda-forte);
+  border-radius: 9px;
+  overflow: hidden;
+  background: var(--fundo);
+}
+
+.pesquisa-jogos .icone-pesquisa {
+  padding-left: 17px;
+}
+
+.pesquisa-jogos input {
+  min-width: 0;
+  flex: 1;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  padding: 0 14px;
+  background: transparent;
+  color: var(--texto);
+}
+
+.pesquisa-jogos input::placeholder {
+  color: var(--texto-suave);
+}
+
+.pesquisa-jogos button {
+  height: 100%;
+  padding: 0 22px;
+  border: 0;
+  background: var(--texto);
+  color: var(--fundo-card);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.filtros-jogos {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.grupo-filtros {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.grupo-filtros > span,
+.ordenacao-jogos > span {
+  margin-right: 4px;
+  color: var(--texto-suave);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.grupo-filtros button {
+  padding: 8px 13px;
+  border: 1px solid var(--borda-forte);
+  border-radius: 999px;
+  background: var(--fundo-card);
+  color: var(--texto-secundario);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.grupo-filtros button:hover {
+  border-color: var(--roxo-tema);
+  color: var(--texto);
+}
+
+.grupo-filtros button.filtro-ativo {
+  border-color: var(--roxo-tema);
+  background: var(--roxo-tema);
+  color: #fff;
+}
+
+.ordenacao-jogos {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.ordenacao-jogos select {
+  min-width: 145px;
+  padding: 9px 30px 9px 12px;
+  border: 1px solid var(--borda-forte);
+  border-radius: 8px;
+  background: var(--fundo-card);
+  color: var(--texto);
+  outline: 0;
+}
+
+.resultado-cabecalho {
+  margin-bottom: 18px;
+  color: var(--texto-suave);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.pagina-grade-jogos {
+  align-items: start;
+}
+
+.sem-resultados {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed var(--borda-forte);
+  border-radius: 12px;
+  background: var(--fundo-card);
+  color: var(--texto-secundario);
+  text-align: center;
+}
+
+.sem-resultados strong {
+  color: var(--texto);
+  font-size: 18px;
+}
+
+.sem-resultados span {
+  font-size: 14px;
+}
+
+.paginacao-jogos {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 38px;
+}
+
+.paginacao-jogos button {
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--borda-forte);
+  border-radius: 8px;
+  background: var(--fundo-card);
+  color: var(--texto);
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.paginacao-jogos button:hover:not(:disabled) {
+  border-color: var(--roxo-tema);
+}
+
+.paginacao-jogos button.pagina-ativa {
+  border-color: var(--roxo-tema);
+  background: var(--roxo-tema);
+  color: #fff;
+}
+
+.paginacao-jogos button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .filtros-jogos {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ordenacao-jogos {
+    width: 100%;
+  }
+}
+
+@media (max-width: 620px) {
+  .pagina-jogos {
+    width: calc(100% - 40px);
+    padding-top: 40px;
+  }
+
+  .cabecalho-jogos h1 {
+    letter-spacing: -1px;
+  }
+
+  .controles-jogos {
+    padding: 16px;
+  }
+
+  .pesquisa-jogos {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 7px;
+  }
+
+  .pesquisa-jogos input {
+    height: 42px;
+  }
+
+  .pesquisa-jogos button {
+    width: 100%;
+    height: 44px;
+    border-radius: 7px;
+  }
+
+  .grupo-filtros {
+    align-items: flex-start;
+  }
+
+  .ordenacao-jogos {
+    justify-content: space-between;
+  }
+
+  .ordenacao-jogos select {
+    flex: 1;
+    margin-left: 8px;
+  }
+}
+.preco-indisponivel {
+  color: var(--texto-suave);
+  font-size: 12px;
+  font-weight: 600;
+}
+.card-jogo-clicavel {
+  cursor: pointer;
+}
+/* =========================================================
+   PÁGINA DE DETALHES DO JOGO
+   ========================================================= */
+
+.pagina-detalhes {
+  min-height: calc(100vh - 70px);
+  background: var(--fundo);
+  color: var(--texto);
+}
+
+.conteudo-detalhes {
+  width: min(1180px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 28px 0 80px;
+}
+
+/* Botão voltar */
+
+.botao-voltar-detalhes {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--borda-tema);
+  background: var(--fundo-card);
+  color: var(--texto);
+  border-radius: 9px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.botao-voltar-detalhes:hover {
+  border-color: var(--roxo-tema);
+  color: var(--roxo-tema);
+}
+
+/* =========================================================
+   HERO
+   ========================================================= */
+
+/* =========================================================
+   HERO
+   ========================================================= */
+
+.hero-detalhes {
+  position: relative;
+  isolation: isolate;
+  min-height: 430px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  margin-top: 26px;
+  padding: 44px 52px 42px;
+  box-sizing: border-box;
+  background: var(--fundo-card);
+  border: 1px solid var(--borda-tema);
+  border-radius: 20px;
+  box-shadow: 0 8px 30px var(--sombra-tema);
+}
+
+.imagem-fundo-detalhes {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  filter: saturate(0.98);
+  transform: none;
+  image-rendering: auto;
+}
+
+.imagem-fundo-detalhes-vazia {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fundo-card);
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+.hero-sobreposicao-detalhes {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(10, 10, 14, 0.08) 0%,
+      rgba(10, 10, 14, 0.20) 35%,
+      rgba(10, 10, 14, 0.78) 78%,
+      rgba(10, 10, 14, 0.98) 100%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(10, 10, 14, 0.96) 0%,
+      rgba(10, 10, 14, 0.78) 34%,
+      rgba(10, 10, 14, 0.34) 66%,
+      rgba(10, 10, 14, 0.54) 100%
+    );
+}
+
+.informacoes-principais {
+  position: relative;
+  z-index: 1;
+  width: min(720px, 100%);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.informacoes-principais .eyebrow {
+  color: #a78bfa;
+}
+
+.informacoes-principais h1 {
+  margin: 7px 0 8px;
+  color: #ffffff;
+  font-size: clamp(34px, 4.5vw, 54px);
+  line-height: 1.02;
+  letter-spacing: -1.8px;
+  text-wrap: balance;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35);
+}
+
+.desenvolvedor-detalhes {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 15px;
+}
+
+.metadados-detalhes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px 24px;
+  margin-top: 22px;
+}
+
+.metadados-detalhes span {
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 13px;
+}
+
+.metadados-detalhes strong {
+  color: #ffffff;
+}
+
+.menor-preco-detalhes {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  width: fit-content;
+  margin-top: 24px;
+  padding: 13px 17px;
+  background: rgba(15, 15, 20, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 11px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(8px);
+}
+
+.menor-preco-detalhes span {
+  color: rgba(255, 255, 255, 0.70);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.menor-preco-detalhes strong {
+  color: #ffffff;
+  font-size: 23px;
+  font-weight: 800;
+}
+
+/* =========================================================
+   SEÇÕES
+   ========================================================= */
+
+.precos-detalhes,
+.historico-detalhes,
+.descricoes-detalhes {
+  margin-top: 52px;
+}
+
+.titulo-secao-detalhes {
+  margin-bottom: 20px;
+}
+
+.titulo-secao-detalhes h2 {
+  margin: 5px 0 0;
+  color: var(--texto);
+  font-size: 27px;
+  line-height: 1.2;
+  letter-spacing: -0.6px;
+}
+
+.titulo-secao-detalhes p {
+  margin: 7px 0 0;
+  color: var(--texto-secundario);
+  font-size: 13px;
+}
+
+/* =========================================================
+   CARDS DE PREÇO
+   ========================================================= */
+
+.cards-precos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+/* Agrupa o card e as etiquetas para que ambos se movimentem juntos */
+.card-preco-wrapper {
+  position: relative;
+  min-width: 0;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.card-preco-wrapper:hover {
+  transform: translateY(-2px);
+}
+
+/* As etiquetas fazem parte visual do bloco e ficam sobre a borda */
+.etiquetas-preco {
+  position: absolute;
+  top: -14px;
+  left: 16px;
+  z-index: 3;
+
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  margin: 0;
+}
+
+.marcador-menor-preco,
+.marcador-desconto {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 28px;
+  box-sizing: border-box;
+  padding: 5px 10px;
+  border-radius: 7px;
+  background: var(--roxo-tema);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.marcador-desconto {
+  background: var(--roxo-tema);
+}
+
+.card-preco {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 220px;
+  padding: 23px;
+  box-sizing: border-box;
+  background: var(--fundo-card);
+  border: 1px solid var(--borda-tema);
+  border-radius: 16px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.card-preco:hover {
+  border-color: var(--roxo-tema);
+  box-shadow: 0 8px 24px var(--sombra-tema);
+}
+
+.card-preco-topo {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 22px;
+}
+
+.nome-plataforma {
+  color: var(--texto);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.preco-atual {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--texto);
+  font-size: 29px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+}
+
+.preco-sem-desconto {
+  display: block;
+  margin-bottom: 22px;
+  color: var(--texto-secundario);
+  font-size: 18px;
+  text-decoration: line-through;
+}
+
+.botao-loja {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+  padding: 10px 16px;
+  border-radius: 9px;
+  background: var(--roxo-tema);
+  color: #ffffff !important;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.botao-loja:hover {
+  background: var(--roxo-forte-tema);
+  color: #ffffff !important;
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   CONTROLES DO HISTÓRICO
+   ========================================================= */
+
+.controles-historico {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+  padding: 17px;
+  background: var(--fundo-card);
+  border: 1px solid var(--borda-tema);
+  border-radius: 14px;
+}
+
+.grupo-controle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.grupo-controle > span {
+  color: var(--texto);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.botoes-filtro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.botoes-filtro button {
+  border: 1px solid var(--borda-tema);
+  background: var(--fundo);
+  color: var(--texto-secundario);
+  border-radius: 8px;
+  padding: 7px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.botoes-filtro button:hover {
+  border-color: var(--roxo-tema);
+  color: var(--roxo-tema);
+}
+
+.botoes-filtro button.ativo {
+  background: var(--roxo-tema);
+  border-color: var(--roxo-tema);
+  color: #ffffff;
+}
+
+/* =========================================================
+   GRÁFICO
+   ========================================================= */
+
+.grafico-container {
+  position: relative;
+  padding: 20px 18px 12px;
+  background: var(--fundo-card);
+  border: 1px solid var(--borda-tema);
+  border-radius: 16px;
+}
+
+.grafico-legenda {
+  display: flex;
+  justify-content: flex-end;
+  gap: 18px;
+  margin-bottom: 2px;
+}
+
+.grafico-legenda span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--texto-secundario);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.legenda-ponto {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  border-radius: 50%;
+}
+
+.legenda-steam {
+  background: #4b8bea;
+}
+
+.legenda-epic {
+  background: #9b78e8;
+}
+
+.grafico-area {
+  position: relative;
+  width: 100%;
+  min-height: 360px;
+}
+
+.grafico-svg {
+  display: block;
+  width: 100%;
+  height: 360px;
+  overflow: visible;
+}
+
+.grafico-grade {
+  stroke: var(--borda-tema);
+  stroke-width: 1;
+  stroke-dasharray: 4 5;
+}
+
+.grafico-eixo {
+  stroke: var(--borda-forte);
+  stroke-width: 1;
+}
+
+.grafico-eixo-texto {
+  fill: var(--texto-suave);
+  font-size: 12px;
+}
+
+.linha-historico {
+  fill: none;
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* Área invisível de interação: facilita o hover sem engrossar a linha visível. */
+.linha-historico-hover {
+  fill: none;
+  stroke: transparent !important;
+  stroke-width: 18;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  cursor: crosshair;
+  pointer-events: stroke;
+}
+
+.linha-steam {
+  stroke: #4b8bea;
+}
+
+.linha-epic {
+  stroke: #9b78e8;
+}
+
+.ponto-historico {
+  cursor: pointer;
+  stroke: var(--fundo-card);
+  stroke-width: 2;
+}
+
+.ponto-steam {
+  fill: #4b8bea;
+}
+
+.ponto-epic {
+  fill: #9b78e8;
+}
+
+.grafico-tooltip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -115%);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 150px;
+  padding: 10px 13px;
+  background: var(--texto);
+  color: var(--fundo-card);
+  border-radius: 9px;
+  box-shadow: 0 8px 20px var(--sombra-tema);
+  pointer-events: none;
+  font-size: 12px;
+}
+
+.grafico-tooltip strong {
+  font-size: 13px;
+}
+
+.grafico-tooltip span {
+  opacity: 0.8;
+}
+
+.grafico-vazio {
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 30px;
+  background: var(--fundo-card);
+  border: 1px solid var(--borda-tema);
+  border-radius: 16px;
+  color: var(--texto-suave);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* =========================================================
+   DESCRIÇÕES
+   ========================================================= */
+
+.cards-descricao {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  width: 100%;
+}
+
+.card-descricao {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 23px;
+  background: var(--fundo-card);
+  border: 1px solid var(--borda-tema);
+  border-radius: 16px;
+}
+
+.card-descricao h3 {
+  margin: 0 0 13px;
+  color: var(--texto);
+  font-size: 16px;
+}
+
+.card-descricao p {
+  margin: 0;
+  color: var(--texto-secundario);
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+/* =========================================================
+   ESTADOS
+   ========================================================= */
+
+.estado-detalhes {
+  min-height: calc(100vh - 70px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+}
+
+.carregando-detalhes,
+.erro-detalhes {
+  max-width: 500px;
+  padding: 32px;
+  text-align: center;
+  background: var(--fundo-card);
+  border: 1px solid var(--borda-tema);
+  border-radius: 16px;
+}
+
+.erro-detalhes h1 {
+  margin: 0 0 10px;
+  color: var(--texto);
+}
+
+.erro-detalhes p {
+  margin: 0 0 20px;
+  color: var(--texto-secundario);
+}
+
+/* =========================================================
+   RESPONSIVO
+   ========================================================= */
+
+@media (max-width: 800px) {
+  .conteudo-detalhes {
+    width: min(100% - 24px, 1180px);
+    padding-top: 20px;
+  }
+
+  .hero-detalhes {
+    min-height: 460px;
+    padding: 34px 28px 32px;
+  }
+
+  .informacoes-principais {
+    width: 100%;
+  }
+
+  .cards-precos,
+  .cards-descricao {
+    grid-template-columns: 1fr;
+  }
+
+  .etiquetas-preco {
+    top: -13px;
+    left: 10px;
+    gap: 5px;
+  }
+
+  .controles-historico {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .etiquetas-preco {
+    top: -12px;
+    left: 8px;
+    gap: 4px;
+  }
+
+  .marcador-menor-preco,
+  .marcador-desconto {
+    min-height: 25px;
+    font-size: 10px;
+    padding: 5px 8px;
+    border-radius: 6px;
+  }
+
+  .hero-detalhes {
+    min-height: 500px;
+    padding: 28px 20px 26px;
+    border-radius: 16px;
+  }
+
+  .hero-sobreposicao-detalhes {
+    background:
+      linear-gradient(
+        to bottom,
+        rgba(10, 10, 14, 0.12) 0%,
+        rgba(10, 10, 14, 0.30) 30%,
+        rgba(10, 10, 14, 0.88) 72%,
+        rgba(10, 10, 14, 0.99) 100%
+      ),
+      linear-gradient(
+        90deg,
+        rgba(10, 10, 14, 0.88) 0%,
+        rgba(10, 10, 14, 0.34) 100%
+      );
+  }
+
+  .informacoes-principais h1 {
+    font-size: 30px;
+  }
+
+  .metadados-detalhes {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .grafico-area {
+    overflow-x: auto;
+  }
+
+  .grafico-svg {
+    min-width: 650px;
+  }
+
+  .grafico-tooltip {
+    display: none;
+  }
+}
+
+
+/* =========================================================
+   LOGO OFICIAL DA STEAM NO HERO
+   ========================================================= */
+
+.logo-jogo-steam {
+  display: block;
+  width: min(520px, 70%);
+  max-width: 520px;
+  max-height: 150px;
+  height: auto;
+  object-fit: contain;
+  object-position: left bottom;
+  margin: 2px 0 18px;
+  filter: drop-shadow(0 3px 12px rgba(0, 0, 0, 0.28));
+}
+
+.nome-jogo-fallback {
+  display: none;
+}
+
+@media (max-width: 620px) {
+  .logo-jogo-steam {
+    width: min(420px, 92%);
+    max-height: 110px;
+    margin-bottom: 14px;
+  }
+}
+
+.grafico-vazio strong {
+  color: var(--texto);
+  font-size: 16px;
+}
+
+.grafico-vazio span {
+  max-width: 650px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   MÍDIA OFICIAL DA STEAM
+   ========================================================= */
+
+.midia-detalhes {
+  margin-top: 72px;
+}
+
+.galeria-steam {
+  display: grid;
+  gap: 14px;
+}
+
+.imagem-principal-steam {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--borda-tema);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--fundo-card);
+  cursor: pointer;
+  box-shadow: 0 8px 28px var(--sombra-tema);
+}
+
+.imagem-principal-steam img {
+  display: block;
+  width: 100%;
+  max-height: 620px;
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+
+.imagem-principal-steam:hover img {
+  transform: scale(1.015);
+}
+
+.miniaturas-steam {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+  gap: 10px;
+}
+
+.miniatura-steam {
+  display: block;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid var(--borda-tema);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--fundo-card);
+  cursor: pointer;
+}
+
+.miniatura-steam img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.miniatura-steam:hover img {
+  transform: scale(1.04);
+  opacity: 0.88;
+}
+
+.video-detalhes {
+  margin-top: 52px;
+}
+
+.player-video-steam {
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--borda-tema);
+  border-radius: 16px;
+  background: #000;
+  box-shadow: 0 8px 28px var(--sombra-tema);
+}
+
+.video-steam {
+  display: block;
+  width: 100%;
+  max-height: 680px;
+  background: #000;
+}
+
+.titulo-video-steam {
+  display: block;
+  padding: 12px 16px;
+  color: var(--texto-secundario);
+  background: var(--fundo-card);
+  font-size: 13px;
+}
+
+.lightbox-steam {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: rgba(0, 0, 0, 0.88);
+}
+
+.lightbox-steam img {
+  display: block;
+  max-width: min(1400px, 94vw);
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.fechar-lightbox-steam {
+  position: fixed;
+  top: 18px;
+  right: 24px;
+  z-index: 1001;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(20, 20, 24, 0.75);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+@media (max-width: 800px) {
+  .miniaturas-steam {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+
+  .lightbox-steam {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 520px) {
+  .miniaturas-steam {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fechar-lightbox-steam {
+    top: 10px;
+    right: 12px;
+  }
+}
+
+/* ============================================================
+   PESQUISA DA HOME — SUGESTÕES EM TEMPO REAL
+   Compatível com os temas claro/escuro existentes.
+   ============================================================ */
+
+.barra-pesquisa {
+  position: relative;
+  overflow: visible;
+  z-index: 30;
+}
+
+.barra-pesquisa > input,
+.barra-pesquisa > button,
+.barra-pesquisa > .icone-pesquisa {
+  position: relative;
+  z-index: 2;
+}
+
+.barra-pesquisa button {
+  border-radius: 0 10px 10px 0;
+  cursor: pointer;
+  background: var(--texto);
+  color: var(--fundo-card);
+}
+
+.sugestoes-pesquisa {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+
+  overflow: hidden;
+  padding: 6px;
+
+  background: var(--fundo-card);
+  border: 1px solid var(--borda-forte);
+  border-radius: 12px;
+  box-shadow: 0 16px 36px var(--sombra-tema);
+}
+
+.sugestao-jogo {
+  width: 100%;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--texto);
+
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sugestao-jogo:hover,
+.sugestao-jogo:focus-visible {
+  background: var(--fundo);
+  outline: none;
+}
+
+.sugestao-jogo:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--roxo-tema);
+}
+
+.sugestao-jogo-imagem {
+  flex: 0 0 86px;
+  width: 86px;
+  height: 40px;
+  display: block;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--fundo);
+}
+
+.sugestao-jogo-imagem-vazia {
+  border: 1px solid var(--borda-tema);
+}
+
+.sugestao-jogo-nome {
+  min-width: 0;
+  overflow: hidden;
+
+  color: var(--texto);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sugestao-sem-resultados {
+  padding: 14px 12px;
+  color: var(--texto-secundario);
+  font-size: 13px;
+  text-align: left;
+}
+
+@media (max-width: 620px) {
+  .barra-pesquisa button {
+    border-radius: 7px;
+  }
+
+  .sugestoes-pesquisa {
+    top: calc(100% + 6px);
+  }
+
+  .sugestao-jogo-imagem {
+    flex-basis: 76px;
+    width: 76px;
+    height: 36px;
+  }
+}
+
+/* ============================================================
+   TRANSIÇÃO UNIFICADA DO TEMA
+   Todos os elementos visuais acompanham os 0.8s do botão.
+   ============================================================ */
+
+:root {
+  --duracao-tema: 0.8s;
+  --curva-tema: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app,
+.app .cabecalho,
+.app .hero,
+.app .hero h1,
+.app .hero p,
+.app .card-jogo,
+.app .barra-pesquisa,
+.app .barra-pesquisa input,
+.app .secao-cabecalho h2,
+.app .menor-preco,
+.app .link-secao,
+.app footer,
+.app footer strong,
+.app .pagina-jogos,
+.app .controles-jogos,
+.app .pesquisa-jogos,
+.app .pesquisa-jogos input,
+.app .grupo-filtros button,
+.app .ordenacao-jogos select,
+.app .resultado-cabecalho,
+.app .sem-resultados,
+.app .paginacao-jogos button,
+.app .pagina-detalhes,
+.app .conteudo-detalhes,
+.app .botao-voltar-detalhes,
+.app .titulo-secao-detalhes h2,
+.app .titulo-secao-detalhes p,
+.app .card-preco,
+.app .nome-plataforma,
+.app .preco-atual,
+.app .preco-sem-desconto,
+.app .controles-historico,
+.app .grupo-controle > span,
+.app .botoes-filtro button,
+.app .grafico-container {
+  transition:
+    background-color var(--duracao-tema) var(--curva-tema),
+    color var(--duracao-tema) var(--curva-tema),
+    border-color var(--duracao-tema) var(--curva-tema),
+    box-shadow var(--duracao-tema) var(--curva-tema);
+}
+
+/* A barra da Home usa gradiente; ele precisa acompanhar a troca
+   sem depender da entrada/saída de um seletor de tema. */
+.app .hero {
+  background:
+    radial-gradient(
+      circle at 80% 25%,
+      rgba(107, 67, 255, 0.14),
+      transparent 32%
+    ),
+    linear-gradient(135deg, var(--fundo-hero) 0%, var(--fundo) 100%);
+  border-bottom-color: var(--borda-tema);
+}
+
+/* Mantém os componentes dependentes das variáveis do tema durante
+   toda a animação, em vez de trocar propriedades de forma instantânea. */
+.app .cabecalho {
+  background: var(--fundo-header);
+  border-bottom-color: var(--borda-tema);
+}
+
+.app .card-jogo,
+.app .barra-pesquisa,
+.app .controles-jogos,
+.app .sem-resultados,
+.app .controles-historico,
+.app .grafico-container,
+.app .card-preco {
+  background: var(--fundo-card);
+  border-color: var(--borda-tema);
+}
+
+.app .barra-pesquisa input,
+.app .pesquisa-jogos input,
+.app .ordenacao-jogos select {
+  color: var(--texto);
+}
+
+.app .hero h1,
+.app .secao-cabecalho h2,
+.app .conteudo-detalhes,
+.app .titulo-secao-detalhes h2,
+.app .nome-plataforma,
+.app .preco-atual,
+.app .grupo-controle > span {
+  color: var(--texto);
+}
+
+.app .hero p,
+.app .menor-preco,
+.app .resultado-cabecalho,
+.app .titulo-secao-detalhes p,
+.app .preco-sem-desconto {
+  color: var(--texto-secundario);
+}
+
+.app footer {
+  background: var(--fundo-header);
+  border-top-color: var(--borda-tema);
+  color: var(--texto-suave);
+}
+
+.app footer strong {
+  color: var(--texto);
+}
+
+.app .pesquisa-jogos {
+  background: var(--fundo);
+  border-color: var(--borda-forte);
+}
+
+.app .grupo-filtros button,
+.app .ordenacao-jogos select,
+.app .paginacao-jogos button,
+.app .botao-voltar-detalhes,
+.app .botoes-filtro button {
+  background: var(--fundo-card);
+  color: var(--texto);
+  border-color: var(--borda-forte);
+}
+
+.app .link-secao {
+  color: var(--roxo-forte-tema);
+}
+
+/* O botão de pesquisa acompanha exatamente a mesma duração. */
+.app .barra-pesquisa button,
+.app .pesquisa-jogos button {
+  transition:
+    background-color var(--duracao-tema) var(--curva-tema),
+    color var(--duracao-tema) var(--curva-tema);
+}
+
+/* Evita que regras locais de 0.2s criem uma segunda velocidade visual. */
+.app .botao-tema-animado {
+  transition:
+    background var(--duracao-tema) var(--curva-tema),
+    box-shadow 0.3s ease;
+}
+
+/* ============================================================
+   TRANSIÇÃO UNIFICADA — V2
+   Remove as últimas cores fixas dependentes do tema.
+   Os elementos passam a consumir as mesmas variáveis animadas
+   pelo .app durante os 0.8s.
+   ============================================================ */
+
+/* Cards: inclusive hover/focus usam a mesma paleta animada. */
+.app .card-jogo,
+.app .card-jogo:hover,
+.app .card-jogo:focus,
+.app .card-jogo:focus-visible,
+.app .card-jogo:active {
+  background: var(--fundo-card);
+  border-color: var(--borda-tema);
+  color: var(--texto);
+}
+
+.app .card-jogo:hover {
+  box-shadow: 0 14px 32px var(--sombra-tema);
+}
+
+/* Fundo atrás das imagens dos jogos. */
+.app .imagem-jogo {
+  background: var(--fundo-card);
+}
+
+/* Setas do carrossel: sem troca instantânea entre hexadecimais. */
+.app .seta-carrossel,
+.app .seta-carrossel:hover {
+  background: var(--fundo-card);
+  border-color: var(--borda-tema);
+  color: var(--texto);
+  box-shadow: 0 6px 18px var(--sombra-tema);
+}
+
+/* Mantém as propriedades visuais do card/setas na mesma duração. */
+.app .card-jogo,
+.app .seta-carrossel,
+.app .imagem-jogo {
+  transition:
+    background-color var(--duracao-tema) var(--curva-tema),
+    color var(--duracao-tema) var(--curva-tema),
+    border-color var(--duracao-tema) var(--curva-tema),
+    box-shadow var(--duracao-tema) var(--curva-tema),
+    transform 0.2s ease;
+}
+
+/* Os elementos de navegação também seguem as variáveis animadas. */
+.app .navegacao,
+.app .navegacao a,
+.app .navegacao a:hover,
+.app .navegacao .ativo {
+  color: var(--texto-secundario);
+  border-bottom-color: var(--borda-tema);
+}
+
+.app .navegacao a:hover,
+.app .navegacao .ativo {
+  color: var(--texto);
+}
+
+/* A transição do Hero fica totalmente baseada nas variáveis do tema. */
+.app .hero {
+  background:
+    radial-gradient(
+      circle at 80% 25%,
+      rgba(107, 67, 255, 0.14),
+      transparent 32%
+    ),
+    linear-gradient(135deg, var(--fundo-hero) 0%, var(--fundo) 100%);
+  border-bottom-color: var(--borda-tema);
+}
+
+/* Garante que o estado claro/escuro não sobrescreva novamente
+   as propriedades que acabamos de tornar animáveis. */
+.app.tema-escuro .card-jogo,
+.app.tema-sistema .card-jogo,
+.app.tema-escuro .seta-carrossel,
+.app.tema-sistema .seta-carrossel,
+.app.tema-claro .seta-carrossel,
+.app.tema-escuro .imagem-jogo,
+.app.tema-sistema .imagem-jogo {
+  background: var(--fundo-card);
+  border-color: var(--borda-tema);
+  color: var(--texto);
+  box-shadow: 0 6px 18px var(--sombra-tema);
+}
+
+.app.tema-escuro .card-jogo:hover,
+.app.tema-sistema .card-jogo:hover {
+  border-color: var(--borda-tema);
+  box-shadow: 0 14px 32px var(--sombra-tema);
+}
+
+/* ============================================================
+   V3 — sincronização do HERO e do sombreado lateral do carrossel
+   ============================================================ */
+
+/*
+   O brilho roxo do Hero também participa da mesma animação.
+   Antes ele era definido diretamente em regras .tema-escuro/.tema-sistema,
+   que podiam trocar o gradiente de forma instantânea.
+*/
+@property --hero-brilho {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0.14;
+}
+
+.app {
+  --hero-brilho: 0.14;
+}
+
+.app.tema-escuro,
+.app.tema-sistema {
+  --hero-brilho: 0.18;
+}
+
+/*
+   Força o Hero a usar uma única definição de gradiente.
+   O !important é intencional: há regras antigas com especificidade maior
+   (.app.tema-escuro .hero) que estavam substituindo esta definição.
+*/
+.app .hero {
+  background:
+    radial-gradient(
+      circle at 80% 25%,
+      rgba(107, 67, 255, var(--hero-brilho)),
+      transparent 32%
+    ),
+    linear-gradient(135deg, var(--fundo-hero) 0%, var(--fundo) 100%) !important;
+  border-bottom-color: var(--borda-tema);
+  transition:
+    background var(--duracao-tema) var(--curva-tema),
+    border-color var(--duracao-tema) var(--curva-tema);
+}
+
+/*
+   Sombreado lateral do carrossel.
+   Além da variável --fundo ser animada, o próprio background do pseudo-elemento
+   agora tem a mesma duração. Isso evita o aspecto de "cortina" mudando de uma vez.
+*/
+.viewport-carrossel::before,
+.viewport-carrossel::after {
+  background-color: transparent;
+  transition:
+    opacity var(--duracao-tema) var(--curva-tema),
+    background var(--duracao-tema) var(--curva-tema);
+}
+
+.viewport-carrossel::before {
+  background-image: linear-gradient(
+    to right,
+    var(--fundo) 0%,
+    transparent 100%
+  );
+}
+
+.viewport-carrossel::after {
+  background-image: linear-gradient(
+    to left,
+    var(--fundo) 0%,
+    transparent 100%
+  );
+}
+
+/* Garante que o fade lateral também enxergue o tema durante a animação. */
+.app .viewport-carrossel::before,
+.app .viewport-carrossel::after {
+  transition:
+    opacity var(--duracao-tema) var(--curva-tema),
+    background-image var(--duracao-tema) var(--curva-tema);
+}
+
+
+/* ============================================================
+   TRANSIÇÃO CROSSFADE — HERO DA HOME + FADE DO CARROSSEL
+   ============================================================ */
+
+/*
+   HERO: em vez de trocar o gradient de uma vez, mantemos as duas
+   versões renderizadas e fazemos uma desaparecer enquanto a outra
+   aparece. O conteúdo permanece acima das duas camadas.
+*/
+.app .hero {
+  position: relative;
+  isolation: isolate;
+  background: transparent !important;
+  border-bottom-color: var(--borda-tema);
+  overflow: hidden;
+}
+
+.app .hero::before,
+.app .hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  /* Começa 0,1s depois e termina 0,1s depois dos demais elementos. */
+  transition:
+    opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transition-delay: 0.1s;
+}
+
+/* Versão clara */
+.app .hero::before {
+  opacity: 1;
+  background:
+    radial-gradient(circle at 80% 25%, rgba(107, 67, 255, 0.12), transparent 32%),
+    linear-gradient(135deg, #ffffff 0%, #f1f1f4 100%);
+}
+
+/* Versão escura */
+.app .hero::after {
+  opacity: 0;
+  background:
+    radial-gradient(circle at 80% 25%, rgba(107, 67, 255, 0.18), transparent 32%),
+    linear-gradient(135deg, #141419 0%, #101014 100%);
+}
+
+.app.tema-escuro .hero::before,
+.app.tema-sistema .hero::before {
+  opacity: 0;
+}
+
+.app.tema-escuro .hero::after,
+.app.tema-sistema .hero::after {
+  opacity: 1;
+}
+
+/* O conteúdo não participa do crossfade. */
+.app .hero-conteudo {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+   CARROSSEL: as laterais usam uma camada própria para não depender
+   diretamente da troca do background do Hero. A cor do fade acompanha
+   o fundo através da variável animada e a opacidade fica estável.
+*/
+.app .viewport-carrossel::before,
+.app .viewport-carrossel::after {
+  /* Mesmo atraso do Hero para os dois acabarem juntos. */
+  transition:
+    opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transition-delay: 0.1s;
+}
+
+.app .viewport-carrossel::before {
+  background: linear-gradient(to right, var(--fundo) 0%, transparent 100%);
+}
+
+.app .viewport-carrossel::after {
+  background: linear-gradient(to left, var(--fundo) 0%, transparent 100%);
+}
+
+/* Remove os backgrounds antigos do Hero que poderiam aparecer por cima. */
+.app.tema-escuro .hero,
+.app.tema-sistema .hero,
+.app.tema-claro .hero {
+  background: transparent !important;
+}
+
+
+/* ============================================================
+   AJUSTE FINAL — CROSSFADE DO HERO E DO SOMBREAMENTO
+   ============================================================ */
+
+/* HERO
+   Mantém os 0,8s, mas concentra a mudança mais perto do final.
+   A curva cubic-bezier faz o início ficar mais lento e a cor
+   final aparecer com mais intensidade nos últimos instantes.
+*/
+.app .hero {
+  transition:
+    background 0.8s cubic-bezier(0.75, 0, 0.95, 1),
+    border-bottom-color 0.8s cubic-bezier(0.75, 0, 0.95, 1);
+}
+
+/* O Hero recebe uma camada de fundo sobreposta para evitar que
+   a troca do gradient aconteça de forma perceptivelmente brusca. */
+.app .hero {
+  position: relative;
+  isolation: isolate;
+}
+
+.app .hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+
+  background:
+    radial-gradient(
+      circle at 80% 25%,
+      rgba(107, 67, 255, 0.18),
+      transparent 32%
+    ),
+    linear-gradient(
+      135deg,
+      #141419 0%,
+      #101014 100%
+    );
+
+  opacity: 0;
+  transition: opacity 0.8s cubic-bezier(0.75, 0, 0.95, 1);
+}
+
+.app.tema-escuro .hero::before,
+.app.tema-sistema .hero::before {
+  opacity: 1;
+}
+
+.app .hero-conteudo {
+  position: relative;
+  z-index: 1;
+}
+
+
+/* SOMBREAMENTO DO CARROSSEL
+   Em vez de trocar var(--fundo) diretamente, mantemos dois
+   gradientes sobrepostos e fazemos crossfade entre eles.
+*/
+.viewport-carrossel::before,
+.viewport-carrossel::after {
+  transition: opacity 0.8s cubic-bezier(0.75, 0, 0.95, 1);
+}
+
+/* Camada escura sobreposta ao fade lateral existente.
+   Ela começa invisível no tema claro. */
+.viewport-carrossel::before {
+  background:
+    linear-gradient(
+      to right,
+      #101014 0%,
+      rgba(16, 16, 20, 0) 100%
+    );
+}
+
+/* Criamos o estado claro usando uma camada adicional no próprio
+   viewport. */
+.viewport-carrossel {
+  isolation: isolate;
+}
+
+.viewport-carrossel > * {
+  position: relative;
+  z-index: 2;
+}
+
+.viewport-carrossel::after {
+  z-index: 3;
+}
+
+/* Camadas extras para o crossfade dos dois lados */
+.viewport-carrossel::before {
+  z-index: 3;
+}
+
+.viewport-carrossel.tem-esquerda::before,
+.viewport-carrossel.tem-direita::after {
+  opacity: 1;
+}
+
+/* No tema claro, as mesmas camadas usam a cor clara.
+   A variável --fundo continua sendo usada no conteúdo normal,
+   mas o fade visual passa pelo crossfade acima. */
+.app.tema-claro .viewport-carrossel::before,
+.app.tema-claro .viewport-carrossel::after {
+  background: linear-gradient(
+    to right,
+    #f7f7f8 0%,
+    rgba(247, 247, 248, 0) 100%
+  );
+}
+
+.app.tema-escuro .viewport-carrossel::before,
+.app.tema-escuro .viewport-carrossel::after {
+  background: linear-gradient(
+    to right,
+    #101014 0%,
+    rgba(16, 16, 20, 0) 100%
+  );
+}
+
+.app.tema-claro .viewport-carrossel::after {
+  background: linear-gradient(
+    to left,
+    #f7f7f8 0%,
+    rgba(247, 247, 248, 0) 100%
+  );
+}
+
+.app.tema-escuro .viewport-carrossel::after {
+  background: linear-gradient(
+    to left,
+    #101014 0%,
+    rgba(16, 16, 20, 0) 100%
+  );
+}
+
+/* Fazemos o crossfade real com duas camadas extras. */
+.viewport-carrossel::before {
+  background:
+    linear-gradient(
+      to right,
+      #f7f7f8 0%,
+      rgba(247, 247, 248, 0) 100%
+    );
+}
+
+.viewport-carrossel::after {
+  background:
+    linear-gradient(
+      to left,
+      #f7f7f8 0%,
+      rgba(247, 247, 248, 0) 100%
+    );
+}
+
+/* O fundo das extremidades é interpolado pela variável do tema.
+   Mantemos o gradiente em uma única camada para não criar borda. */
+.app .viewport-carrossel::before {
+  background:
+    linear-gradient(
+      to right,
+      var(--fundo) 0%,
+      transparent 100%
+    );
+}
+
+.app .viewport-carrossel::after {
+  background:
+    linear-gradient(
+      to left,
+      var(--fundo) 0%,
+      transparent 100%
+    );
+}
+
+/* A variável --fundo já possui a mesma animação de 0,8s do tema.
+   Aqui evitamos uma segunda transição de opacity que poderia
+   deixar o sombreado fora de sincronia. */
+
+
+/* ============================================================
+   TRANSIÇÃO DIRECIONAL — HERO + CARROSSEL
+   Claro → Escuro: final mais próximo do fim
+   Escuro → Claro: final chega mais cedo
+   ============================================================ */
+
+/* Mantém os 0,8s em todas as direções */
+.app .hero::before,
+.app .hero::after {
+  transition-duration: 0.8s;
+  transition-delay: 0s;
+}
+
+/* ------------------------------------------------------------
+   HERO — ESCURO
+   Curva mais "segurada": a mudança final acontece mais perto
+   dos últimos instantes.
+   ------------------------------------------------------------ */
+.app.tema-escuro .hero::before,
+.app.tema-sistema .hero::before,
+.app.tema-escuro .hero::after,
+.app.tema-sistema .hero::after {
+  transition-timing-function: cubic-bezier(0.82, 0, 0.97, 1);
+}
+
+/* ------------------------------------------------------------
+   HERO — CLARO
+   Curva mais rápida: chega ao estado final antes.
+   ------------------------------------------------------------ */
+.app.tema-claro .hero::before,
+.app.tema-claro .hero::after {
+  transition-timing-function: cubic-bezier(0.0, 0, 0.0, 1);
+}
+
+
+/* ============================================================
+   CARROSSEL
+   ============================================================ */
+
+.app .viewport-carrossel::before,
+.app .viewport-carrossel::after {
+  transition-duration: 0.8s;
+  transition-delay: 0s;
+}
+
+/* Claro → Escuro */
+.app.tema-escuro .viewport-carrossel::before,
+.app.tema-escuro .viewport-carrossel::after,
+.app.tema-sistema .viewport-carrossel::before,
+.app.tema-sistema .viewport-carrossel::after {
+  transition-timing-function: cubic-bezier(0.98, 0, 0.99, 1);
+}
+
+/* Escuro → Claro */
+.app.tema-claro .viewport-carrossel::before,
+.app.tema-claro .viewport-carrossel::after {
+  transition-timing-function: cubic-bezier(0.0, 0, 0.1, 1);
+}
+
+/* =========================================================
+   COMPARADOR INTERATIVO
+   Adicionar ao final do App.css
+   ========================================================= */
+
+.secao-comparacao .bloco-explicativo {
+  gap: 36px;
+  align-items: stretch;
+}
+
+.secao-comparacao .explicacao {
+  flex: 1.1;
+}
+
+.comparador-busca {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-top: 24px;
+  min-height: 48px;
+  border: 1px solid var(--borda-tema);
+  border-radius: 12px;
+  background: var(--fundo-card);
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.comparador-busca:focus-within {
+  border-color: var(--roxo-tema);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--roxo-tema) 14%, transparent);
+}
+
+.comparador-busca-icone {
+  margin-left: 15px;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--texto-secundario);
+}
+
+.comparador-busca input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  padding: 13px 12px;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+}
+
+.comparador-busca input::placeholder {
+  color: var(--texto-suave);
+}
+
+.comparador-busca > button {
+  margin-right: 6px;
+  padding: 9px 15px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--roxo-tema);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.comparador-busca > button:hover {
+  background: var(--roxo-forte-tema);
+}
+
+.comparador-sugestoes {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 7px);
+  left: 0;
+  right: 0;
+  padding: 6px;
+  border: 1px solid var(--borda-tema);
+  border-radius: 12px;
+  background: var(--fundo-card);
+  box-shadow: 0 12px 30px var(--sombra-tema);
+}
+
+.comparador-sugestao {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--texto);
+  text-align: left;
+  cursor: pointer;
+}
+
+.comparador-sugestao:hover {
+  background: var(--fundo);
+}
+
+.comparador-sugestao img,
+.comparador-sugestao-imagem-vazia {
+  width: 64px;
+  height: 36px;
+  flex: 0 0 64px;
+  object-fit: cover;
+  border-radius: 5px;
+  background: var(--borda-tema);
+}
+
+.comparador-sem-resultados {
+  padding: 12px;
+  color: var(--texto-secundario);
+  font-size: 14px;
+}
+
+.secao-comparacao .mini-comparacao {
+  flex: 0 0 390px;
+  min-width: 0;
+}
+
+.comparador-jogo-selecionado {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.comparador-jogo-selecionado span,
+.comparador-vazio span {
+  color: var(--texto-suave);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.comparador-jogo-selecionado strong {
+  color: var(--texto);
+  font-size: 18px;
+}
+
+.secao-comparacao .linha-preco {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--borda-tema);
+}
+
+.secao-comparacao .linha-preco.melhor-preco {
+  padding-left: 10px;
+  padding-right: 10px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--roxo-tema) 8%, transparent);
+}
+
+.comparador-loja {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.comparador-loja .plataforma {
+  white-space: nowrap;
+}
+
+.comparador-loja small {
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--roxo-tema) 12%, transparent);
+  color: var(--roxo-tema);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.secao-comparacao .linha-preco strong {
+  color: var(--texto);
+  white-space: nowrap;
+}
+
+.comparador-melhor-preco {
+  display: block;
+  margin-top: 10px;
+  color: var(--roxo-tema);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.comparador-detalhes {
+  width: 100%;
+  margin-top: 15px;
+  padding: 11px 14px;
+  border: 1px solid var(--borda-tema);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.comparador-detalhes:hover {
+  border-color: var(--roxo-tema);
+  color: var(--roxo-tema);
+}
+
+.comparador-vazio {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 190px;
+  gap: 7px;
+  color: var(--texto-secundario);
+}
+
+.comparador-vazio strong {
+  color: var(--texto);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+@media (max-width: 800px) {
+  .secao-comparacao .bloco-explicativo {
+    flex-direction: column;
+  }
+
+  .secao-comparacao .mini-comparacao {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .comparador-busca > button {
+    padding-left: 11px;
+    padding-right: 11px;
+  }
+}
+
+
+
+/* ============================================================
+   COMPARADOR — IMAGEM E HIERARQUIA DE TEXTO
+   ============================================================ */
+
+.comparador-imagem-jogo {
+  width: 100%;
+  margin-top: 24px;
+  overflow: hidden;
+  border: 1px solid var(--borda-tema);
+  border-radius: 12px;
+  background: var(--fundo-card);
+}
+
+.comparador-imagem-jogo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 460 / 215;
+  object-fit: cover;
+}
+
+.comparador-previsao {
+  width: 100%;
+  margin-top: 10px;
+  padding: 11px 14px;
+  border: 1px solid var(--roxo-tema);
+  border-radius: 9px;
+  background: var(--roxo-tema);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.comparador-previsao:hover {
+  background: var(--roxo-forte-tema);
+  border-color: var(--roxo-forte-tema);
+}
+
+.comparador-trocar {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--texto-secundario);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.comparador-trocar:hover {
+  color: var(--roxo-tema);
+}
+
+@media (max-width: 800px) {
+  .comparador-imagem-jogo {
+    margin-top: 20px;
+  }
+}
+
+
+/* ============================================================
+   MENU DE PERFIL — CABEÇALHO
+   ============================================================ */
+
+.acoes-cabecalho {
+  gap: 16px;
+}
+
+.perfil-menu {
+  position: relative;
+}
+
+.botao-perfil {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--borda-tema);
+  border-radius: 50%;
+  background: var(--fundo-card);
+  color: var(--texto);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.botao-perfil:hover {
+  background: var(--fundo);
+  border-color: var(--roxo-tema);
+  transform: translateY(-1px);
+}
+
+.icone-perfil {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.icone-perfil-cabeca {
+  position: absolute;
+  top: 1px;
+  left: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.icone-perfil-corpo {
+  position: absolute;
+  left: 3px;
+  bottom: 1px;
+  width: 14px;
+  height: 8px;
+  border-radius: 9px 9px 5px 5px;
+  background: currentColor;
+}
+
+.dropdown-perfil {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 230px;
+  padding: 8px;
+  border: 1px solid var(--borda-tema);
+  border-radius: 12px;
+  background: var(--fundo-card);
+  box-shadow: 0 14px 32px var(--sombra-tema);
+  z-index: 30;
+}
+
+.dropdown-perfil-cabecalho {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 10px 12px;
+  border-bottom: 1px solid var(--borda-tema);
+}
+
+.dropdown-perfil-cabecalho strong {
+  color: var(--texto);
+  font-size: 14px;
+}
+
+.dropdown-perfil-cabecalho span {
+  color: var(--texto-suave);
+  font-size: 12px;
+}
+
+.item-perfil {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 10px;
+  margin-top: 2px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--texto);
+  text-align: left;
+  cursor: pointer;
+}
+
+.item-perfil:hover {
+  background: var(--fundo);
+}
+
+.item-perfil small {
+  color: var(--texto-suave);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .acoes-cabecalho {
+    gap: 12px;
+  }
+
+  .botao-perfil {
+    width: 34px;
+    height: 34px;
+  }
+
+  .dropdown-perfil {
+    right: -4px;
+    width: 220px;
+  }
+}

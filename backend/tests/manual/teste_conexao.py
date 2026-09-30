@@ -1,5 +1,5 @@
 import psycopg2
-from config import settings
+from ...config import settings
 
 try:
     print("🔄 Tentando conectar ao banco de dados...")

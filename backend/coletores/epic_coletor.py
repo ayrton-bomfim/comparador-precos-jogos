@@ -11,7 +11,8 @@ import json
 from urllib.parse import urlparse, parse_qs
 from playwright.async_api import async_playwright
 from .coletor_base import ColetorBase
-from lista_jogos import get_epic_slug
+from ..lista_jogos import get_epic_slug
+from ..modelos import EpicOferta
 
 
 class EpicColetor(ColetorBase):
@@ -53,27 +54,19 @@ class EpicColetor(ColetorBase):
             return "N/A"
 
     def _calcular_desconto(self, preco_atual, preco_original):
-        """
-        Calcula o percentual de desconto com base nos preços.
+        """Calcula o percentual de desconto sem confundir dado ausente com 0%."""
+        if preco_atual in (None, "N/A") or preco_original in (None, "N/A"):
+            return "N/A"
 
-        Args:
-            preco_atual (str): Preço atual.
-            preco_original (str): Preço original.
-
-        Returns:
-            str: Percentual de desconto ("XX%" ou "0%").
-        """
-        if preco_atual == "N/A" or preco_original == "N/A":
-            return "0%"
-
-        if preco_atual == "Grátis" or preco_original == "Grátis":
+        if preco_atual == "Grátis" and preco_original == "Grátis":
             return "0%"
 
         try:
-            atual = float(preco_atual.replace("R$", "").replace(",", ".").strip())
-            original = float(preco_original.replace("R$", "").replace(",", ".").strip())
-            if original > 0 and atual < original:
-                return f"{round(((original - atual) / original) * 100)}%"
+            atual = float(preco_atual.replace("R$", "").replace(".", "").replace(",", ".").strip())
+            original = float(preco_original.replace("R$", "").replace(".", "").replace(",", ".").strip())
+            if original > 0:
+                desconto = round(((original - atual) / original) * 100)
+                return f"{max(0, desconto)}%"
         except (ValueError, AttributeError):
             pass
 
@@ -81,70 +74,115 @@ class EpicColetor(ColetorBase):
 
     async def _passar_verificacao_idade(self, page):
         """
-        Detecta e passa pela tela de verificacao de idade da Epic.
+        Passa pela tela de verificação de idade da Epic.
 
-        Args:
-            page: Objeto Page do Playwright.
-
-        Returns:
-            bool: True se conseguiu passar, False caso contrario.
+        Estrutura atual (2026-09):
+          - Botões "DD", "MM", "AAAA" que abrem dropdowns
+          - Dias: botões com texto "01".."31"
+          - Meses: botões com texto "01".."12"
+          - Anos: botões com texto (ex: "1990")
+          - Botão "Continuar" (#btn_age_continue) fica disabled até completar
         """
         try:
             if await page.locator("text=Insira sua data de nascimento").count() == 0:
                 return False
 
-            print("Tela de verificacao de idade detectada.")
+            print("🔞 Tela de verificação de idade detectada.")
 
-            # Estrategia 1: Campos de entrada
+            # ---------- Helper: escolhe uma opção do dropdown ----------
+            async def escolher_opcao(label_botao: str, valor: str, nome_passo: str):
+                """
+                Clica no botão com o label (DD/MM/AAAA) e depois no botão
+                com o valor exato. Retorna True se conseguiu.
+                """
+                try:
+                    # Acha o botão de label usando has_text (mais confiável)
+                    botao_label = page.locator("button", has_text=label_botao)
+                    count = await botao_label.count()
+                    if count == 0:
+                        print(f"   ⚠️ [{nome_passo}] Botão '{label_botao}' não encontrado.")
+                        return False
+
+                    # Se o label já foi preenchido (ex: botão mostra "15" em vez de "DD"),
+                    # então o passo já foi concluído
+                    texto_atual = (await botao_label.first.text_content() or "").strip()
+                    if texto_atual == valor:
+                        print(f"   ℹ️ [{nome_passo}] Já preenchido com {valor}.")
+                        return True
+
+                    # Clica para abrir o dropdown
+                    await botao_label.first.click(timeout=3000)
+                    await page.wait_for_timeout(800)
+
+                    # Procura o botão com o valor exato
+                    opcao = page.locator("button", has_text=valor)
+                    n_opcoes = await opcao.count()
+                    print(f"   🔎 [{nome_passo}] {n_opcoes} botões com texto '{valor}' após clicar em '{label_botao}'.")
+
+                    # Filtra pra pegar só os que têm texto EXATO (evita "15" pegar "150")
+                    for i in range(n_opcoes):
+                        btn = opcao.nth(i)
+                        try:
+                            txt = (await btn.text_content() or "").strip()
+                            if txt == valor:
+                                await btn.click(timeout=3000)
+                                await page.wait_for_timeout(500)
+                                print(f"   ✅ [{nome_passo}] Selecionado '{valor}'.")
+                                return True
+                        except Exception:
+                            continue
+
+                    print(f"   ⚠️ [{nome_passo}] Opção '{valor}' não encontrada nos botões.")
+                    return False
+
+                except Exception as e:
+                    print(f"   ⚠️ [{nome_passo}] Erro: {e}")
+                    return False
+
+            # ---------- Passo 1: dia ----------
+            await escolher_opcao("DD", "15", "dia")
+
+            # ---------- Passo 2: mês ----------
+            await escolher_opcao("MM", "06", "mês")
+
+            # ---------- Passo 3: ano ----------
+            await escolher_opcao("AAAA", "1990", "ano")
+
+                        # ---------- Passo 4: continuar ----------
             try:
-                await page.fill('input[placeholder="DD"]', "01", timeout=2000)
-                await page.fill('input[placeholder="MM"]', "01", timeout=2000)
-                await page.fill('input[placeholder="AAAA"]', "1990", timeout=2000)
-                await page.click('button:has-text("Continuar")', timeout=2000)
-                await page.wait_for_timeout(500)
-                print("Verificacao de idade concluida (campos).")
-                return True
-            except Exception:
-                pass
+                botao_continuar = page.locator("#btn_age_continue")
+                if await botao_continuar.count() == 0:
+                    botao_continuar = page.locator("button", has_text="Continuar").first
 
-            # Estrategia 2: Botoes numericos
-            try:
-                botoes_dia = await page.locator('button:has-text("01")').all()
-                if botoes_dia:
-                    await botoes_dia[0].click()
+                # Espera o botão sair do disabled (até 8s)
+                for tentativa in range(16):
+                    is_disabled = await botao_continuar.get_attribute("disabled")
+                    if is_disabled is None:
+                        break
+                    await page.wait_for_timeout(500)
 
-                botoes_mes = await page.locator('button:has-text("Janeiro")').all()
-                if botoes_mes:
-                    await botoes_mes[0].click()
-                else:
-                    botoes_mes = await page.locator('button:has-text("01")').all()
-                    if len(botoes_mes) > 1:
-                        await botoes_mes[1].click()
+                is_disabled = await botao_continuar.get_attribute("disabled")
+                if is_disabled is not None:
+                    print("   ⚠️ Botão Continuar continua disabled após 8s. Tentando mesmo assim...")
 
-                botoes_ano = await page.locator('button:has-text("1990")').all()
-                if botoes_ano:
-                    await botoes_ano[0].click()
+                await botao_continuar.click(timeout=3000)
+                await page.wait_for_timeout(1500)
+                print("   ✅ Botão Continuar clicado.")
+            except Exception as e:
+                print(f"   ⚠️ Erro no passo Continuar: {e}")
+                return False
 
-                await page.click('button:has-text("Continuar")', timeout=2000)
-                await page.wait_for_timeout(500)
-                print("Verificacao de idade concluida (botoes).")
-                return True
-            except Exception:
-                pass
+            # ---------- Confirma que o modal sumiu ----------
+            await page.wait_for_timeout(1500)
+            if await page.locator("text=Insira sua data de nascimento").count() > 0:
+                print("   ⚠️ Modal de idade ainda presente.")
+                return False
 
-            # Estrategia 3: Clica em qualquer botao "Continuar"
-            try:
-                await page.click('button:has-text("Continuar")', timeout=2000)
-                await page.wait_for_timeout(500)
-                print("Verificacao de idade concluida (direta).")
-                return True
-            except Exception:
-                pass
-
-            return False
+            print("   ✅ Verificação de idade concluída com sucesso.")
+            return True
 
         except Exception as erro:
-            print(f"Erro na verificacao de idade: {erro}")
+            print(f"Erro na verificação de idade: {erro}")
             return False
 
     async def coletar_precos(self):
@@ -316,7 +354,9 @@ class EpicColetor(ColetorBase):
                                             break
 
                                 if preco_original == "N/A":
-                                    preco_original = preco_atual
+                                    # Não assumir que o preço atual é o original.
+                                    # Ausência de preço original deve permanecer como N/A.
+                                    preco_original = "N/A"
 
                 except Exception as erro:
                     print(f"Erro ao capturar preco: {erro}")
@@ -461,8 +501,10 @@ class EpicScraper:
     """
     Scraper otimizado para Epic Games Store.
 
-    Utiliza interceptacao de respostas GraphQL para capturar precos
-    de forma mais eficiente, com fallback para extracao direta.
+    Utiliza interceptação de respostas GraphQL para capturar preço e
+    metadados (desenvolvedora, publicadora, descrição, gênero, imagem)
+    de forma estruturada, com fallback para extração direta do DOM
+    quando a interceptação não é concluída a tempo.
     """
 
     def __init__(self):
@@ -471,6 +513,13 @@ class EpicScraper:
         self.page = None
         self.playwright = None
         self.timeout = 60000
+
+        # Número máximo de tentativas para obter
+        # offerId e sandboxId antes do fallback.
+        self.max_tentativas_mapping = 3
+
+        # Tempo máximo de espera por tentativa.
+        self.timeout_mapping = 10.0
 
     async def iniciar(self):
         """Inicia o navegador e cria o contexto."""
@@ -523,219 +572,752 @@ class EpicScraper:
             return "N/A"
 
     def _calcular_desconto(self, preco_atual, preco_original):
-        """Calcula o percentual de desconto."""
-        if preco_atual == "N/A" or preco_original == "N/A":
-            return "0%"
+        """Calcula o percentual de desconto sem confundir dado ausente com 0%."""
+        if preco_atual in (None, "N/A") or preco_original in (None, "N/A"):
+            return "N/A"
 
-        if preco_atual == "Grátis" or preco_original == "Grátis":
+        if preco_atual == "Grátis" and preco_original == "Grátis":
             return "0%"
 
         try:
-            atual = float(preco_atual.replace("R$", "").replace(",", ".").strip())
-            original = float(preco_original.replace("R$", "").replace(",", ".").strip())
-            if original > 0 and atual < original:
-                return f"{round(((original - atual) / original) * 100)}%"
+            atual = float(preco_atual.replace("R$", "").replace(".", "").replace(",", ".").strip())
+            original = float(preco_original.replace("R$", "").replace(".", "").replace(",", ".").strip())
+            if original > 0:
+                desconto = round(((original - atual) / original) * 100)
+                return f"{max(0, desconto)}%"
         except (ValueError, AttributeError):
             pass
 
         return "0%"
 
     async def _passar_verificacao_idade(self, page):
-        """Passa pela tela de verificacao de idade."""
+        """
+        Passa pela tela de verificação de idade da Epic.
+
+        Estrutura atual (2026-09):
+          - Botões "DD", "MM", "AAAA" que abrem dropdowns
+          - Dias: botões com texto "01".."31"
+          - Meses: botões com texto "01".."12"
+          - Anos: botões com texto (ex: "1990")
+          - Botão "Continuar" (#btn_age_continue) fica disabled até completar
+        """
         try:
             if await page.locator("text=Insira sua data de nascimento").count() == 0:
                 return False
 
-            print("Tela de verificacao de idade detectada.")
+            print("🔞 Tela de verificação de idade detectada.")
 
+            # ---------- Helper: escolhe uma opção do dropdown ----------
+            async def escolher_opcao(label_botao: str, valor: str, nome_passo: str):
+                """
+                Clica no botão com o label (DD/MM/AAAA) e depois no botão
+                com o valor exato. Retorna True se conseguiu.
+                """
+                try:
+                    # Acha o botão de label usando has_text (mais confiável)
+                    botao_label = page.locator("button", has_text=label_botao)
+                    count = await botao_label.count()
+                    if count == 0:
+                        print(f"   ⚠️ [{nome_passo}] Botão '{label_botao}' não encontrado.")
+                        return False
+
+                    # Se o label já foi preenchido (ex: botão mostra "15" em vez de "DD"),
+                    # então o passo já foi concluído
+                    texto_atual = (await botao_label.first.text_content() or "").strip()
+                    if texto_atual == valor:
+                        print(f"   ℹ️ [{nome_passo}] Já preenchido com {valor}.")
+                        return True
+
+                    # Clica para abrir o dropdown
+                    await botao_label.first.click(timeout=3000)
+                    await page.wait_for_timeout(800)
+
+                    # Procura o botão com o valor exato
+                    opcao = page.locator("button", has_text=valor)
+                    n_opcoes = await opcao.count()
+                    print(f"   🔎 [{nome_passo}] {n_opcoes} botões com texto '{valor}' após clicar em '{label_botao}'.")
+
+                    # Filtra pra pegar só os que têm texto EXATO (evita "15" pegar "150")
+                    for i in range(n_opcoes):
+                        btn = opcao.nth(i)
+                        try:
+                            txt = (await btn.text_content() or "").strip()
+                            if txt == valor:
+                                await btn.click(timeout=3000)
+                                await page.wait_for_timeout(500)
+                                print(f"   ✅ [{nome_passo}] Selecionado '{valor}'.")
+                                return True
+                        except Exception:
+                            continue
+
+                    print(f"   ⚠️ [{nome_passo}] Opção '{valor}' não encontrada nos botões.")
+                    return False
+
+                except Exception as e:
+                    print(f"   ⚠️ [{nome_passo}] Erro: {e}")
+                    return False
+
+            # ---------- Passo 1: dia ----------
+            await escolher_opcao("DD", "15", "dia")
+
+            # ---------- Passo 2: mês ----------
+            await escolher_opcao("MM", "06", "mês")
+
+            # ---------- Passo 3: ano ----------
+            await escolher_opcao("AAAA", "1990", "ano")
+
+                        # ---------- Passo 4: continuar ----------
             try:
-                await page.fill('input[placeholder="DD"]', "01", timeout=2000)
-                await page.fill('input[placeholder="MM"]', "01", timeout=2000)
-                await page.fill('input[placeholder="AAAA"]', "1990", timeout=2000)
-                await page.click('button:has-text("Continuar")', timeout=2000)
-                await page.wait_for_timeout(500)
-                print("Verificacao de idade concluida.")
-                return True
-            except Exception:
-                pass
+                botao_continuar = page.locator("#btn_age_continue")
+                if await botao_continuar.count() == 0:
+                    botao_continuar = page.locator("button", has_text="Continuar").first
 
-            try:
-                botoes_dia = await page.locator('button:has-text("01")').all()
-                if botoes_dia:
-                    await botoes_dia[0].click()
+                # Espera o botão sair do disabled (até 8s)
+                for tentativa in range(16):
+                    is_disabled = await botao_continuar.get_attribute("disabled")
+                    if is_disabled is None:
+                        break
+                    await page.wait_for_timeout(500)
 
-                botoes_mes = await page.locator('button:has-text("Janeiro")').all()
-                if botoes_mes:
-                    await botoes_mes[0].click()
+                is_disabled = await botao_continuar.get_attribute("disabled")
+                if is_disabled is not None:
+                    print("   ⚠️ Botão Continuar continua disabled após 8s. Tentando mesmo assim...")
 
-                botoes_ano = await page.locator('button:has-text("1990")').all()
-                if botoes_ano:
-                    await botoes_ano[0].click()
+                await botao_continuar.click(timeout=3000)
+                await page.wait_for_timeout(1500)
+                print("   ✅ Botão Continuar clicado.")
+            except Exception as e:
+                print(f"   ⚠️ Erro no passo Continuar: {e}")
+                return False
 
-                await page.click('button:has-text("Continuar")', timeout=2000)
-                await page.wait_for_timeout(500)
-                print("Verificacao de idade concluida.")
-                return True
-            except Exception:
-                pass
+            # ---------- Confirma que o modal sumiu ----------
+            await page.wait_for_timeout(1500)
+            if await page.locator("text=Insira sua data de nascimento").count() > 0:
+                print("   ⚠️ Modal de idade ainda presente.")
+                return False
 
-            try:
-                await page.click('button:has-text("Continuar")', timeout=2000)
-                await page.wait_for_timeout(500)
-                print("Verificacao de idade concluida.")
-                return True
-            except Exception:
-                pass
-
-            return False
+            print("   ✅ Verificação de idade concluída com sucesso.")
+            return True
 
         except Exception as erro:
-            print(f"Erro na verificacao de idade: {erro}")
+            print(f"Erro na verificação de idade: {erro}")
             return False
 
     async def _detectar_gratuito(self, page) -> bool:
-        """
-        Detecta se o jogo e gratuito baseado no botao de acao principal.
+            """
+            Detecta se o jogo é gratuito com base no botão de aquisição
+            principal da página.
 
-        Args:
-            page: Objeto Page do Playwright.
+            Evita considerar o jogo gratuito apenas porque palavras como
+            "gratuito" ou "free" aparecem em textos secundários da página.
+            """
+            conteudo_principal = page.locator("main")
 
-        Returns:
-            bool: True se o jogo e gratuito, False caso contrario.
-        """
-        conteudo_principal = page.locator("main")
-
-        # Sinal primario: botao com texto "Obter"
-        try:
-            botao_obter = conteudo_principal.get_by_role("button", name="Obter", exact=True)
-            if await botao_obter.count() > 0:
-                return True
-        except Exception:
-            pass
-
-        # Reforco: frases especificas
-        frases_gratuito = [
-            "gratuito",
-            "jogar gratis",
-            "free to play",
-            "acesso gratuito",
-            "free access",
-        ]
-
-        for frase in frases_gratuito:
-            if await conteudo_principal.locator(f"text={frase}").count() > 0:
-                return True
-
-        return False
-
-    async def coletar_jogo(self, slug: str) -> dict:
-        """
-        Coleta dados de um jogo com interceptacao GraphQL e fallback.
-
-        Args:
-            slug (str): Slug do jogo na Epic.
-
-        Returns:
-            dict: Dados do jogo.
-        """
-        url = f"https://store.epicgames.com/pt-BR/p/{slug}"
-        respostas_preco = {}
-        offer_id_principal = {"valor": None}
-        preco_capturado = asyncio.Event()
-
-        async def handle_response(response):
-            """Intercepta respostas GraphQL."""
-            if "/graphql" not in response.url:
-                return
-
-            params = parse_qs(urlparse(response.url).query)
-            operation = params.get("operationName", [None])[0]
-
+            # Sinal principal: botão "Obter"
             try:
-                if operation == "getMappingByPageSlug":
-                    dados = await response.json()
-                    mapping = dados.get("data", {}).get("StorePageMapping", {}).get("mapping") or {}
-                    offer_id_principal["valor"] = mapping.get("mappings", {}).get("offerId")
-                    if offer_id_principal["valor"] and offer_id_principal["valor"] in respostas_preco:
-                        preco_capturado.set()
+                botao_obter = conteudo_principal.get_by_role(
+                    "button",
+                    name="Obter",
+                    exact=True
+                )
 
-                elif operation == "getPriceWithAccount":
-                    variaveis = json.loads(params.get("variables", ["{}"])[0])
-                    line_offers = variaveis.get("lineOffers", [])
-                    if line_offers:
-                        offer_id = line_offers[0].get("offerId")
-                        respostas_preco[offer_id] = await response.json()
-                        if offer_id == offer_id_principal["valor"]:
-                            preco_capturado.set()
+                if await botao_obter.count() > 0:
+                    return True
+
             except Exception:
                 pass
 
-        self.page.on("response", handle_response)
+            return False
 
-        try:
-            print(f"Acessando: {url}")
+    async def coletar_jogo(self, slug: str, jogo_id: int = None, db=None) -> dict:
+            """
+            Coleta preço e metadados via GraphQL ativo (page.evaluate + fetch).
+            """
+            url = f"https://store.epicgames.com/pt-BR/p/{slug}"
 
-            try:
-                await self.page.goto(url, timeout=self.timeout, wait_until="domcontentloaded")
-            except Exception as erro:
-                print(f"Erro ao carregar pagina: {erro}")
+            mapping_result = {
+                "offerId": None,
+                "sandboxId": None,
+                "hashes": {},
+            }
+
+            # -------------------------------------------------------------
+            # CACHE DE OFERTA
+            # -------------------------------------------------------------
+            # Quando o jogo já possui uma oferta Epic ativa no banco,
+            # reutiliza offerId e sandboxId e evita a descoberta via mapping.
+            oferta_cacheada = False
+
+            if db is not None and jogo_id is not None:
+                oferta = (
+                    db.query(EpicOferta)
+                    .filter(
+                        EpicOferta.jogo_id == jogo_id,
+                        EpicOferta.ativo.is_(True)
+                    )
+                    .first()
+                )
+
+                if oferta:
+                    mapping_result["offerId"] = oferta.offer_id
+                    mapping_result["sandboxId"] = oferta.sandbox_id
+                    oferta_cacheada = True
+
+                    print(
+                        "   💾 Oferta Epic encontrada no banco."
+                    )
+                    print(
+                        f"      offerId={oferta.offer_id}"
+                    )
+                    print(
+                        f"      sandboxId={oferta.sandbox_id}"
+                    )
+
+            mapping_capturado = asyncio.Event()
+
+            async def handle_mapping(response):
+                if "/graphql" not in response.url:
+                    return
+
+                # ---------------------------------------------------------
+                # Identifica a operação e captura o hash da persisted query
+                # ---------------------------------------------------------
+                params = parse_qs(urlparse(response.url).query)
+                operation = params.get("operationName", [None])[0]
+
+                extensions = params.get("extensions", [None])[0]
+
+                if operation and extensions:
+                    try:
+                        ext = json.loads(extensions)
+
+                        sha = (
+                            ext
+                            .get("persistedQuery", {})
+                            .get("sha256Hash")
+                        )
+
+                        if sha:
+                            mapping_result["hashes"][operation] = sha
+
+                    except (json.JSONDecodeError, TypeError, AttributeError):
+                        pass
+
+                # ---------------------------------------------------------
+                # Lê a resposta GraphQL
+                # ---------------------------------------------------------
                 try:
-                    await self.page.reload(timeout=30000)
+                    if response.status != 200:
+                        return
+
+                    dados = await response.json()
+
                 except Exception:
-                    pass
+                    return
 
-            await self.page.wait_for_timeout(500)
-            await self._passar_verificacao_idade(self.page)
+                # ---------------------------------------------------------
+                # Procura StorePageMapping independentemente da operação
+                # ---------------------------------------------------------
+                try:
+                    store_mapping = (
+                        dados
+                        .get("data", {})
+                        .get("StorePageMapping", {})
+                        .get("mapping")
+                        or {}
+                    )
 
-            # Nome do jogo
-            nome = "N/A"
+                    if not store_mapping:
+                        return
+
+                    # -----------------------------------------------------
+                    # Identifica o pageSlug retornado
+                    # -----------------------------------------------------
+                    page_slug = store_mapping.get("pageSlug")
+
+                    # -----------------------------------------------------
+                    # Confirma que o mapping pertence à página atual.
+                    #
+                    # getMappingByPageSlug já é específico da página.
+                    # Para outras operações, validamos o slug quando
+                    # ele estiver disponível.
+                    # -----------------------------------------------------
+                    if operation != "getMappingByPageSlug":
+                        if page_slug and page_slug != slug:
+                            return
+
+                    mappings = store_mapping.get("mappings") or {}
+
+                    offer_id = (
+                        mappings.get("offerId")
+                        or store_mapping.get("offerId")
+                    )
+
+                    sandbox_id = store_mapping.get("sandboxId")
+
+                    # -----------------------------------------------------
+                    # DIAGNÓSTICO
+                    #
+                    # Só imprime quando encontramos StorePageMapping.
+                    # Isso permite verificar exatamente o que chegou.
+                    # -----------------------------------------------------
+                    print(
+                        f"   [MAPPING] Encontrado | "
+                        f"operação={operation} | "
+                        f"pageSlug={page_slug} | "
+                        f"offerId={offer_id} | "
+                        f"sandboxId={sandbox_id}"
+                    )
+
+                    # -----------------------------------------------------
+                    # Atualiza offerId
+                    # -----------------------------------------------------
+                    if offer_id and not mapping_result["offerId"]:
+                        mapping_result["offerId"] = offer_id
+
+                        print(
+                            f"   [MAPPING] ✅ offerId salvo: "
+                            f"{mapping_result['offerId']}"
+                        )
+
+                    # -----------------------------------------------------
+                    # Atualiza sandboxId
+                    # -----------------------------------------------------
+                    if sandbox_id and not mapping_result["sandboxId"]:
+                        mapping_result["sandboxId"] = sandbox_id
+
+                        print(
+                            f"   [MAPPING] ✅ sandboxId salvo: "
+                            f"{mapping_result['sandboxId']}"
+                        )
+                    # -----------------------------------------------------
+                    # Mostra o estado atual do mapping_result
+                    # -----------------------------------------------------
+                    print(
+                        f"   [MAPPING] Estado atual: "
+                        f"offerId={mapping_result['offerId']} | "
+                        f"sandboxId={mapping_result['sandboxId']} | "
+                        f"event={mapping_capturado.is_set()}"
+                    )
+
+                    # -----------------------------------------------------
+                    # Só considera o mapping capturado quando temos
+                    # os dois identificadores necessários.
+                    # -----------------------------------------------------
+                    if (
+                        mapping_result["offerId"]
+                        and mapping_result["sandboxId"]
+                    ):
+                        if not mapping_capturado.is_set():
+                            print(
+                                "   [MAPPING] 🎯 MAPPING COMPLETO!"
+                            )
+
+                            print(
+                                f"   [MAPPING] offerId="
+                                f"{mapping_result['offerId']}"
+                            )
+
+                            print(
+                                f"   [MAPPING] sandboxId="
+                                f"{mapping_result['sandboxId']}"
+                            )
+
+                        mapping_capturado.set()
+
+                        print(
+                            f"   [MAPPING] ✅ Event setado: "
+                            f"{mapping_capturado.is_set()}"
+                        )
+
+                except (AttributeError, TypeError) as erro:
+                    print(
+                        f"   [MAPPING] ⚠️ Erro ao processar mapping: "
+                        f"{erro}"
+                    )
+            self.page.on("response", handle_mapping)
+
             try:
-                await self.page.wait_for_selector("h1", timeout=10000)
-                texto = await self.page.locator("h1").first.text_content()
-                nome = texto.strip() if texto else "N/A"
-            except Exception:
-                pass
+                print(f"Acessando: {url}")
 
-            # Aguarda o preco (maximo 12 segundos)
+                try:
+                    await self.page.goto(
+                        url,
+                        timeout=self.timeout,
+                        wait_until="domcontentloaded"
+                    )
+                except Exception as erro:
+                    print(f"   ⚠️ Erro ao carregar página: {erro}")
+
+                    try:
+                        await self.page.reload(timeout=30000)
+                    except Exception:
+                        pass
+
+                await self.page.wait_for_timeout(500)
+
+                passou = await self._passar_verificacao_idade(self.page)
+
+                if not passou:
+                    await self.page.wait_for_timeout(1000)
+                    passou = await self._passar_verificacao_idade(self.page)
+
+                if await self.page.locator(
+                    "text=Insira sua data de nascimento"
+                ).count() > 0:
+                    print(
+                        f"   🚨 Verificação de idade ainda ativa para "
+                        f"'{slug}', pulando GraphQL."
+                    )
+                    return await self._coletar_com_fallback(slug)
+
+                # ---------------------------------------------------------
+                # Se a oferta já está no banco, não é necessário descobrir
+                # novamente o mapping.
+                # ---------------------------------------------------------
+                max_tentativas_mapping = 3
+                timeout_mapping = 10.0
+                mapping_capturado_com_sucesso = False
+
+                if oferta_cacheada:
+                    print(
+                        "   ⚡ Usando oferta armazenada. "
+                        "Mapping via Playwright será ignorado."
+                    )
+                    mapping_capturado_com_sucesso = True
+
+                else:
+                    # ---------------------------------------------------------
+                    # Tenta capturar o mapping até 3 vezes.
+                    #
+                    # A primeira tentativa aproveita as requisições
+                    # GraphQL realizadas durante o carregamento da página.
+                    #
+                    # As tentativas seguintes recarregam a página para
+                    # provocar um novo ciclo de requisições GraphQL.
+                    # ---------------------------------------------------------
+
+                    for tentativa in range(
+                        1,
+                        max_tentativas_mapping + 1
+                    ):
+                        print(
+                            f"   🔄 Tentativa de mapping "
+                            f"{tentativa}/{max_tentativas_mapping}"
+                        )
+
+                        # -----------------------------------------------------
+                        # A partir da segunda tentativa, recarrega a página
+                        # para gerar novas requisições GraphQL.
+                        # -----------------------------------------------------
+                        if tentativa > 1:
+                            print(
+                                "   🔄 Recarregando página para nova "
+                                "tentativa de GraphQL..."
+                            )
+
+                            mapping_capturado.clear()
+
+                            try:
+                                await self.page.reload(
+                                    timeout=self.timeout,
+                                    wait_until="domcontentloaded"
+                                )
+
+                                await self.page.wait_for_timeout(800)
+
+                            except Exception as erro:
+                                print(
+                                    f"   ⚠️ Erro ao recarregar página: {erro}"
+                                )
+                                continue
+
+                            # -------------------------------------------------
+                            # Verifica novamente a tela de idade após o reload.
+                            # -------------------------------------------------
+                            passou = await self._passar_verificacao_idade(
+                                self.page
+                            )
+
+                            if not passou:
+                                await self.page.wait_for_timeout(1000)
+
+                                passou = await self._passar_verificacao_idade(
+                                    self.page
+                                )
+
+                            if await self.page.locator(
+                                "text=Insira sua data de nascimento"
+                            ).count() > 0:
+                                print(
+                                    "   ⚠️ Verificação de idade continua "
+                                    "ativa após reload."
+                                )
+                                continue
+
+                        # -----------------------------------------------------
+                        # Aguarda o listener capturar o mapping.
+                        # -----------------------------------------------------
+                        try:
+                            await asyncio.wait_for(
+                                mapping_capturado.wait(),
+                                timeout=timeout_mapping
+                            )
+
+                        except asyncio.TimeoutError:
+                            print(
+                                f"   ⚠️ Mapping não capturado na "
+                                f"tentativa {tentativa}."
+                            )
+
+                        # -----------------------------------------------------
+                        # Verifica se temos os dois identificadores necessários.
+                        # -----------------------------------------------------
+                        if (
+                            mapping_result["offerId"]
+                            and mapping_result["sandboxId"]
+                        ):
+                            print(
+                                f"   ✅ Mapping capturado com sucesso "
+                                f"na tentativa {tentativa}."
+                            )
+
+                            print(
+                                f"      offerId={mapping_result['offerId']}"
+                            )
+
+                            print(
+                                f"      sandboxId={mapping_result['sandboxId']}"
+                            )
+
+                            mapping_capturado_com_sucesso = True
+                            break
+
+                        if tentativa < max_tentativas_mapping:
+                            print(
+                                "   🔁 Mapping ainda não disponível. "
+                                "Nova tentativa será realizada."
+                            )
+
+            finally:
+                self.page.remove_listener(
+                    "response",
+                    handle_mapping
+                )
+
+            # -------------------------------------------------------------
+            # Se nenhuma das tentativas conseguiu capturar o mapping,
+            # utiliza o fallback.
+            # -------------------------------------------------------------
+            if not mapping_capturado_com_sucesso:
+                print(
+                    f"   ⚠️ offerId/sandboxId não capturados após "
+                    f"{max_tentativas_mapping} tentativas."
+                )
+
+                print("   🔄 Recorrendo ao fallback.")
+
+                return await self._coletar_com_fallback(slug)
+
+            # -------------------------------------------------------------
+            # Recupera os IDs capturados pelo mapping.
+            # -------------------------------------------------------------
+            offer_id = mapping_result["offerId"]
+            sandbox_id = mapping_result["sandboxId"]
+
+            # -------------------------------------------------------------
+            # Recupera os hashes das operações GraphQL.
+            # Se não forem encontrados durante a interceptação,
+            # utiliza os hashes conhecidos como fallback.
+            # -------------------------------------------------------------
+            hash_catalogo = mapping_result["hashes"].get(
+                "getCatalogOffer",
+                "0bd79d7aaf89de3693abb813eec8b664321fab84037cbb968730631c8afe9a9d",
+            )
+
+            hash_preco = mapping_result["hashes"].get(
+                "getPriceWithAccount",
+                "1e6adef859bbc41a1d99e9543b5f0d3879dd14a25868398842d149a268db6933",
+            )
+
             try:
-                await asyncio.wait_for(preco_capturado.wait(), timeout=12.0)
-            except asyncio.TimeoutError:
-                pass
+                resultado_js = await self.page.evaluate(
+                    """
+                    async ({ offerId, sandboxId, hashCatalogo, hashPreco }) => {
+                        const montarUrl = (operationName, variables, hash) => {
+                            const params = new URLSearchParams({
+                                operationName,
+                                variables: JSON.stringify(variables),
+                                extensions: JSON.stringify({
+                                    persistedQuery: { version: 1, sha256Hash: hash }
+                                }),
+                            });
+                            return `/graphql?${params.toString()}`;
+                        };
 
-        finally:
-            self.page.remove_listener("response", handle_response)
+                        const urlCatalogo = montarUrl(
+                            "getCatalogOffer",
+                            { locale: "pt-BR", country: "BR", sandboxId, offerId },
+                            hashCatalogo
+                        );
+                        const urlPreco = montarUrl(
+                            "getPriceWithAccount",
+                            {
+                                country: "BR",
+                                locale: "pt-BR",
+                                namespace: sandboxId,
+                                calculateTax: false,
+                                lineOffers: [{ offerId, quantity: 1 }],
+                            },
+                            hashPreco
+                        );
 
-        offer_id = offer_id_principal["valor"]
-        dados_offer = respostas_preco.get(offer_id) if offer_id else None
+                        const [respCatalogo, respPreco] = await Promise.all([
+                            fetch(urlCatalogo, { credentials: "include" }),
+                            fetch(urlPreco, { credentials: "include" }),
+                        ]);
 
-        if dados_offer:
+                        return {
+                            catalogo: await respCatalogo.json(),
+                            preco: await respPreco.json(),
+                        };
+                    }
+                    """,
+                    {
+                        "offerId": offer_id,
+                        "sandboxId": sandbox_id,
+                        "hashCatalogo": hash_catalogo,
+                        "hashPreco": hash_preco,
+                    },
+                )
+            except Exception as erro:
+                print(f"   ⚠️ Erro na chamada ativa via navegador para '{slug}': {erro}")
+                return await self._coletar_com_fallback(slug)
+
+            for fonte, resposta in (("catálogo", resultado_js.get("catalogo", {})),
+                                    ("preço", resultado_js.get("preco", {}))):
+                for erro in resposta.get("errors", []) or []:
+                    msg = str(erro.get("message", ""))
+                    if "PersistedQueryNotFound" in msg or "persistedQuery" in msg.lower():
+                        op = erro.get("extensions", {}).get("operationName", "desconhecida")
+                        print(f"   🚨 ALERTA: hash expirada na Epic para '{op}' (fonte: {fonte}).")
+
+            catalogo = (
+                resultado_js.get("catalogo", {})
+                .get("data", {})
+                .get("Catalog", {})
+                .get("catalogOffer")
+                or {}
+            )
             total_price = (
-                dados_offer.get("data", {})
+                resultado_js.get("preco", {})
+                .get("data", {})
                 .get("PriceEngine", {})
                 .get("priceWithAccount", {})
                 .get("totalPrice")
             )
-            if total_price:
-                original = total_price.get("originalPrice", 0)
-                atual = total_price.get("discountPrice", 0)
-                desconto_pct = round(((original - atual) / original) * 100) if original > 0 else 0
 
-                return {
-                    "plataforma": "Epic Games",
-                    "nome": nome,
-                    "url": url,
-                    "preco": f"R$ {atual/100:.2f}".replace(".", ",") if atual > 0 else "Grátis",
-                    "preco_sem_desconto": f"R$ {original/100:.2f}".replace(".", ",") if original > 0 else "Grátis",
-                    "desconto": f"{desconto_pct}%",
-                    "fonte": "GraphQL (interceptado do navegador)",
-                }
+            if not total_price and catalogo.get("price", {}).get("totalPrice"):
+                total_price = catalogo["price"]["totalPrice"]
 
-        print("Preco nao capturado via GraphQL, usando fallback.")
-        return await self.coletar_jogo_navegador(slug)
+            if not catalogo or not total_price:
+                print(f"   ⚠️ Dados incompletos para '{slug}', recorrendo ao fallback.")
+                return await self._coletar_com_fallback(slug)
+
+            original = total_price.get("originalPrice")
+            discount_price = total_price.get("discountPrice")
+
+            # Não usar "or original" aqui: preço 0 é válido e representa uma
+            # oferta gratuita, podendo inclusive resultar em 100% de desconto.
+            if original is None:
+                print(f"   ⚠️ originalPrice ausente para '{slug}'.")
+                return await self._coletar_com_fallback(slug)
+
+            atual = original if discount_price is None else discount_price
+
+            if original <= 0:
+                preco_atual_str = "Grátis"
+                preco_original_str = "Grátis"
+                desconto_pct = 0
+            else:
+                preco_atual_str = f"R$ {atual / 100:.2f}".replace(".", ",")
+                preco_original_str = f"R$ {original / 100:.2f}".replace(".", ",")
+                desconto_pct = round(((original - atual) / original) * 100)
+                desconto_pct = max(0, min(100, desconto_pct))
+
+            imagem = next(
+                (img["url"] for img in catalogo.get("keyImages", [])
+                if img.get("type") == "OfferImageWide"),
+                None,
+            )
+
+            genero = ", ".join(
+                t["name"] for t in catalogo.get("tags", [])
+                if t.get("groupName") == "genre"
+            ) or None
+
+            return {
+                "plataforma": "Epic Games",
+                "nome": catalogo.get("title"),
+                "url": url,
+                "preco": preco_atual_str,
+                "preco_sem_desconto": preco_original_str,
+                "desconto": f"{desconto_pct}%",
+                "desenvolvedor": catalogo.get("developerDisplayName"),
+                "publicadora": catalogo.get("publisherDisplayName"),
+                "data_lancamento": catalogo.get("releaseDate"),
+                "descricao": catalogo.get("description"),
+                "genero": genero,
+                "url_imagem": imagem,
+
+                "epic_offer_id": offer_id,
+                "epic_sandbox_id": sandbox_id,
+                "epic_titulo": catalogo.get("title"),
+                "epic_tipo": catalogo.get("offerType"),
+
+                "fonte": "GraphQL (chamada ativa via navegador)",
+                "revisao_manual": False,
+            }
+
+    async def _coletar_com_fallback(self, slug: str) -> dict:
+        """
+        Medida paliativa: recorre ao fallback de seletores CSS.
+        """
+        resultado = await self.coletar_jogo_navegador(slug)
+
+        if "erro" in resultado:
+            return {
+                "plataforma": "Epic Games",
+                "nome": None,
+                "url": f"https://store.epicgames.com/pt-BR/p/{slug}",
+                "preco": None,
+                "preco_sem_desconto": None,
+                "desconto": None,
+                "desenvolvedor": None,
+                "publicadora": None,
+                "data_lancamento": None,
+                "descricao": None,
+                "genero": None,
+                "url_imagem": None,
+                "fonte": "Falha total na captura",
+                "revisao_manual": True,
+                "motivo_fallback": "Falha total na captura dos dados",
+            }
+
+        resultado["revisao_manual"] = True
+        resultado["fonte"] = "Navegador (Fallback - requer revisão manual)"
+        resultado["motivo_fallback"] = "GraphQL indisponível ou dados incompletos"
+        return resultado
 
     async def coletar_jogo_navegador(self, slug):
         """
         Fallback: coleta dados usando seletores CSS no navegador.
+
+        Usado apenas quando a interceptação GraphQL (preço + catálogo)
+        não é concluída a tempo. Note que este método não captura
+        desenvolvedor/publicadora/gênero/data de lançamento, já que
+        esses campos dependem dos dados estruturados do GraphQL —
+        nesse caso, ficam como None no retorno.
 
         Args:
             slug (str): Slug do jogo na Epic.
@@ -895,7 +1477,11 @@ class EpicScraper:
                 "preco": preco_atual,
                 "preco_sem_desconto": preco_original,
                 "desconto": desconto,
+                "desenvolvedor": None,
+                "publicadora": None,
+                "data_lancamento": None,
                 "descricao": descricao,
+                "genero": None,
                 "url_imagem": imagem,
                 "fonte": "Navegador (Fallback)",
             }
@@ -917,73 +1503,56 @@ class EpicScraper:
 # FUNCOES DE TESTE
 # =============================================================================
 
-async def testar_epic():
-    """Testa o coletor principal da Epic."""
-    coletor = EpicColetor()
+async def testar_precos_epic():
+    """Testa a captura de preços de jogos pagos da Epic."""
 
-    print("=" * 50)
-    print("TESTANDO SCRAPER DA EPIC GAMES")
-    print("=" * 50)
-
-    print("\nTeste 1: Coletando Hades...")
-    jogo = await coletor.coletar_jogo("hades")
-    print(f"\nJogo encontrado:")
-    print(f"  Nome: {jogo.get('nome')}")
-    print(f"  Preco atual: {jogo.get('preco')}")
-    print(f"  Preco original: {jogo.get('preco_sem_desconto')}")
-    print(f"  Desconto: {jogo.get('desconto')}")
-
-    print("\nTeste 2: Coletando Rainbow Six Siege...")
-    jogo2 = await coletor.coletar_jogo("rainbow-six-siege-x")
-    print(f"\nJogo encontrado:")
-    print(f"  Nome: {jogo2.get('nome')}")
-    print(f"  Preco atual: {jogo2.get('preco')}")
-    print(f"  Preco original: {jogo2.get('preco_sem_desconto')}")
-    print(f"  Desconto: {jogo2.get('desconto')}")
-
-    print("\n" + "=" * 50)
-    print("TESTE CONCLUIDO.")
-
-
-async def testar_epic_scraper():
-    """Testa o scraper otimizado com interceptacao GraphQL."""
-    print("=" * 50)
-    print("TESTANDO EPIC SCRAPER COM GRAPHQL")
-    print("=" * 50)
+    print("=" * 60)
+    print("TESTE DE PREÇOS - EPIC GAMES")
+    print("=" * 60)
 
     scraper = EpicScraper()
     await scraper.iniciar()
 
+    jogos_teste = [
+        ("red-dead-redemption-2", "Red Dead Redemption 2"),
+        ("cyberpunk-2077", "Cyberpunk 2077"),
+        ("hogwarts-legacy", "Hogwarts Legacy"),
+        ("the-witcher-3-wild-hunt", "The Witcher 3"),
+        ("star-wars-jedi-survivor", "Star Wars Jedi: Survivor"),
+    ]
+
     try:
-        slugs = [
-            "marvels-spider-man-2",
-            "hades",
-            "rainbow-six-siege-x",
-            "dave-the-diver-ed092a",
-            "destiny-2",
-            "god-of-war",
-            "god-of-war-ragnarok-3ca641",
-        ]
+        for i, (slug, nome_esperado) in enumerate(jogos_teste, 1):
 
-        for slug in slugs:
-            print(f"\nColetando: {slug}")
-            dados = await scraper.coletar_jogo(slug)
+            print("\n" + "-" * 60)
+            print(f"[{i}/5] {nome_esperado}")
+            print(f"Slug: {slug}")
+            print("-" * 60)
 
-            if "erro" in dados:
-                print(f"  Erro: {dados['erro']}")
-            else:
-                print(f"  Nome: {dados.get('nome')}")
-                print(f"  Preco: {dados.get('preco')}")
-                print(f"  Original: {dados.get('preco_sem_desconto')}")
-                print(f"  Desconto: {dados.get('desconto')}")
-                print(f"  Fonte: {dados.get('fonte', 'Desconhecida')}")
+            try:
+                dados = await scraper.coletar_jogo(slug)
+
+                if "erro" in dados:
+                    print(f"❌ ERRO: {dados['erro']}")
+                    continue
+
+                print(f"Nome retornado: {dados.get('nome')}")
+                print(f"Preço atual: {dados.get('preco')}")
+                print(f"Preço original: {dados.get('preco_sem_desconto')}")
+                print(f"Desconto: {dados.get('desconto')}")
+                print(f"Fonte: {dados.get('fonte')}")
+                print(f"Revisão manual: {dados.get('revisao_manual')}")
+
+            except Exception as erro:
+                print(f"❌ ERRO AO TESTAR: {erro}")
 
     finally:
         await scraper.fechar()
 
-    print("\n" + "=" * 50)
-    print("TESTE CONCLUIDO.")
+    print("\n" + "=" * 60)
+    print("TESTE FINALIZADO")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
-    asyncio.run(testar_epic_scraper())
+    asyncio.run(testar_precos_epic())
