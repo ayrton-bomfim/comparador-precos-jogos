@@ -4,11 +4,20 @@ import './Sobre.css'
 
 function Sobre() {
   const [tema, setTema] = useState(() => {
-    return localStorage.getItem('tema') || 'claro'
+    const temaCompartilhado = localStorage.getItem('tema-comparador')
+
+    if (temaCompartilhado === 'escuro' || temaCompartilhado === 'claro') {
+      return temaCompartilhado
+    }
+
+    // Compatibilidade com versões anteriores que usavam a chave "tema".
+    const temaLegado = localStorage.getItem('tema')
+
+    return temaLegado === 'escuro' ? 'escuro' : 'claro'
   })
 
   useEffect(() => {
-    localStorage.setItem('tema', tema)
+    localStorage.setItem('tema-comparador', tema)
   }, [tema])
 
   return (

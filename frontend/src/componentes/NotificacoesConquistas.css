@@ -1,0 +1,50 @@
+.notificacao-conquista {
+  position: fixed;
+  z-index: 1200;
+  top: 88px;
+  right: 24px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 13px;
+  width: min(440px, calc(100vw - 32px));
+  padding: 18px 18px 16px;
+  color: var(--texto-principal, #f5f5f5);
+  background: var(--fundo-card, #202124);
+  border: 1px solid var(--borda, rgba(255,255,255,.14));
+  border-radius: 15px;
+  box-shadow: 0 14px 42px rgba(0,0,0,.28);
+  animation: notificacao-conquista-entrada .22s ease-out;
+}
+.notificacao-conquista-icone {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  color: #f7d77a;
+  background: rgba(247,215,122,.13);
+  font-size: 23px;
+}
+.notificacao-conquista-texto { min-width: 0; padding-top: 1px; }
+.notificacao-conquista-etiqueta {
+  display: block;
+  margin-bottom: 4px;
+  color: #d7b85c;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+.notificacao-conquista-texto strong { display: block; font-size: 14px; line-height: 1.35; }
+.notificacao-conquista-texto p { margin: 5px 0 8px; color: var(--texto-secundario, #b7b7b7); font-size: 12px; line-height: 1.45; }
+.notificacao-conquista-link { padding: 0; border: 0; color: var(--cor-destaque, #e4c45f); background: transparent; cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; }
+.notificacao-conquista-link span { margin-left: 3px; }
+.notificacao-conquista-xp { white-space: nowrap; padding-top: 2px; color: #d7b85c; font-size: 12px; font-weight: 800; }
+.notificacao-conquista-fechar { position: absolute; top: 5px; right: 8px; padding: 0 3px; border: 0; color: var(--texto-secundario, #b7b7b7); background: transparent; cursor: pointer; font-size: 22px; line-height: 1; }
+@keyframes notificacao-conquista-entrada { from { opacity: 0; transform: translateY(-7px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 540px) {
+  .notificacao-conquista { top: 72px; right: 12px; grid-template-columns: 36px minmax(0, 1fr); gap: 10px; padding: 16px; }
+  .notificacao-conquista-icone { width: 36px; height: 36px; }
+  .notificacao-conquista-xp { grid-column: 2; padding-top: 0; }
+}

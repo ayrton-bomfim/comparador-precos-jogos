@@ -1,0 +1,125 @@
+.pagina-login {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.login-card {
+  width: min(420px, 100%);
+  padding: 34px;
+  border: 1px solid rgba(127, 127, 127, .22);
+  border-radius: 24px;
+  background: rgba(127, 127, 127, .06);
+}
+
+.login-marca {
+  font-weight: 900;
+  letter-spacing: .08em;
+  font-size: 18px;
+}
+
+.login-marca span {
+  opacity: .55;
+}
+
+.login-card h1 {
+  margin: 28px 0 7px;
+}
+
+.login-card > p {
+  margin: 0 0 25px;
+  opacity: .68;
+}
+
+.login-form {
+  display: grid;
+  gap: 17px;
+}
+
+.login-form label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.login-form input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 14px;
+  border: 1px solid rgba(127, 127, 127, .3);
+  border-radius: 11px;
+  background: transparent;
+  color: inherit;
+}
+
+.login-form button {
+  border: 0;
+  border-radius: 11px;
+  padding: 13px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.login-erro {
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: rgba(220, 70, 70, .13);
+}
+
+
+.login-cadastro-link {
+  margin-top: 22px;
+  text-align: center;
+  font-size: 13px;
+  opacity: .85;
+}
+
+.login-cadastro-link a {
+  font-weight: 800;
+}
+
+
+/* Recuperação de senha: indicação visual até o fluxo de e-mail ser implementado */
+.login-esqueci-senha {
+  justify-self: end;
+  margin-top: -10px;
+  color: var(--roxo-tema, #b58aff);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  cursor: default;
+  user-select: none;
+}
+
+
+.login-google-separador { display: flex; align-items: center; gap: 12px; margin: 20px 0 14px; opacity: .65; font-size: 12px; }
+.login-google-separador::before, .login-google-separador::after { content: ''; flex: 1; height: 1px; background: currentColor; opacity: .25; }
+.login-google-status { margin: 10px 0 0; text-align: center; font-size: 12px; opacity: .75; }
+
+
+/* Saída para continuar navegando sem autenticação. */
+.login-voltar-inicio {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.login-voltar-inicio a {
+  color: inherit;
+  opacity: .72;
+  text-decoration: none;
+  transition: opacity .2s ease, color .2s ease;
+}
+
+.login-voltar-inicio a:hover {
+  color: var(--roxo-tema, #b58aff);
+  opacity: 1;
+}
+
+.login-voltar-inicio a:focus-visible {
+  outline: 2px solid var(--roxo-tema, #b58aff);
+  outline-offset: 4px;
+  border-radius: 3px;
+}

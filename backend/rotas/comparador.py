@@ -5,10 +5,14 @@ Este módulo define os endpoints da API para comparar preços
 de jogos entre a Steam e a Epic Games Store.
 """
 
+import logging
+
 from fastapi import APIRouter, HTTPException
 from ..coletores.steam_coletor import SteamColetor
 from ..coletores.epic_coletor import EpicColetor
 
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/comparar", tags=["comparacao"])
 
@@ -51,54 +55,9 @@ async def comparar_preco(jogo_identificador: str):
             "epic": preco_epic
         }
 
-    except Exception as erro:
+    except Exception:
+        logger.exception("Falha ao comparar preços.")
         raise HTTPException(
             status_code=500,
-            detail=f"Erro ao comparar preços: {str(erro)}"
+            detail="Não foi possível comparar os preços no momento."
         )
-
-
-@router.get("/testar/steam")
-async def testar_coletor_steam():
-    """
-    Endpoint de teste para o coletor da Steam.
-
-    Returns:
-        dict: Resultados da coleta de preços da Steam.
-    """
-    coletor = SteamColetor()
-    resultados = await coletor.coletar_precos()
-    return resultados
-
-
-@router.get("/testar/epic")
-async def testar_coletor_epic():
-    """
-    Endpoint de teste para o coletor da Epic.
-
-    Returns:
-        dict: Resultados da coleta de preços da Epic.
-    """
-    from coletores.epic_coletor import EpicScraper
-
-    scraper = EpicScraper()
-    await scraper.iniciar()
-
-    try:
-        slugs = ["hades", "red-dead-redemption-2"]
-        resultados = {}
-
-        for slug in slugs:
-            dados = await scraper.coletar_jogo(slug)
-            if "erro" not in dados:
-                resultados[slug] = {
-                    "nome": dados.get("nome"),
-                    "preco": dados.get("preco"),
-                    "preco_sem_desconto": dados.get("preco_sem_desconto"),
-                    "desconto": dados.get("desconto"),
-                }
-
-        return {"plataforma": "Epic Games", "jogos": resultados}
-
-    finally:
-        await scraper.fechar()

@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Cabecalho from '../componentes/Cabecalho'
 import { buscarHistoricoJogo, buscarJogo } from '../servicos/jogos'
 import { API_JOGOS_URL } from '../servicos/api'
+import { API_BASE, useAuth } from '../contextos/AuthContext'
+import { useTema } from '../contextos/TemaContext'
 
 function formatarPreco(preco) {
   if (preco === null || preco === undefined) {
@@ -34,6 +36,138 @@ function formatarData(data) {
   })
 }
 
+
+function sanitizarDescricaoHTML(html) {
+  if (!html || typeof window === 'undefined') {
+    return ''
+  }
+
+  const parser = new DOMParser()
+  const documento = parser.parseFromString(html, 'text/html')
+
+  const tagsPermitidas = new Set([
+    'H1',
+    'H2',
+    'H3',
+    'P',
+    'STRONG',
+    'EM',
+    'U',
+    'BR',
+    'UL',
+    'OL',
+    'LI',
+    'IMG',
+    'VIDEO',
+    'SOURCE',
+    'A',
+  ])
+
+  const atributosPermitidos = {
+    IMG: new Set(['src', 'alt']),
+    VIDEO: new Set(['poster', 'controls', 'muted', 'loop', 'playsinline']),
+    SOURCE: new Set(['src', 'type']),
+    A: new Set(['href', 'target', 'rel']),
+  }
+
+  const urlSegura = (valor) => {
+    if (!valor) {
+      return false
+    }
+
+    try {
+      const url = new URL(valor, window.location.origin)
+      return url.protocol === 'http:' || url.protocol === 'https:'
+    } catch {
+      return false
+    }
+  }
+
+  const substituirPorFilhos = (elemento) => {
+    const pai = elemento.parentNode
+
+    if (!pai) {
+      return
+    }
+
+    const filhos = Array.from(elemento.childNodes)
+
+    filhos.forEach((filho) => {
+      pai.insertBefore(filho, elemento)
+      if (filho.nodeType === Node.ELEMENT_NODE) {
+        limparNo(filho)
+      }
+    })
+
+    elemento.remove()
+  }
+
+  const limparNo = (no) => {
+    if (no.nodeType !== Node.ELEMENT_NODE) {
+      return
+    }
+
+    const elemento = no
+
+    if (!tagsPermitidas.has(elemento.tagName)) {
+      substituirPorFilhos(elemento)
+      return
+    }
+
+    const permitidos = atributosPermitidos[elemento.tagName] || new Set()
+
+    Array.from(elemento.attributes).forEach((atributo) => {
+      if (!permitidos.has(atributo.name.toLowerCase())) {
+        elemento.removeAttribute(atributo.name)
+      }
+    })
+
+    if (elemento.tagName === 'A') {
+      const href = elemento.getAttribute('href')
+
+      if (!urlSegura(href)) {
+        substituirPorFilhos(elemento)
+        return
+      }
+
+      elemento.setAttribute('target', '_blank')
+      elemento.setAttribute('rel', 'noreferrer')
+    }
+
+    if (elemento.tagName === 'IMG') {
+      const src = elemento.getAttribute('src')
+
+      if (!urlSegura(src)) {
+        elemento.remove()
+        return
+      }
+    }
+
+    if (elemento.tagName === 'VIDEO') {
+      const poster = elemento.getAttribute('poster')
+
+      if (poster && !urlSegura(poster)) {
+        elemento.removeAttribute('poster')
+      }
+    }
+
+    if (elemento.tagName === 'SOURCE') {
+      const src = elemento.getAttribute('src')
+
+      if (!urlSegura(src)) {
+        elemento.remove()
+        return
+      }
+    }
+
+    Array.from(elemento.children).forEach(limparNo)
+  }
+
+  Array.from(documento.body.children).forEach(limparNo)
+
+  return documento.body.innerHTML
+}
+
 function obterImagem(jogo) {
   return jogo.url_imagem_steam || jogo.url_imagem_epic || null
 }
@@ -44,14 +178,6 @@ function obterImagemHero(jogo) {
   }
 
   return jogo.url_imagem_epic || jogo.url_imagem_steam || null
-}
-
-function obterLogoSteam(jogo) {
-  if (!jogo.steam_id) {
-    return null
-  }
-
-  return `https://cdn.cloudflare.steamstatic.com/steam/apps/${jogo.steam_id}/library_logo.png`
 }
 
 function descricaoValida(descricao) {
@@ -184,18 +310,26 @@ function obterPeriodoEmDias(periodo) {
 function GraficoHistorico({ historico, plataforma, periodo }) {
   const [pontoSelecionado, setPontoSelecionado] = useState(null)
   const [posicaoTooltip, setPosicaoTooltip] = useState(null)
+  const [pontoFixado, setPontoFixado] = useState(null)
+  const tooltipTimerRef = useRef(null)
+
+  // Mantém uma referência temporal consistente durante o cálculo de uma janela.
+  const [agoraGrafico] = useState(() => Date.now())
 
   const dadosFiltrados = useMemo(() => {
-    let dados = historico
+    const dias = obterPeriodoEmDias(periodo)
+    const historicoValido = historico
       .filter((registro) => {
-        if (plataforma === 'ambas') {
-          return (
-            registro.plataforma === 'Steam' ||
-            registro.plataforma === 'Epic'
-          )
-        }
-
-        return registro.plataforma === plataforma
+        const timestamp = new Date(registro.data_coleta).getTime()
+        const preco = Number(registro.preco_atual)
+        return (
+          (registro.plataforma === 'Steam' || registro.plataforma === 'Epic') &&
+          Number.isFinite(timestamp) &&
+          timestamp <= agoraGrafico &&
+          registro.preco_atual !== null &&
+          registro.preco_atual !== undefined &&
+          Number.isFinite(preco)
+        )
       })
       .sort(
         (a, b) =>
@@ -203,47 +337,92 @@ function GraficoHistorico({ historico, plataforma, periodo }) {
           new Date(b.data_coleta).getTime()
       )
 
-    const dias = obterPeriodoEmDias(periodo)
+    if (historicoValido.length === 0) {
+      return []
+    }
 
-    if (dias !== null && dados.length > 0) {
-      const maiorData = Math.max(
-        ...dados.map((registro) =>
-          new Date(registro.data_coleta).getTime()
-        )
+    const primeiraDataJogo = Math.min(
+      ...historicoValido.map((registro) =>
+        new Date(registro.data_coleta).getTime()
+      )
+    )
+    const dataInicial =
+      dias === null
+        ? primeiraDataJogo
+        : agoraGrafico - dias * 24 * 60 * 60 * 1000
+
+    const plataformas =
+      plataforma === 'ambas' ? ['Steam', 'Epic'] : [plataforma]
+    const resultado = []
+
+    plataformas.forEach((plataformaAtual) => {
+      const historicoPlataforma = historicoValido.filter(
+        (registro) => registro.plataforma === plataformaAtual
       )
 
-      const dataInicial =
-        maiorData - dias * 24 * 60 * 60 * 1000
+      if (historicoPlataforma.length === 0) {
+        return
+      }
 
-      /*
-       * Se não houver uma coleta exatamente no início do período,
-       * recuperamos a última leitura anterior. Ela representa o
-       * preço que permaneceu válido até a próxima coleta.
-       */
-      const registroAnterior = [...dados]
-        .reverse()
-        .find(
-          (registro) =>
-            new Date(registro.data_coleta).getTime() < dataInicial
-        )
-
-      dados = dados.filter(
+      // Última cotação anterior ao início da janela: representa o preço
+      // válido no primeiro dia, mesmo se não houve coleta dentro do período.
+      const anteriores = historicoPlataforma.filter(
         (registro) =>
-          new Date(registro.data_coleta).getTime() >= dataInicial
+          new Date(registro.data_coleta).getTime() < dataInicial
       )
+      const registroAnterior = anteriores[anteriores.length - 1]
+      const registrosDoPeriodo = historicoPlataforma.filter((registro) => {
+        const timestamp = new Date(registro.data_coleta).getTime()
+        return timestamp >= dataInicial && timestamp <= agoraGrafico
+      })
 
-      if (registroAnterior && dados.length > 0) {
-        dados.unshift({
+      const serie = []
+      if (registroAnterior) {
+        serie.push({
           ...registroAnterior,
-          id: `ancora-${registroAnterior.id}-${periodo}`,
+          id: `ancora-${plataformaAtual}-${registroAnterior.id}-${periodo}`,
           data_coleta: new Date(dataInicial).toISOString(),
           _ancoraPeriodo: true,
         })
       }
-    }
+      serie.push(...registrosDoPeriodo)
 
-    return dados
-  }, [historico, plataforma, periodo])
+      // A última cotação conhecida continua válida até hoje. Este ponto é
+      // apenas geométrico: não representa uma nova coleta nem gera marcador.
+      if (serie.length > 0) {
+        const ultimoRegistro = serie[serie.length - 1]
+        const ultimaDataPlataforma = new Date(
+          ultimoRegistro.data_coleta
+        ).getTime()
+
+        if (ultimaDataPlataforma < agoraGrafico) {
+          serie.push({
+            ...ultimoRegistro,
+            id: `fim-periodo-${plataformaAtual}-${ultimoRegistro.id}-${periodo}`,
+            data_coleta: new Date(agoraGrafico).toISOString(),
+            _fimPeriodo: true,
+          })
+        }
+      }
+
+      resultado.push(...serie)
+    })
+
+    return resultado.sort(
+      (a, b) =>
+        new Date(a.data_coleta).getTime() -
+        new Date(b.data_coleta).getTime()
+    )
+  }, [historico, plataforma, periodo, agoraGrafico])
+
+  // Todos os Hooks devem ser executados antes de qualquer retorno condicional.
+  useEffect(() => {
+    return () => {
+      if (tooltipTimerRef.current) {
+        clearTimeout(tooltipTimerRef.current)
+      }
+    }
+  }, [])
 
   const dadosSteam = dadosFiltrados.filter(
     (registro) => registro.plataforma === 'Steam'
@@ -351,20 +530,29 @@ function GraficoHistorico({ historico, plataforma, periodo }) {
    * com o mesmo preço, a linha permanece no mesmo nível
    * durante todo o intervalo.
    */
-  const datasColeta = dadosFiltrados.map((registro) =>
-    new Date(registro.data_coleta).getTime()
-  )
+  const datasHistoricoJogo = historico
+    .filter((registro) => {
+      const timestamp = new Date(registro.data_coleta).getTime()
+      return (
+        (registro.plataforma === 'Steam' || registro.plataforma === 'Epic') &&
+        Number.isFinite(timestamp) &&
+        timestamp <= agoraGrafico
+      )
+    })
+    .map((registro) => new Date(registro.data_coleta).getTime())
 
-  const ultimaData = Math.max(...datasColeta)
+  const primeiraDataJogo =
+    datasHistoricoJogo.length > 0
+      ? Math.min(...datasHistoricoJogo)
+      : agoraGrafico
 
   const diasPeriodo = obterPeriodoEmDias(periodo)
+  const fimPeriodo = agoraGrafico
 
   const inicioPeriodo =
     diasPeriodo === null
-      ? Math.min(...datasColeta)
-      : ultimaData - diasPeriodo * 24 * 60 * 60 * 1000
-
-  const fimPeriodo = ultimaData
+      ? primeiraDataJogo
+      : fimPeriodo - diasPeriodo * 24 * 60 * 60 * 1000
 
   const diferencaPeriodo = fimPeriodo - inicioPeriodo
 
@@ -509,6 +697,10 @@ function GraficoHistorico({ historico, plataforma, periodo }) {
       ((x - margemEsquerda) / areaLargura) *
         diferencaPeriodo
 
+    if (timestamp < new Date(dados[0].data_coleta).getTime()) {
+      return null
+    }
+
     let registroAtual = dados[0]
 
     for (let indice = 1; indice < dados.length; indice += 1) {
@@ -531,6 +723,10 @@ function GraficoHistorico({ historico, plataforma, periodo }) {
   }
 
   const lidarComMovimentoMouse = (evento, dados) => {
+    if (pontoFixado) {
+      return
+    }
+
     const svg = evento.currentTarget.ownerSVGElement || evento.currentTarget
     const rect = svg.getBoundingClientRect()
     const x =
@@ -544,6 +740,8 @@ function GraficoHistorico({ historico, plataforma, periodo }) {
     const resultado = obterValorNoMouse(dados, xLimitado)
 
     if (!resultado) {
+      setPontoSelecionado(null)
+      setPosicaoTooltip(null)
       return
     }
 
@@ -561,7 +759,65 @@ function GraficoHistorico({ historico, plataforma, periodo }) {
     })
   }
 
+  const obterPontosComMudanca = (dados) => {
+    const pontos = []
+    let ultimoPreco = null
+
+    dados.forEach((registro) => {
+      const precoAtual = Math.round(Number(registro.preco_atual) * 100)
+
+      if (!Number.isFinite(precoAtual)) {
+        return
+      }
+
+      if (ultimoPreco === null || precoAtual !== ultimoPreco) {
+        if (!registro._ancoraPeriodo && !registro._fimPeriodo) {
+          pontos.push(registro)
+        }
+        ultimoPreco = precoAtual
+      }
+    })
+
+    return pontos
+  }
+
+  const pontosSteam = obterPontosComMudanca(dadosSteam)
+  const pontosEpic = obterPontosComMudanca(dadosEpic)
+
+  const fixarPonto = (registro, plataformaRegistro) => {
+    if (tooltipTimerRef.current) {
+      clearTimeout(tooltipTimerRef.current)
+      tooltipTimerRef.current = null
+    }
+
+    const x = calcularX(registro)
+    const y = calcularY(registro)
+
+    const ponto = {
+      ...registro,
+      plataforma: plataformaRegistro,
+    }
+
+    setPontoFixado(ponto)
+    setPontoSelecionado(ponto)
+    setPosicaoTooltip({
+      x: (x / largura) * 100,
+      y: (y / altura) * 100,
+    })
+
+    tooltipTimerRef.current = setTimeout(() => {
+      setPontoFixado(null)
+      setPontoSelecionado(null)
+      setPosicaoTooltip(null)
+      tooltipTimerRef.current = null
+    }, 5000)
+  }
+
   const limparTooltip = () => {
+    if (pontoFixado) {
+      return
+    }
+
     setPontoSelecionado(null)
     setPosicaoTooltip(null)
   }
@@ -686,41 +942,55 @@ function GraficoHistorico({ historico, plataforma, periodo }) {
             />
           )}
 
-          {dadosSteam
-            .filter((registro) => !registro._ancoraPeriodo)
-            .map((registro) => (
-            <circle
-              key={`steam-${registro.id}`}
-              cx={calcularX(registro)}
-              cy={calcularY(registro)}
-              r="5"
-              className="ponto-historico ponto-steam"
-              onMouseEnter={() =>
-                setPontoSelecionado(registro)
-              }
-              onMouseLeave={() =>
-                setPontoSelecionado(null)
-              }
-            />
-          ))}
+          {pontosSteam.map((registro) => {
+            const x = calcularX(registro)
+            const y = calcularY(registro)
 
-          {dadosEpic
-            .filter((registro) => !registro._ancoraPeriodo)
-            .map((registro) => (
-            <circle
-              key={`epic-${registro.id}`}
-              cx={calcularX(registro)}
-              cy={calcularY(registro)}
-              r="5"
-              className="ponto-historico ponto-epic"
-              onMouseEnter={() =>
-                setPontoSelecionado(registro)
-              }
-              onMouseLeave={() =>
-                setPontoSelecionado(null)
-              }
-            />
-          ))}
+            return (
+              <circle
+                key={`steam-${registro.id}`}
+                cx={x}
+                cy={y}
+                r="5"
+                className="ponto-historico ponto-steam"
+                onMouseEnter={() => {
+                  if (pontoFixado) return
+                  setPontoSelecionado(registro)
+                  setPosicaoTooltip({
+                    x: (x / largura) * 100,
+                    y: (y / altura) * 100,
+                  })
+                }}
+                onMouseLeave={limparTooltip}
+                onClick={() => fixarPonto(registro, 'Steam')}
+              />
+            )
+          })}
+
+          {pontosEpic.map((registro) => {
+            const x = calcularX(registro)
+            const y = calcularY(registro)
+
+            return (
+              <circle
+                key={`epic-${registro.id}`}
+                cx={x}
+                cy={y}
+                r="5"
+                className="ponto-historico ponto-epic"
+                onMouseEnter={() => {
+                  if (pontoFixado) return
+                  setPontoSelecionado(registro)
+                  setPosicaoTooltip({
+                    x: (x / largura) * 100,
+                    y: (y / altura) * 100,
+                  })
+                }}
+                onMouseLeave={limparTooltip}
+                onClick={() => fixarPonto(registro, 'Epic')}
+              />
+            )
+          })}
 
           <line
             x1={margemEsquerda}
@@ -771,61 +1041,102 @@ function DetalhesJogo() {
   const { id } = useParams()
   const navigate = useNavigate()
 
-  const [tema, setTema] = useState(() => {
-    return localStorage.getItem('tema') || 'claro'
-  })
+  const { tema, setTema } = useTema()
+  const { token, autenticado } = useAuth()
+
+  useEffect(() => {
+    if (!token || !autenticado || !id) return
+    fetch(`${API_BASE}/api/conquistas/evento`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ evento: 'detalhes_jogo', jogo_id: Number(id) }),
+    }).catch((erro) => {
+      console.warn('Não foi possível registrar a visita aos detalhes para conquistas.', erro)
+    })
+  }, [id, token, autenticado])
 
   const [jogo, setJogo] = useState(null)
   const [historico, setHistorico] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
   const [descricaoAtual, setDescricaoAtual] = useState(null)
-  const [midiaSteam, setMidiaSteam] = useState({
+  const [midiaJogo, setMidiaJogo] = useState({
     screenshots: [],
     videos: [],
+    epic_images: [],
   })
   const [imagemSelecionada, setImagemSelecionada] = useState(null)
   const [imagemGaleriaSelecionada, setImagemGaleriaSelecionada] = useState(null)
   const [pausarCarrossel, setPausarCarrossel] = useState(false)
+  const [modalRecomendacaoAberto, setModalRecomendacaoAberto] = useState(false)
+  const [salvandoRecomendacao, setSalvandoRecomendacao] = useState(false)
+  const [mensagemRecomendacao, setMensagemRecomendacao] = useState(null)
+  const [recomendacaoAtual, setRecomendacaoAtual] = useState(null)
+  const [carregandoRecomendacao, setCarregandoRecomendacao] = useState(false)
+  const [modalDenunciaAberto, setModalDenunciaAberto] = useState(false)
+  const [motivoDenuncia, setMotivoDenuncia] = useState('Fora do catálogo')
+  const [observacaoDenuncia, setObservacaoDenuncia] = useState('')
+  const [enviandoDenuncia, setEnviandoDenuncia] = useState(false)
+  const [erroDenuncia, setErroDenuncia] = useState('')
+
+  const enviarDenuncia = async () => {
+    if (!jogo?.id || enviandoDenuncia) return
+    setEnviandoDenuncia(true)
+    setErroDenuncia('')
+    try {
+      const resposta = await fetch(`${API_BASE}/api/comunidade/denuncias-jogos`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jogo_id: Number(jogo.id), motivo: motivoDenuncia, observacao: observacaoDenuncia }),
+      })
+      const dados = await resposta.json().catch(() => ({}))
+      if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível enviar a denúncia.')
+      setModalDenunciaAberto(false)
+      navigate('/jogos', { replace: true, state: { aviso: dados.mensagem } })
+    } catch (erro) {
+      setErroDenuncia(erro.message || 'Falha ao enviar denúncia.')
+    } finally { setEnviandoDenuncia(false) }
+  }
 
   const [plataforma, setPlataforma] =
     useState('ambas')
 
   const [periodo, setPeriodo] =
-    useState('tudo')
+    useState('3m')
 
   useEffect(() => {
-    localStorage.setItem('tema', tema)
-  }, [tema])
+    const imagensGaleria = [
+      ...midiaJogo.screenshots,
+      ...midiaJogo.epic_images,
+    ]
 
-  useEffect(() => {
-    if (midiaSteam.screenshots.length <= 1 || pausarCarrossel) {
+    if (imagensGaleria.length <= 1 || pausarCarrossel) {
       return undefined
     }
 
     const intervalo = setInterval(() => {
       setImagemGaleriaSelecionada((imagemAtual) => {
-        const imagens = midiaSteam.screenshots
-
-        if (imagens.length === 0) {
+        if (imagensGaleria.length === 0) {
           return null
         }
 
-        const indiceAtual = imagens.findIndex(
+        const indiceAtual = imagensGaleria.findIndex(
           (imagem) => imagem.url === imagemAtual
         )
 
         const proximoIndice =
           indiceAtual >= 0
-            ? (indiceAtual + 1) % imagens.length
+            ? (indiceAtual + 1) % imagensGaleria.length
             : 0
 
-        return imagens[proximoIndice].url
+        return imagensGaleria[proximoIndice].url
       })
     }, 10000)
 
     return () => clearInterval(intervalo)
-  }, [midiaSteam.screenshots, pausarCarrossel])
+  }, [midiaJogo.screenshots, midiaJogo.epic_images, pausarCarrossel])
 
   useEffect(() => {
     if (!pausarCarrossel) {
@@ -838,6 +1149,34 @@ function DetalhesJogo() {
 
     return () => clearTimeout(retornoCarrossel)
   }, [pausarCarrossel])
+
+  useEffect(() => {
+    let cancelado = false
+
+    async function carregarRecomendacaoAtual() {
+      if (!token || !autenticado) {
+        setRecomendacaoAtual(null)
+        return
+      }
+
+      setCarregandoRecomendacao(true)
+      try {
+        const resposta = await fetch(`${API_BASE}/api/jogos/vitrine/minha-recomendacao`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!resposta.ok) return
+        const dados = await resposta.json()
+        if (!cancelado) setRecomendacaoAtual(dados.recomendacao || null)
+      } catch (erro) {
+        console.warn('Não foi possível consultar sua recomendação atual.', erro)
+      } finally {
+        if (!cancelado) setCarregandoRecomendacao(false)
+      }
+    }
+
+    carregarRecomendacaoAtual()
+    return () => { cancelado = true }
+  }, [token, autenticado, id])
 
   useEffect(() => {
     async function carregarDados() {
@@ -888,20 +1227,27 @@ function DetalhesJogo() {
               ? dadosMidia.screenshots
               : []
 
-            setMidiaSteam({
+            const epicImages = Array.isArray(dadosMidia.epic_images)
+              ? dadosMidia.epic_images
+              : []
+
+            setMidiaJogo({
               screenshots,
               videos: Array.isArray(dadosMidia.videos)
                 ? dadosMidia.videos
                 : [],
+              epic_images: epicImages,
             })
 
             setImagemGaleriaSelecionada(
-              screenshots[0]?.url || null
+              screenshots[0]?.url ||
+                epicImages[0]?.url ||
+                null
             )
           }
         } catch (erroMidia) {
           console.warn(
-            'Não foi possível obter imagens e vídeos da Steam.',
+            'Não foi possível obter imagens e vídeos do jogo.',
             erroMidia
           )
         }
@@ -967,7 +1313,6 @@ function DetalhesJogo() {
   const menorPreco = obterMenorPreco(jogo, historico)
   const imagem = obterImagem(jogo)
   const imagemHero = obterImagemHero(jogo)
-  const logoSteam = obterLogoSteam(jogo)
 
   const precoSteam = obterDadosPreco(jogo, historico, 'Steam')
   const precoEpic = obterDadosPreco(jogo, historico, 'Epic')
@@ -991,6 +1336,39 @@ function DetalhesJogo() {
     epicDisponivel &&
     Number(precoEpic.precoAtual) < Number(precoSteam.precoAtual)
 
+  const temPromocaoValida = [precoSteam, precoEpic].some((preco) =>
+    Number(preco?.desconto || 0) > 0 &&
+    preco?.precoAtual !== null && preco?.precoAtual !== undefined &&
+    Number(preco.precoAtual) >= 0 &&
+    preco.precoSemDesconto !== null && preco.precoSemDesconto !== undefined &&
+    Number(preco.precoSemDesconto) > Number(preco.precoAtual)
+  )
+
+  const registrarRecomendacao = async () => {
+    if (!token || !autenticado || !jogo?.id || salvandoRecomendacao) return
+    setSalvandoRecomendacao(true)
+    setMensagemRecomendacao(null)
+    try {
+      const resposta = await fetch(`${API_BASE}/api/jogos/vitrine/recomendacao`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ jogo_id: Number(jogo.id) }),
+      })
+      const dados = await resposta.json().catch(() => ({}))
+      if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível registrar sua recomendação.')
+      setModalRecomendacaoAberto(false)
+      setRecomendacaoAtual({ jogo_id: Number(jogo.id), nome: jogo.nome, total_recomendacoes: dados.total_recomendacoes })
+      setMensagemRecomendacao({ tipo: 'sucesso', texto: dados.mensagem || 'Recomendação registrada!' })
+    } catch (erro) {
+      setMensagemRecomendacao({ tipo: 'erro', texto: erro.message || 'Falha ao registrar recomendação.' })
+    } finally {
+      setSalvandoRecomendacao(false)
+    }
+  }
+
   return (
     <div className={`app tema-${tema}`}>
       <Cabecalho
@@ -1000,12 +1378,22 @@ function DetalhesJogo() {
 
       <main className="pagina-detalhes">
         <div className="conteudo-detalhes">
-          <button
-            className="botao-voltar-detalhes"
-            onClick={() => navigate(-1)}
-          >
-            ← Voltar
-          </button>
+          <div className="detalhes-acoes-topo">
+            <button
+              className="botao-voltar-detalhes"
+              onClick={() => navigate(-1)}
+            >
+              ← Voltar
+            </button>
+
+            <button
+              type="button"
+              className="botao-reportar-detalhes"
+              onClick={() => setModalDenunciaAberto(true)}
+            >
+              ⚑ Reportar problema com este jogo
+            </button>
+          </div>
 
           <section className="hero-detalhes">
             {imagemHero ? (
@@ -1035,27 +1423,7 @@ function DetalhesJogo() {
                 DETALHES DO JOGO
               </span>
 
-              {logoSteam ? (
-                <>
-                  <img
-                    className="logo-jogo-steam"
-                    src={logoSteam}
-                    alt={jogo.nome}
-                    loading="eager"
-                    decoding="async"
-                    onError={(evento) => {
-                      evento.currentTarget.style.display = 'none'
-                      const fallback = evento.currentTarget.nextElementSibling
-                      if (fallback) {
-                        fallback.style.display = 'block'
-                      }
-                    }}
-                  />
-                  <h1 className="nome-jogo-fallback">{jogo.nome}</h1>
-                </>
-              ) : (
-                <h1>{jogo.nome}</h1>
-              )}
+              <h1>{jogo.nome}</h1>
 
               {jogo.desenvolvedor && (
                 <p className="desenvolvedor-detalhes">
@@ -1099,6 +1467,25 @@ function DetalhesJogo() {
                 </div>
               )}
             </div>
+
+            <button
+              type="button"
+              onClick={() => navigate(`/ofertas?jogo=${jogo.id}`)}
+              className="ofertas-link-detalhes"
+              style={{
+                position: 'absolute',
+                right: '40px',
+                bottom: '40px',
+                zIndex: 2,
+                padding: 0,
+                border: 'none',
+                background: 'transparent',
+                fontSize: '16px',
+                cursor: 'pointer',
+              }}
+            >
+              Analisar ofertas →
+            </button>
           </section>
 
 
@@ -1119,6 +1506,7 @@ function DetalhesJogo() {
                 padding: '24px',
                 background: 'rgba(0, 0, 0, 0.88)',
                 cursor: 'zoom-out',
+                overflow: 'hidden',
               }}
             >
               <img
@@ -1241,6 +1629,50 @@ function DetalhesJogo() {
               </div>
             </div>
           </section>
+
+          {temPromocaoValida && (
+            <section className="recomendacao-comunidade-detalhes" style={{ margin: '24px 0', padding: '22px', border: '1px solid var(--borda-tema, rgba(128,128,128,.28))', borderRadius: '16px', background: 'var(--fundo-card, rgba(128,128,128,.06))' }}>
+              {autenticado && recomendacaoAtual ? (
+                <div role="status" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                  <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(139,92,246,.16)', color: 'var(--cor-destaque, #8b5cf6)', fontSize: '21px' }}>✓</span>
+                  <div>
+                    <span className="eyebrow">ESCOLHA DA COMUNIDADE</span>
+                    <h2 style={{ margin: '6px 0' }}>{Number(recomendacaoAtual.jogo_id) === Number(jogo.id) ? 'Você já recomendou este jogo!' : 'Você já recomendou um jogo para a comunidade!'}</h2>
+                    <p style={{ margin: 0, color: 'var(--texto-secundario, inherit)', lineHeight: 1.55 }}>
+                      Sua recomendação atual é <strong>{recomendacaoAtual.nome}</strong>. Ela está contando para o ranking da comunidade.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '18px', flexWrap: 'wrap' }}>
+                  <div>
+                    <span className="eyebrow">ESCOLHA DA COMUNIDADE</span>
+                    <h2 style={{ margin: '6px 0' }}>Recomende este jogo</h2>
+                    <p style={{ margin: 0, color: 'var(--texto-secundario, inherit)' }}>Achou uma boa oportunidade? Indique para outras pessoas enquanto houver promoção ativa.</p>
+                  </div>
+                  <button type="button" onClick={() => autenticado ? setModalRecomendacaoAberto(true) : navigate('/login')} disabled={salvandoRecomendacao || carregandoRecomendacao} style={{ border: 0, borderRadius: '10px', padding: '12px 18px', fontWeight: 700, cursor: 'pointer', background: 'var(--cor-destaque, #8b5cf6)', color: '#fff' }}>
+                    ♡ Recomendar jogo
+                  </button>
+                </div>
+              )}
+              {mensagemRecomendacao && <p role="status" style={{ marginBottom: 0, color: mensagemRecomendacao.tipo === 'erro' ? '#e05252' : 'var(--texto-secundario, inherit)' }}>{mensagemRecomendacao.texto}</p>}
+            </section>
+          )}
+
+          {modalRecomendacaoAberto && (
+            <div role="presentation" onClick={() => !salvandoRecomendacao && setModalRecomendacaoAberto(false)} style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(0,0,0,.68)' }}>
+              <section role="dialog" aria-modal="true" aria-labelledby="confirmar-recomendacao-titulo" onClick={(evento) => evento.stopPropagation()} style={{ width: 'min(100%, 660px)', padding: 'clamp(22px, 4vw, 34px)', borderRadius: '24px', background: (tema === 'escuro' || tema === 'dark') ? '#19191f' : '#ffffff', color: (tema === 'escuro' || tema === 'dark') ? '#f4f1fb' : '#24212b', boxShadow: '0 18px 60px rgba(0,0,0,.38)', border: (tema === 'escuro' || tema === 'dark') ? '1px solid rgba(255,255,255,.08)' : '1px solid rgba(30,20,50,.10)' }}>
+                <span className="eyebrow">RECOMENDAÇÃO DA COMUNIDADE</span>
+                <h2 id="confirmar-recomendacao-titulo" style={{ color: 'inherit', margin: '22px 0 12px', fontSize: 'clamp(24px, 3vw, 36px)', lineHeight: 1.2 }}>Recomendar {jogo.nome}?</h2>
+                <p style={{ color: (tema === 'escuro' || tema === 'dark') ? '#d0cbd9' : '#5e5968', fontSize: '17px', lineHeight: 1.55, margin: 0 }}>Você terá uma recomendação ativa por vez. Ao confirmar, ela substituirá qualquer recomendação anterior e ficará válida enquanto houver uma promoção ativa confirmada para este jogo.</p>
+                {mensagemRecomendacao?.tipo === 'erro' && <p role="alert" style={{ color: '#e05252' }}>{mensagemRecomendacao.texto}</p>}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '22px', flexWrap: 'wrap' }}>
+                  <button type="button" onClick={() => setModalRecomendacaoAberto(false)} disabled={salvandoRecomendacao} style={{ padding: '12px 20px', borderRadius: '11px', cursor: 'pointer', border: (tema === 'escuro' || tema === 'dark') ? '1px solid #55515e' : '1px solid #d4d0dc', background: (tema === 'escuro' || tema === 'dark') ? '#292830' : '#f2f0f5', color: (tema === 'escuro' || tema === 'dark') ? '#f4f1fb' : '#292531', fontSize: '16px' }}>Cancelar</button>
+                  <button type="button" onClick={registrarRecomendacao} disabled={salvandoRecomendacao} style={{ padding: '12px 22px', border: 0, borderRadius: '11px', background: 'var(--cor-destaque, #8b5cf6)', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '16px' }}>{salvandoRecomendacao ? 'Registrando…' : 'Confirmar recomendação'}</button>
+                </div>
+              </section>
+            </div>
+          )}
 
           <section className="historico-detalhes">
             <div className="titulo-secao-detalhes">
@@ -1383,175 +1815,184 @@ function DetalhesJogo() {
             />
           </section>
 
-          {(midiaSteam.screenshots.length > 0 ||
-            midiaSteam.videos.some(
+          {(() => {
+            const imagensGaleria = [
+              ...midiaJogo.screenshots,
+              ...midiaJogo.epic_images,
+            ]
+
+            const possuiVideo = midiaJogo.videos.some(
               (video) =>
                 video?.webm?.max ||
                 video?.webm?.['480'] ||
                 video?.mp4?.max ||
                 video?.mp4?.['480']
-            )) && (
-            <section className="midia-detalhes">
-              {midiaSteam.screenshots.length > 0 && (
-                <div className="galeria-steam-detalhes">
-                  <div className="titulo-secao-detalhes">
-                    <h2>Imagens do jogo</h2>
-                  </div>
+            )
 
-                  {(() => {
-                    const imagemPrincipal =
-                      midiaSteam.screenshots.find(
-                        (imagem) =>
-                          imagem.url === imagemGaleriaSelecionada
-                      ) || midiaSteam.screenshots[0]
+            if (imagensGaleria.length === 0 && !possuiVideo) {
+              return null
+            }
 
-                    return (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setImagemSelecionada(imagemPrincipal.url)
-                          }
-                          aria-label="Ampliar imagem selecionada"
-                          style={{
-                            display: 'block',
-                            width: '100%',
-                            padding: 0,
-                            border: '0',
-                            background: 'none',
-                            cursor: 'zoom-in',
-                            borderRadius: '16px',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          <img
-                            src={imagemPrincipal.url}
-                            alt={`Screenshot selecionado de ${jogo.nome}`}
-                            loading="eager"
-                            decoding="async"
-                            style={{
-                              display: 'block',
-                              width: '100%',
-                              aspectRatio: '16 / 9',
-                              objectFit: 'cover',
-                              borderRadius: '16px',
-                            }}
-                          />
-                        </button>
+            const imagemPrincipal =
+              imagensGaleria.find(
+                (imagem) => imagem.url === imagemGaleriaSelecionada
+              ) || imagensGaleria[0]
 
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'center',
-                            gap: '12px',
-                            marginTop: '18px',
-                            overflowX: 'auto',
-                            padding: '2px 4px 8px',
-                          }}
-                        >
-                          {midiaSteam.screenshots.map((imagem, indice) => {
-                            const selecionada =
-                              imagem.url === imagemPrincipal.url
+            return (
+              <section className="midia-detalhes">
+                {imagensGaleria.length > 0 && (
+                  <div className="galeria-steam-detalhes">
+                    <div className="titulo-secao-detalhes">
+                      <h2>Imagens do jogo</h2>
+                    </div>
 
-                            return (
-                              <button
-                                key={imagem.id || indice}
-                                type="button"
-                                onClick={() => {
-                                  setImagemGaleriaSelecionada(imagem.url)
-                                  setPausarCarrossel(true)
-                                }}
-                                aria-label={`Selecionar imagem ${indice + 1}`}
-                                aria-current={selecionada ? 'true' : undefined}
-                                style={{
-                                  flex: '0 0 104px',
-                                  width: '104px',
-                                  height: '62px',
-                                  padding: 0,
-                                  border: selecionada
-                                    ? '2px solid var(--roxo-tema)'
-                                    : '2px solid transparent',
-                                  borderRadius: '8px',
-                                  overflow: 'hidden',
-                                  background: 'none',
-                                  cursor: 'pointer',
-                                  opacity: selecionada ? 1 : 0.42,
-                                  transition:
-                                    'opacity 0.2s ease, border-color 0.2s ease, transform 0.2s ease',
-                                }}
-                              >
-                                <img
-                                  src={imagem.thumbnail}
-                                  alt={`Miniatura ${indice + 1} de ${jogo.nome}`}
-                                  loading="lazy"
-                                  decoding="async"
-                                  style={{
-                                    display: 'block',
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover',
-                                  }}
-                                />
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </>
-                    )
-                  })()}
-                </div>
-              )}
-              {midiaSteam.videos.some(
-                (video) =>
-                  video?.webm?.max ||
-                  video?.webm?.['480'] ||
-                  video?.mp4?.max ||
-                  video?.mp4?.['480']
-              ) && (
-                <div className="video-steam-detalhes">
-                  <div className="titulo-secao-detalhes">
-                    <span className="eyebrow">VÍDEO</span>
-                    <h2>Trailer</h2>
-                  </div>
-
-                  {(() => {
-                    const video =
-                      midiaSteam.videos.find((item) => item.destaque) ||
-                      midiaSteam.videos[0]
-
-                    const fonteVideo =
-                      video?.webm?.max ||
-                      video?.webm?.['480'] ||
-                      video?.mp4?.max ||
-                      video?.mp4?.['480']
-
-                    if (!fonteVideo) {
-                      return null
-                    }
-
-                    return (
-                      <video
-                        controls
-                        preload="metadata"
-                        poster={video.thumbnail}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setImagemSelecionada(imagemPrincipal.url)
+                      }
+                      aria-label="Ampliar imagem selecionada"
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: 0,
+                        border: '0',
+                        background: 'none',
+                        cursor: 'zoom-in',
+                        borderRadius: '16px',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <img
+                        src={imagemPrincipal.url}
+                        alt={`Imagem selecionada de ${jogo.nome}`}
+                        loading="eager"
+                        decoding="async"
                         style={{
                           display: 'block',
                           width: '100%',
-                          maxHeight: '520px',
-                          objectFit: 'contain',
+                          aspectRatio: '16 / 9',
+                          objectFit: 'cover',
                           borderRadius: '16px',
-                          background: '#000',
+                          transform: 'scale(1.34)',
                         }}
-                      >
-                        <source src={fonteVideo} />
-                        Seu navegador não suporta reprodução de vídeo.
-                      </video>
-                    )
-                  })()}
-                </div>
-              )}
-            </section>
-          )}
+                      />
+                    </button>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent:
+                          imagensGaleria.length * 104 +
+                            Math.max(imagensGaleria.length - 1, 0) * 12 +
+                            8 <=
+                          900
+                            ? 'center'
+                            : 'flex-start',
+                        gap: '12px',
+                        marginTop: '18px',
+                        overflowX: 'auto',
+                        padding: '2px 4px 8px',
+                      }}
+                    >
+                      {imagensGaleria.map((imagem, indice) => {
+                        const selecionada =
+                          imagem.url === imagemPrincipal.url
+
+                        return (
+                          <button
+                            key={imagem.id || `${imagem.url}-${indice}`}
+                            type="button"
+                            onClick={() => {
+                              setImagemGaleriaSelecionada(imagem.url)
+                              setPausarCarrossel(true)
+                            }}
+                            aria-label={`Selecionar imagem ${indice + 1}`}
+                            aria-current={
+                              selecionada ? 'true' : undefined
+                            }
+                            style={{
+                              flex: '0 0 104px',
+                              width: '104px',
+                              height: '62px',
+                              padding: 0,
+                              border: selecionada
+                                ? '2px solid var(--roxo-tema)'
+                                : '2px solid transparent',
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              background: 'none',
+                              cursor: 'pointer',
+                              opacity: selecionada ? 1 : 0.42,
+                              transition:
+                                'opacity 0.2s ease, border-color 0.2s ease, transform 0.2s ease',
+                            }}
+                          >
+                            <img
+                              src={imagem.thumbnail || imagem.url}
+                              alt={`Miniatura ${indice + 1} de ${jogo.nome}`}
+                              loading="lazy"
+                              decoding="async"
+                              style={{
+                                display: 'block',
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                              }}
+                            />
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {possuiVideo && (
+                  <div className="video-steam-detalhes">
+                    <div className="titulo-secao-detalhes">
+                      <span className="eyebrow">VÍDEO</span>
+                      <h2>Trailer</h2>
+                    </div>
+
+                    {(() => {
+                      const video =
+                        midiaJogo.videos.find((item) => item.destaque) ||
+                        midiaJogo.videos[0]
+
+                      const fonteVideo =
+                        video?.webm?.max ||
+                        video?.webm?.['480'] ||
+                        video?.mp4?.max ||
+                        video?.mp4?.['480']
+
+                      if (!fonteVideo) {
+                        return null
+                      }
+
+                      return (
+                        <video
+                          controls
+                          preload="metadata"
+                          poster={video.thumbnail}
+                          style={{
+                            display: 'block',
+                            width: '100%',
+                            maxHeight: '520px',
+                            objectFit: 'contain',
+                            borderRadius: '16px',
+                            background: '#000',
+                          }}
+                        >
+                          <source src={fonteVideo} />
+                          Seu navegador não suporta reprodução de vídeo.
+                        </video>
+                      )
+                    })()}
+                  </div>
+                )}
+              </section>
+            )
+          })()}
 
           {descricao && (
             <section className="descricoes-detalhes">
@@ -1565,12 +2006,36 @@ function DetalhesJogo() {
                     {descricao.fonte.replace(' (banco de dados)', '')}
                   </h3>
 
-                  <p>
-                    {descricao.texto}
-                  </p>
+                  <div
+                    className="descricao-conteudo"
+                    dangerouslySetInnerHTML={{
+                      __html: sanitizarDescricaoHTML(descricao.texto),
+                    }}
+                  />
                 </article>
               </div>
             </section>
+          )}
+
+          {modalDenunciaAberto && (
+            <div role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setModalDenunciaAberto(false) }} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,.72)', display: 'grid', placeItems: 'center', padding: 16 }}>
+              <section role="dialog" aria-modal="true" aria-labelledby="titulo-denuncia-jogo" style={{ width: 'min(100%, 480px)', background: 'var(--fundo-card, #19191d)', color: 'var(--texto-principal, #f5f5f5)', border: '1px solid var(--borda, #38383e)', borderRadius: 16, padding: 24, boxShadow: '0 20px 70px #0008' }}>
+                <button type="button" onClick={() => setModalDenunciaAberto(false)} aria-label="Fechar" style={{ float: 'right', background: 'transparent', color: 'inherit', border: 0, fontSize: 22, cursor: 'pointer' }}>×</button>
+                <h2 id="titulo-denuncia-jogo" style={{ marginTop: 0 }}>Reportar jogo</h2>
+                <p>Informe por que <strong>{jogo?.nome}</strong> deve ser retirado do catálogo. A retirada acontece assim que a denúncia for enviada.</p>
+                <label htmlFor="motivo-denuncia" style={{ display: 'block', margin: '16px 0 6px', fontWeight: 600 }}>Motivo</label>
+                <select id="motivo-denuncia" value={motivoDenuncia} onChange={(e) => setMotivoDenuncia(e.target.value)} style={{ width: '100%', padding: 12, borderRadius: 8, color: 'inherit', background: 'var(--fundo-input, #202024)', border: '1px solid var(--borda, #555)' }}>
+                  <option>Conteúdo sensível</option><option>Fora do catálogo</option><option>Duplicado ou redundante</option><option>Indisponível ou removido</option><option>Problemas de qualidade ou integridade</option><option>Outros</option>
+                </select>
+                <label htmlFor="observacao-denuncia" style={{ display: 'block', margin: '16px 0 6px', fontWeight: 600 }}>Detalhes adicionais (opcional)</label>
+                <textarea id="observacao-denuncia" value={observacaoDenuncia} onChange={(e) => setObservacaoDenuncia(e.target.value)} maxLength={2000} rows={3} placeholder="Explique o problema, se quiser..." style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', padding: 12, borderRadius: 8, color: 'inherit', background: 'var(--fundo-input, #202024)', border: '1px solid var(--borda, #555)' }} />
+                {erroDenuncia && <p role="alert" style={{ color: '#ff7777' }}>{erroDenuncia}</p>}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
+                  <button type="button" onClick={() => setModalDenunciaAberto(false)} style={{ padding: '10px 14px', borderRadius: 8, cursor: 'pointer' }}>Cancelar</button>
+                  <button type="button" onClick={enviarDenuncia} disabled={enviandoDenuncia} style={{ padding: '10px 14px', borderRadius: 8, cursor: 'pointer' }}>{enviandoDenuncia ? 'Enviando...' : 'Denunciar e retirar jogo'}</button>
+                </div>
+              </section>
+            </div>
           )}
         </div>
       </main>

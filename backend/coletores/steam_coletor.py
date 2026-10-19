@@ -9,11 +9,17 @@ import asyncio
 import json
 import re
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from urllib.parse import quote
 
 from .coletor_base import ColetorBase
 from ..lista_jogos import JOGOS_STEAM
+
+
+# Número de lotes GetItems processados simultaneamente.
+# Valor inicial conservador para o teste de concorrência.
+GETITEMS_WORKERS = 4
 
 
 class SteamColetor(ColetorBase):
@@ -222,9 +228,10 @@ class SteamColetor(ColetorBase):
 
     def _consultar_getitems_lote(self, jogos_ids):
         """
-        Consulta preços e promoções da Steam em lote, sem Playwright.
+        Consulta preços e promoções da Steam em lotes de até 50 IDs.
 
-        Retorna um dicionário indexado pelo AppID como string.
+        Os lotes são enviados concorrentemente para reduzir o tempo total
+        da coleta, mantendo o limite de 50 AppIDs por requisição da Steam.
         """
         ids_normalizados = []
 
@@ -239,11 +246,12 @@ class SteamColetor(ColetorBase):
         if not ids_normalizados:
             return {}
 
-        resultados = {}
+        lotes = [
+            ids_normalizados[inicio:inicio + self.batch_size_store]
+            for inicio in range(0, len(ids_normalizados), self.batch_size_store)
+        ]
 
-        for inicio in range(0, len(ids_normalizados), self.batch_size_store):
-            lote = ids_normalizados[inicio:inicio + self.batch_size_store]
-
+        def consultar_lote(lote):
             payload = {
                 "ids": [{"appid": jogo_id} for jogo_id in lote],
                 "context": self.contexto_store,
@@ -278,6 +286,40 @@ class SteamColetor(ColetorBase):
                     [],
                 )
 
+                return lote, itens, None
+
+            except requests.exceptions.RequestException as erro:
+                return lote, [], f"Erro na consulta em lote da Steam: {erro}"
+
+            except ValueError as erro:
+                return (
+                    lote,
+                    [],
+                    "Erro ao interpretar JSON do GetItems da Steam: "
+                    f"{erro}",
+                )
+
+        resultados = {}
+
+        print(
+            f"Steam GetItems concorrente: {len(lotes)} lotes de "
+            f"até {self.batch_size_store} IDs, "
+            f"{GETITEMS_WORKERS} requisições simultâneas."
+        )
+
+        with ThreadPoolExecutor(max_workers=GETITEMS_WORKERS) as executor:
+            futuros = [
+                executor.submit(consultar_lote, lote)
+                for lote in lotes
+            ]
+
+            for futuro in as_completed(futuros):
+                lote, itens, erro = futuro.result()
+
+                if erro:
+                    print(erro)
+                    continue
+
                 for item in itens:
                     dados_item = self._extrair_dados_getitems(item)
                     appid = dados_item.get("id")
@@ -291,19 +333,10 @@ class SteamColetor(ColetorBase):
                     f"{len(itens)} itens retornados."
                 )
 
-            except requests.exceptions.RequestException as erro:
-                print(f"Erro na consulta em lote da Steam: {erro}")
-
-            except ValueError as erro:
-                print(
-                    "Erro ao interpretar JSON do GetItems da Steam: "
-                    f"{erro}"
-                )
-
         return resultados
 
-    async def _scrape_preco_direto(self, jogo_id):
-        if jogo_id in self._cache_precos:
+    async def _scrape_preco_direto(self, jogo_id, ignorar_cache=False):
+        if not ignorar_cache and jogo_id in self._cache_precos:
             return self._cache_precos[jogo_id]
 
         playwright = browser = page = None
@@ -394,13 +427,80 @@ class SteamColetor(ColetorBase):
                 desconto = desconto.replace("-", "")
 
             if not preco:
-                elemento = page.locator(
-                    ".game_purchase_action .game_purchase_price"
-                ).first
+                # A página pode conter várias opções de compra, como
+                # assinaturas, bundles e o próprio jogo. O primeiro
+                # .game_purchase_price não é necessariamente o jogo.
+                titulo_principal = page.locator("#appHubAppName").first
+                nome_jogo = ""
 
-                if await elemento.count() > 0:
-                    preco = await elemento.text_content()
-                    preco = preco.strip() if preco else None
+                if await titulo_principal.count() > 0:
+                    nome_jogo = (
+                        await titulo_principal.text_content() or ""
+                    ).strip()
+
+                blocos_compra = page.locator(
+                    ".game_area_purchase_game"
+                )
+                quantidade_blocos = await blocos_compra.count()
+                bloco_jogo = None
+
+                if nome_jogo:
+                    nome_normalizado = re.sub(
+                        r"\s+",
+                        " ",
+                        nome_jogo.lower(),
+                    ).strip()
+
+                    for indice in range(quantidade_blocos):
+                        bloco = blocos_compra.nth(indice)
+                        titulo_bloco = bloco.locator("h2.title").first
+
+                        if await titulo_bloco.count() == 0:
+                            continue
+
+                        texto_titulo = (
+                            await titulo_bloco.text_content() or ""
+                        ).strip()
+
+                        titulo_normalizado = re.sub(
+                            r"\s+",
+                            " ",
+                            texto_titulo.lower(),
+                        ).strip()
+
+                        # Ex.: "Buy Bully: Scholarship Edition"
+                        # corresponde a "Bully: Scholarship Edition".
+                        if nome_normalizado in titulo_normalizado:
+                            bloco_jogo = bloco
+                            break
+
+                if bloco_jogo is not None:
+                    elemento = bloco_jogo.locator(
+                        ".game_purchase_action .game_purchase_price"
+                    ).first
+
+                    if await elemento.count() > 0:
+                        preco = await elemento.text_content()
+                        preco = preco.strip() if preco else None
+
+                        if not preco:
+                            preco_centavos = await elemento.get_attribute(
+                                "data-price-final"
+                            )
+                            if preco_centavos:
+                                preco = self._formatar_centavos(
+                                    preco_centavos
+                                )
+
+                # Último fallback para páginas sem título/bloco identificável.
+                if not preco:
+                    elemento = page.locator(
+                        ".game_purchase_action .game_purchase_price"
+                    ).first
+
+                    if await elemento.count() > 0:
+                        preco = await elemento.text_content()
+                        preco = preco.strip() if preco else None
 
             if not preco:
                 try:
@@ -427,7 +527,8 @@ class SteamColetor(ColetorBase):
                 "desconto": desconto
             }
 
-            self._cache_precos[jogo_id] = resultado
+            if not ignorar_cache:
+                self._cache_precos[jogo_id] = resultado
 
             return resultado
 
@@ -446,6 +547,94 @@ class SteamColetor(ColetorBase):
 
             if playwright:
                 await playwright.stop()
+    async def coletar_fallback_preco(self, jogo_id):
+        """
+        Consulta uma fonte individual somente quando o GetItems em lote
+        precisa de confirmação.
+
+        Ordem:
+        1. AppDetails, quando possui preço BRL;
+        2. página individual da Steam via scraping, quando AppDetails
+           não fornece preço utilizável.
+
+        Retorna apenas dados de preço. Os dados de promoção do GetItems
+        continuam sendo responsabilidade do coletor incremental.
+        """
+        jogo_id_str = str(jogo_id)
+
+        try:
+            url = (
+                f"{self.api_base}/appdetails"
+                f"?appids={jogo_id}&l=portuguese&cc=br"
+            )
+
+            response = requests.get(
+                url,
+                headers={
+                    "Accept": "application/json",
+                    "User-Agent": "Comparador-TCC/1.0",
+                },
+                timeout=15,
+            )
+            response.raise_for_status()
+
+            payload = response.json()
+            item = payload.get(jogo_id_str)
+
+            if isinstance(item, dict) and item.get("success") is True:
+                data = item.get("data") or {}
+                price = data.get("price_overview") or {}
+
+                if (
+                    data.get("is_free") is True
+                ):
+                    return {
+                        "preco": "Grátis",
+                        "preco_sem_desconto": "Grátis",
+                        "desconto": "0%",
+                        "fonte": "APPDETAILS",
+                    }
+
+                if (
+                    price.get("currency") == "BRL"
+                    and price.get("final") is not None
+                ):
+                    return {
+                        "preco": self._formatar_preco(price.get("final") / 100),
+                        "preco_sem_desconto": self._formatar_preco(
+                            price.get("initial", price.get("final")) / 100
+                        ),
+                        "desconto": (
+                            f"{price.get('discount_percent', 0)}%"
+                        ),
+                        "fonte": "APPDETAILS",
+                    }
+
+            # AppDetails não resolveu o preço. Agora usamos a página real
+            # da loja, ignorando deliberadamente o cache do GetItems.
+            return await self._scrape_preco_direto(
+                jogo_id,
+                ignorar_cache=True,
+            )
+
+        except requests.exceptions.RequestException as erro:
+            return {
+                "preco": "N/A",
+                "preco_sem_desconto": "N/A",
+                "desconto": "0%",
+                "fonte": "FALLBACK_ERRO_HTTP",
+                "erro": str(erro)[:500],
+            }
+
+        except Exception as erro:
+            return {
+                "preco": "N/A",
+                "preco_sem_desconto": "N/A",
+                "desconto": "0%",
+                "fonte": "FALLBACK_ERRO",
+                "erro": repr(erro)[:500],
+            }
+
     async def coletar_jogo(self, jogo_id):
         """Coleta os dados de um jogo específico da Steam.
 

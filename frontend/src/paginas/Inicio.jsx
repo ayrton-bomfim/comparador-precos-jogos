@@ -11,10 +11,9 @@ function Inicio() {
     return salvo === 'escuro' ? 'escuro' : 'claro'
   })
 
-  const [jogosDestaque, setJogosDestaque] = useState([])
-  const [jogosGratuitos, setJogosGratuitos] = useState([])
-  const [ofertas, setOfertas] = useState([])
+  const [secoesVitrine, setSecoesVitrine] = useState({ brasileiros: [], comunidade: [], em_alta: [], oportunidades: [] })
   const [jogosBusca, setJogosBusca] = useState([])
+  const [jogosBuscaComparacao, setJogosBuscaComparacao] = useState([])
   const [busca, setBusca] = useState('')
   const [buscaComparacao, setBuscaComparacao] = useState('')
   const [jogoComparacao, setJogoComparacao] = useState(null)
@@ -47,7 +46,7 @@ function Inicio() {
 
     if (!termo) return []
 
-    return [...jogosBusca]
+    return [...jogosBuscaComparacao]
       .filter((jogo) => jogo.nome.toLowerCase().includes(termo))
       .sort((a, b) => {
         const nomeA = a.nome.toLowerCase()
@@ -63,7 +62,7 @@ function Inicio() {
         return nomeA.localeCompare(nomeB, 'pt-BR')
       })
       .slice(0, 6)
-  }, [buscaComparacao, jogosBusca])
+  }, [buscaComparacao, jogosBuscaComparacao])
 
   const selecionarJogoComparacao = (jogo) => {
     setJogoComparacao(jogo)
@@ -85,7 +84,7 @@ function Inicio() {
       return
     }
 
-    const jogoExato = jogosBusca.find(
+    const jogoExato = jogosBuscaComparacao.find(
       (jogo) => jogo.nome.toLowerCase() === termo
     )
 
@@ -160,201 +159,55 @@ function Inicio() {
     navigate(`/jogos/${id}`)
   }
 
+
+
+
   useEffect(() => {
-    async function carregarJogosDestaque() {
+    let ativo = true
+
+    async function carregarVitrine() {
       try {
-        const resposta = await fetch(`${API_JOGOS_URL}/`)
-
-        if (!resposta.ok) {
-          throw new Error('Não foi possível carregar os jogos em destaque.')
-        }
-
+        const resposta = await fetch(`${API_JOGOS_URL}/vitrine/secoes`)
+        if (!resposta.ok) throw new Error('Não foi possível carregar a vitrine.')
         const dados = await resposta.json()
-
-        const jogosOrdenados = [...dados]
-          .sort(
-            (a, b) =>
-              Number(b.visualizacoes || 0) -
-              Number(a.visualizacoes || 0) ||
-              a.nome.localeCompare(b.nome)
-          )
-          .slice(0, 10)
-
-        const jogosFormatados = jogosOrdenados.map((jogo) => {
-          const precoSteam =
-            jogo.preco_atual_steam ?? jogo.preco_base_steam
-          const precoEpic =
-            jogo.preco_atual_epic ?? jogo.preco_base_epic
-
-          return {
-            id: jogo.id,
-            nome: jogo.nome,
-            imagem:
-              jogo.url_imagem_steam ||
-              (jogo.steam_id
-                ? `https://cdn.akamai.steamstatic.com/steam/apps/${jogo.steam_id}/header.jpg`
-                : ''),
-            steam:
-              precoSteam === null || precoSteam === undefined
-                ? '—'
-                : Number(precoSteam) === 0
-                  ? 'Grátis'
-                  : `R$ ${Number(precoSteam).toFixed(2).replace('.', ',')}`,
-            epic:
-              precoEpic === null || precoEpic === undefined
-                ? '—'
-                : Number(precoEpic) === 0
-                  ? 'Grátis'
-                  : `R$ ${Number(precoEpic).toFixed(2).replace('.', ',')}`,
-          }
+        if (ativo) setSecoesVitrine({
+          brasileiros: dados.brasileiros || [],
+          comunidade: dados.comunidade || [],
+          em_alta: dados.em_alta || [],
+          oportunidades: dados.oportunidades || [],
         })
-
-        setJogosDestaque(jogosFormatados)
       } catch (erro) {
-        console.error('Erro ao carregar jogos em destaque:', erro)
-        setJogosDestaque([])
+        console.error('Erro ao carregar as seções da vitrine:', erro)
       }
     }
 
-    carregarJogosDestaque()
+    carregarVitrine()
+    return () => { ativo = false }
   }, [])
 
   useEffect(() => {
-    async function carregarJogosGratuitos() {
-      try {
-        const resposta = await fetch(`${API_JOGOS_URL}/`)
+    async function carregarJogosBusca(termo, setResultado) {
+      const texto = termo.trim()
 
-        if (!resposta.ok) {
-          throw new Error('Não foi possível carregar os jogos gratuitos.')
-        }
-
-        const dados = await resposta.json()
-
-        const jogosFiltrados = dados
-          .filter(
-            (jogo) =>
-              typeof jogo.genero === 'string' &&
-              jogo.genero.toLowerCase().includes('grátis para jogar')
-          )
-          .map((jogo) => {
-            const gratuito = typeof jogo.genero === 'string' &&
-              jogo.genero.toLowerCase().includes('grátis para jogar')
-
-            const precoSteam =
-              jogo.preco_atual_steam ?? jogo.preco_base_steam
-            const precoEpic =
-              jogo.preco_atual_epic ?? jogo.preco_base_epic
-
-            return {
-              id: jogo.id,
-              nome: jogo.nome,
-              imagem:
-                jogo.url_imagem_steam ||
-                jogo.url_imagem_epic ||
-                (jogo.steam_id
-                  ? `https://cdn.akamai.steamstatic.com/steam/apps/${jogo.steam_id}/header.jpg`
-                  : ''),
-              steam:
-                precoSteam === null || precoSteam === undefined
-                  ? gratuito && jogo.steam_id
-                    ? 'Grátis'
-                    : 'Não disponível'
-                  : Number(precoSteam) === 0
-                    ? 'Grátis'
-                    : `R$ ${Number(precoSteam).toFixed(2).replace('.', ',')}`,
-              epic:
-                precoEpic === null || precoEpic === undefined
-                  ? gratuito && jogo.epic_id
-                    ? 'Grátis'
-                    : 'Não disponível'
-                  : Number(precoEpic) === 0
-                    ? 'Grátis'
-                    : `R$ ${Number(precoEpic).toFixed(2).replace('.', ',')}`,
-            }
-          })
-
-        setJogosGratuitos(jogosFiltrados)
-      } catch (erro) {
-        console.error('Erro ao carregar jogos gratuitos:', erro)
-        setJogosGratuitos([])
+      if (!texto) {
+        setResultado([])
+        return
       }
-    }
 
-    carregarJogosGratuitos()
-  }, [])
-
-  useEffect(() => {
-    async function carregarOfertas() {
       try {
-        const resposta = await fetch(`${API_JOGOS_URL}/`)
-
-        if (!resposta.ok) {
-          throw new Error('Não foi possível carregar as ofertas.')
-        }
-
-        const dados = await resposta.json()
-
-        const jogosEmOferta = dados
-          .map((jogo) => {
-            const descontoSteam = Number(jogo.desconto_steam || 0)
-            const descontoEpic = Number(jogo.desconto_epic || 0)
-            const maiorDesconto = Math.max(descontoSteam, descontoEpic)
-
-            const precoSteam =
-              jogo.preco_atual_steam ?? jogo.preco_base_steam
-            const precoEpic =
-              jogo.preco_atual_epic ?? jogo.preco_base_epic
-
-            const formatarPreco = (preco) => {
-              if (preco === null || preco === undefined) return 'Não disponível'
-              if (Number(preco) === 0) return 'Grátis'
-
-              return `R$ ${Number(preco)
-                .toFixed(2)
-                .replace('.', ',')}`
-            }
-
-            return {
-              id: jogo.id,
-              nome: jogo.nome,
-              imagem:
-                jogo.url_imagem_steam ||
-                jogo.url_imagem_epic ||
-                (jogo.steam_id
-                  ? `https://cdn.akamai.steamstatic.com/steam/apps/${jogo.steam_id}/header.jpg`
-                  : ''),
-              steam: formatarPreco(precoSteam),
-              epic: formatarPreco(precoEpic),
-              desconto: maiorDesconto,
-            }
-          })
-          .filter((jogo) => jogo.desconto > 0)
-          .sort((a, b) => b.desconto - a.desconto || a.nome.localeCompare(b.nome))
-          .slice(0, 10)
-
-        setOfertas(jogosEmOferta)
-      } catch (erro) {
-        console.error('Erro ao carregar ofertas:', erro)
-        setOfertas([])
-      }
-    }
-
-    carregarOfertas()
-  }, [])
-
-  useEffect(() => {
-    async function carregarJogosBusca() {
-      try {
-        const resposta = await fetch(`${API_JOGOS_URL}/`)
+        const resposta = await fetch(
+          `${API_JOGOS_URL}/?pagina=1&por_pagina=20&busca=${encodeURIComponent(texto)}&ordenacao=nome`
+        )
 
         if (!resposta.ok) {
           throw new Error('Não foi possível carregar os jogos para a pesquisa.')
         }
 
         const dados = await resposta.json()
+        const lista = Array.isArray(dados) ? dados : dados.jogos || []
 
-        setJogosBusca(
-          dados.map((jogo) => ({
+        setResultado(
+          lista.map((jogo) => ({
             id: jogo.id,
             nome: jogo.nome,
             imagem:
@@ -373,12 +226,60 @@ function Inicio() {
         )
       } catch (erro) {
         console.error('Erro ao carregar jogos para a pesquisa:', erro)
-        setJogosBusca([])
+        setResultado([])
       }
     }
 
-    carregarJogosBusca()
-  }, [])
+    carregarJogosBusca(busca, setJogosBusca)
+  }, [busca])
+
+  useEffect(() => {
+    async function carregarJogosBuscaComparacao() {
+      const termo = buscaComparacao.trim()
+
+      if (!termo) {
+        setJogosBuscaComparacao([])
+        return
+      }
+
+      try {
+        const resposta = await fetch(
+          `${API_JOGOS_URL}/?pagina=1&por_pagina=20&busca=${encodeURIComponent(termo)}&ordenacao=nome`
+        )
+
+        if (!resposta.ok) {
+          throw new Error('Não foi possível carregar os jogos para a comparação.')
+        }
+
+        const dados = await resposta.json()
+        const lista = Array.isArray(dados) ? dados : dados.jogos || []
+
+        setJogosBuscaComparacao(
+          lista.map((jogo) => ({
+            id: jogo.id,
+            nome: jogo.nome,
+            imagem:
+              jogo.url_imagem_steam ||
+              jogo.url_imagem_epic ||
+              (jogo.steam_id
+                ? `https://cdn.akamai.steamstatic.com/steam/apps/${jogo.steam_id}/header.jpg`
+                : ''),
+            preco_atual_steam: jogo.preco_atual_steam,
+            preco_atual_epic: jogo.preco_atual_epic,
+            preco_base_steam: jogo.preco_base_steam,
+            preco_base_epic: jogo.preco_base_epic,
+            desconto_steam: jogo.desconto_steam,
+            desconto_epic: jogo.desconto_epic,
+          }))
+        )
+      } catch (erro) {
+        console.error('Erro ao carregar jogos para a comparação:', erro)
+        setJogosBuscaComparacao([])
+      }
+    }
+
+    carregarJogosBuscaComparacao()
+  }, [buscaComparacao])
 
   useEffect(() => {
     localStorage.setItem('tema-comparador', tema)
@@ -391,70 +292,138 @@ function Inicio() {
       <main>
         <section className="hero">
           <div className="hero-conteudo">
-            <span className="hero-tag">COMPARADOR DE PREÇOS</span>
-            <h1>Compare preços e acompanhe o melhor momento para comprar</h1>
-            <p>
-              Consulte o histórico
-              de preços e acompanhe tendências de promoções para cada jogo
-            </p>
+            <div className="hero-layout">
+              <div className="hero-texto">
+                <span className="hero-tag">DESCUBRA SEU PRÓXIMO JOGO</span>
 
-            <form
-              className="barra-pesquisa"
-              onSubmit={pesquisar}
-              autoComplete="off"
-            >
-              <span className="icone-pesquisa">⌕</span>
+                <h1>
+                  Jogos incríveis.{' '}
+                  <span className="hero-destaque">Preços inteligentes.</span>
+                </h1>
 
-              <input
-                type="text"
-                value={busca}
-                onChange={(evento) => setBusca(evento.target.value)}
-                placeholder="Pesquise por nome do jogo..."
-                aria-label="Pesquisar jogo"
-                aria-autocomplete="list"
-                aria-controls="sugestoes-pesquisa"
-              />
+                <p>
+                  Encontre seus próximos jogos, compare lojas e descubra o melhor momento para comprar.
+                </p>
 
-              <button type="submit">Pesquisar</button>
-
-              {busca.trim() && (
-                <div
-                  id="sugestoes-pesquisa"
-                  className="sugestoes-pesquisa"
+                <form
+                  className="barra-pesquisa"
+                  onSubmit={pesquisar}
+                  autoComplete="off"
                 >
-                  {sugestoesBusca.length > 0 ? (
-                    sugestoesBusca.map((jogo) => (
-                      <button
-                        key={jogo.id}
-                        type="button"
-                        className="sugestao-jogo"
-                        onClick={() => abrirJogo(jogo.id)}
-                      >
-                        {jogo.imagem ? (
-                          <img
-                            src={jogo.imagem}
-                            alt=""
-                            className="sugestao-jogo-imagem"
-                          />
-                        ) : (
-                          <div className="sugestao-jogo-imagem sugestao-jogo-imagem-vazia" />
-                        )}
+                  <span className="icone-pesquisa">⌕</span>
 
-                        <span className="sugestao-jogo-nome">
-                          {jogo.nome}
-                        </span>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="sugestao-sem-resultados">
-                      Nenhum jogo encontrado.
+                  <input
+                    type="text"
+                    value={busca}
+                    onChange={(evento) => setBusca(evento.target.value)}
+                    placeholder="Pesquise por nome do jogo..."
+                    aria-label="Pesquisar jogo"
+                    aria-autocomplete="list"
+                    aria-controls="sugestoes-pesquisa"
+                  />
+
+                  <button type="submit">Pesquisar</button>
+
+                  {busca.trim() && (
+                    <div
+                      id="sugestoes-pesquisa"
+                      className="sugestoes-pesquisa"
+                    >
+                      {sugestoesBusca.length > 0 ? (
+                        sugestoesBusca.map((jogo) => (
+                          <button
+                            key={jogo.id}
+                            type="button"
+                            className="sugestao-jogo"
+                            onClick={() => abrirJogo(jogo.id)}
+                          >
+                            {jogo.imagem ? (
+                              <img
+                                src={jogo.imagem}
+                                alt=""
+                                className="sugestao-jogo-imagem"
+                              />
+                            ) : (
+                              <div className="sugestao-jogo-imagem sugestao-jogo-imagem-vazia" />
+                            )}
+
+                            <span className="sugestao-jogo-nome">
+                              {jogo.nome}
+                            </span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="sugestao-sem-resultados">
+                          Nenhum jogo encontrado.
+                        </div>
+                      )}
                     </div>
                   )}
+                </form>
+
+                <div className="hero-beneficios" aria-label="Recursos do DESCTRL">
+                  <span className="hero-beneficio">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 19V9" />
+                      <path d="M10 19V5" />
+                      <path d="M16 19v-7" />
+                      <path d="M22 19V3" />
+                    </svg>
+                    <span>Histórico de preços</span>
+                  </span>
+
+                  <span className="hero-beneficio">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m20.5 13.5-7 7a2 2 0 0 1-2.8 0l-7.2-7.2a2 2 0 0 1-.6-1.4V5a2 2 0 0 1 2-2h6.9a2 2 0 0 1 1.4.6l7.3 7.1a2 2 0 0 1 0 2.8Z" />
+                      <circle cx="7.5" cy="7.5" r="1.5" />
+                    </svg>
+                    <span>Acompanhe promoções</span>
+                  </span>
+
+                  <span className="hero-beneficio">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <rect x="3" y="5" width="18" height="14" rx="2" />
+                      <path d="M3 10h18" />
+                      <path d="M8 15h3" />
+                      <path d="M14 15h3" />
+                    </svg>
+                    <span>Compare as lojas</span>
+                  </span>
                 </div>
-              )}
-            </form>
+              </div>
+
+            </div>
           </div>
         </section>
+
+
+
+        <VitrineBrasileira
+          jogos={secoesVitrine.brasileiros}
+          destino="/jogos"
+        />
+
+        <SecaoJogos
+          eyebrow="A COMUNIDADE ESCOLHE"
+          titulo="Recomendados pela comunidade"
+          jogos={secoesVitrine.comunidade}
+          destino="/jogos?filtro=desconto"
+        />
+
+        <SecaoJogos
+          eyebrow="EM ALTA"
+          titulo="Em alta no DESCTRL"
+          jogos={secoesVitrine.em_alta}
+          destino="/jogos"
+        />
+
+        <SecaoJogos
+          eyebrow="CURADORIA DESCTRL"
+          titulo="Oportunidades de preço"
+          jogos={secoesVitrine.oportunidades}
+          mostrarDesconto
+          destino="/jogos?filtro=desconto"
+        />
 
         <section className="secao secao-comparacao">
           <div className="secao-cabecalho">
@@ -614,36 +583,78 @@ function Inicio() {
           </div>
         </section>
 
-        <SecaoJogos
-          eyebrow="EXPLORE"
-          titulo="Jogos em destaque"
-          jogos={jogosDestaque}
-          destino="/jogos"
-        />
-
-        <SecaoJogos
-          eyebrow="OPORTUNIDADES"
-          titulo="Ofertas"
-          jogos={ofertas}
-          mostrarDesconto
-          destino="/jogos?filtro=desconto"
-        />
-
-        <SecaoJogos
-          eyebrow="SEM CUSTO"
-          titulo="Jogos gratuitos"
-          jogos={jogosGratuitos}
-          destino="/jogos?filtro=gratis"
-        />
-
 
       </main>
 
-      <footer>
-        <strong>Comparador de Preços</strong>
-        <span>Steam × Epic Games Store</span>
-      </footer>
+
     </div>
+  )
+}
+
+function VitrineBrasileira({ jogos = [], destino = '/jogos' }) {
+  const [indicePrincipal, setIndicePrincipal] = useState(0)
+  const lista = Array.isArray(jogos) ? jogos : []
+  const total = lista.length
+  const obterJogo = (deslocamento) => total ? lista[(indicePrincipal + deslocamento + total) % total] : null
+  const principal = obterJogo(0)
+  const secundarios = [obterJogo(1), obterJogo(2)].filter(Boolean)
+  const avancar = (direcao) => {
+    if (total > 1) setIndicePrincipal((atual) => (atual + direcao + total) % total)
+  }
+
+  return (
+    <section className="vitrine-brasil" aria-labelledby="titulo-vitrine-brasil">
+      <div className="vitrine-brasil-cabecalho">
+        <div className="vitrine-brasil-identidade">
+          <span className="vitrine-brasil-simbolo" aria-hidden="true">🇧🇷</span>
+          <span className="vitrine-brasil-eyebrow">VITRINE ESPECIAL · DESENVOLVIMENTO NACIONAL</span>
+        </div>
+        <h2 id="titulo-vitrine-brasil">Brasil <span>em jogo</span></h2>
+        <p>Histórias, ideias e mundos criados por estúdios brasileiros.</p>
+      </div>
+
+      {principal ? (
+        <>
+          <div className="vitrine-brasil-painel">
+            <NavLink to={`/jogos/${principal.id}`} className="vitrine-brasil-principal" aria-label={`Conhecer ${principal.nome}`}>
+              {principal.imagem && <img className="vitrine-brasil-imagem" src={principal.imagem} alt="" loading="lazy" decoding="async" />}
+              <span className="vitrine-brasil-selo">BRASIL EM JOGO</span>
+              <span className="vitrine-brasil-conteudo">
+                <span className="vitrine-brasil-chamada">DESTAQUE NACIONAL</span>
+                <strong>{principal.nome}</strong>
+                <span className="vitrine-brasil-acao">Conhecer jogo <span aria-hidden="true">↗</span></span>
+              </span>
+            </NavLink>
+
+            <div className="vitrine-brasil-secundarios">
+              {secundarios.map((jogo, indice) => (
+                <NavLink to={`/jogos/${jogo.id}`} className={`vitrine-brasil-secundario vitrine-brasil-secundario-${indice + 1}`} key={jogo.id} aria-label={`Conhecer ${jogo.nome}`}>
+                  {jogo.imagem && <img className="vitrine-brasil-imagem" src={jogo.imagem} alt="" loading="lazy" decoding="async" />}
+                  <span className="vitrine-brasil-selo">🇧🇷 NACIONAL</span>
+                  <strong>{jogo.nome}</strong>
+                  <span className="vitrine-brasil-link">Ver jogo ↗</span>
+                </NavLink>
+              ))}
+            </div>
+          </div>
+
+          <div className="vitrine-brasil-rodape">
+            <NavLink className="vitrine-brasil-ver-todos" to={destino}>Explorar jogos brasileiros <span aria-hidden="true">→</span></NavLink>
+            <div className="vitrine-brasil-navegacao" aria-label="Navegação da vitrine">
+              <button type="button" onClick={() => avancar(-1)} disabled={total < 2} aria-label="Jogo brasileiro anterior">‹</button>
+              <div className="vitrine-brasil-indicadores" aria-label={`Jogo ${indicePrincipal + 1} de ${total}`}>
+                {lista.slice(0, Math.min(total, 8)).map((jogo, indice) => (
+                  <button key={jogo.id} type="button" className={indice === indicePrincipal % Math.min(total, 8) ? 'ativo' : ''} onClick={() => setIndicePrincipal(indice)} aria-label={`Mostrar ${jogo.nome}`} aria-current={indice === indicePrincipal ? 'true' : undefined} />
+                ))}
+              </div>
+              <button type="button" onClick={() => avancar(1)} disabled={total < 2} aria-label="Próximo jogo brasileiro">›</button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="vitrine-brasil-vazia">A seleção de jogos brasileiros estará disponível aqui em breve.</div>
+      )}
+    </section>
   )
 }
 
@@ -653,11 +664,12 @@ function SecaoJogos({
   jogos,
   mostrarDesconto = false,
   destino = '/jogos',
+  classeExtra = '',
 }) {
   return (
-    <section className="secao secao-catalogo">
+    <section className={`secao secao-catalogo ${classeExtra}`.trim()}>
       <div className="secao-cabecalho">
-        <div>
+        <div className="secao-titulo">
           <span className="eyebrow">{eyebrow}</span>
           <h2>{titulo}</h2>
         </div>

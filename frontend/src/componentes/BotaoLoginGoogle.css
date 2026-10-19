@@ -1,0 +1,116 @@
+/*
+  Botão "Continuar com o Google".
+
+  A aparência vem da camada .google-login-visual, que imita o botão principal do
+  formulário (mesma altura, mesmo raio nos quatro cantos, mesmo texto).
+  O botão oficial do Google fica por cima, quase transparente, só para receber o
+  clique e devolver a credencial: o fluxo de login continua exatamente o mesmo.
+
+  Para acompanhar uma mudança no botão "Criar conta" / "Entrar", defina estas
+  variáveis em qualquer ancestral (por exemplo, .cadastro-card ou :root):
+    --btn-auth-altura  (padrão 48px)
+    --btn-auth-raio    (padrão 11px)
+    --btn-auth-texto   (padrão #000)
+  Se mudar a altura, ajuste também o scaleY do iframe mais abaixo (altura / 40px).
+*/
+
+.google-login-wrapper {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.google-login-area {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--btn-auth-altura, 48px);
+  border-radius: var(--btn-auth-raio, 11px);
+  overflow: hidden;
+}
+
+/* Camada visível: só desenho, não recebe clique. */
+.google-login-visual {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border-radius: inherit;
+  background: #fff;
+  color: var(--btn-auth-texto, #000);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: filter .15s ease;
+}
+
+.google-login-visual svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+/* Camada clicável: o botão oficial do Google, quase transparente, cobrindo tudo. */
+.google-login-botao {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  opacity: .01;
+  cursor: pointer;
+}
+
+/* O iframe oficial tem 40px de altura; esticamos até a altura do botão (48 / 40 = 1.2). */
+.google-login-botao iframe {
+  display: block;
+  max-width: 100%;
+  border: 0;
+  transform: scaleY(1.2);
+  transform-origin: center;
+}
+
+.google-login-wrapper:hover .google-login-visual {
+  filter: brightness(.95);
+}
+
+.google-login-desabilitado {
+  opacity: .7;
+  pointer-events: none;
+}
+
+.google-login-bloqueio {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  cursor: progress;
+  background: transparent;
+}
+
+.google-login-indisponivel {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px;
+  border: 1px dashed rgba(127, 127, 127, .35);
+  border-radius: 10px;
+  text-align: center;
+  font-size: 12px;
+  opacity: .7;
+}
+
+.google-login-erro {
+  display: block;
+  margin-top: 8px;
+  color: #d9534f;
+  text-align: center;
+  font-size: 12px;
+}

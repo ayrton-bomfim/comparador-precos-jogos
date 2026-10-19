@@ -105,3 +105,31 @@ teste_getitems_promocao_detalhado.py
 teste_getitems_sem_promocao.py
 teste_opengamestats_promocoes.py
 teste_salvar_oferta_epic.py
+
+# Artes experimentais de mascotes
+/Conceitos de Mascote/*
+!/Conceitos de Mascote/Conceitos/
+/Conceitos de Mascote/Conceitos/*
+!/Conceitos de Mascote/Conceitos/**/*.png
+
+
+# =============================================================================
+# Arquivos de Configuração e Segurança
+# =============================================================================
+.env
+.env.*
+!.env.example
+*.secrets
+.secrets/
+*.pem
+*.key
+*.crt
+*.p12
+
+# =============================================================================
+# Backups locais de banco de dados
+# =============================================================================
+*.sql
+*.dump
+*.backup
+*.bak

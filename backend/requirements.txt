@@ -6,3 +6,8 @@ python-dotenv
 requests
 playwright
 schedule
+PyJWT
+python-multipart
+google-auth
+resend
+slowapi

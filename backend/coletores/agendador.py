@@ -133,12 +133,24 @@ class AgendadorColeta:
         print("\n[2/2] Coleta histórica da Epic (EGDATA)")
         resultado_epic = await coletar_historico_epic()
 
+        print("\n[3/4] Avaliação dos alertas de preço e envio de e-mails")
+        from .avaliador_alertas_preco import avaliar_alertas_preco
+        resultado_alertas = await asyncio.to_thread(avaliar_alertas_preco)
+        print(f"Alertas avaliados: {resultado_alertas}")
+
+        print("\n[4/4] Encerramento de recomendações com promoções finalizadas")
+        from .expirar_recomendacoes_comunidade import expirar_recomendacoes
+        resultado_recomendacoes = await asyncio.to_thread(expirar_recomendacoes)
+        print(f"Recomendações expiradas: {resultado_recomendacoes}")
+
         return {
             "steam": {"status": "concluida"},
             "epic": resultado_epic or {
                 "status": "concluida",
                 "fonte": "EGDATA",
             },
+            "alertas_preco": resultado_alertas,
+            "recomendacoes_comunidade": resultado_recomendacoes,
         }
 
 

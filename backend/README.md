@@ -96,3 +96,43 @@ Os arquivos em `tests/manual/` são testes e diagnósticos manuais utilizados du
 ## Variáveis de ambiente
 
 Nunca versionar `.env`. Use `.env.example` como referência para a configuração local.
+
+## Autenticação e administrador
+
+A Etapa 1 adiciona a base de autenticação da aplicação:
+
+- usuário com papel (`user` ou `admin`);
+- senha armazenada somente como hash;
+- login com JWT Bearer;
+- endpoint `/api/auth/me`;
+- dependência de autorização para endpoints exclusivos de administrador;
+- script de criação/atualização do primeiro administrador.
+
+### 1. Instalar as novas dependências
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Criar a tabela de usuários
+
+A tabela `usuarios` deve existir no PostgreSQL do projeto com as colunas `id`, `username`, `email`, `senha_hash`, `role`, `ativo` e `criado_em`.
+
+### 3. Configurar o `.env`
+
+Defina uma `JWT_SECRET_KEY` forte e as credenciais iniciais do administrador.
+Não versione o arquivo `.env`.
+
+### 4. Criar o administrador
+
+```bash
+python -m backend.scripts.usuarios.criar_admin
+```
+
+### 5. Testar a autenticação
+
+```bash
+python backend/tests/testar_autenticacao_etapa1.py
+```
+
+O teste valida hash de senha, verificação, geração de JWT e a estrutura das rotas sem alterar o banco.
