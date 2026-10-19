@@ -1,122 +1,83 @@
-# 🎮 Comparador de Preços de Jogos Digitais
+# 🎮 DESCTRL | Comparador de Preços de Jogos Digitais
 
-Aplicação web desenvolvida como Trabalho de Curso II (TC II) para comparação de preços de jogos digitais nas plataformas **Steam** e **Epic Games Store**.
+O **DESCTRL** é uma aplicação web desenvolvida como Trabalho de Curso II (TC II) do curso de Ciência da Computação da Universidade Paulista (UNIP). Seu objetivo é ajudar jogadores a comparar preços de jogos digitais, acompanhar mudanças de preço e identificar oportunidades promocionais na **Steam** e na **Epic Games Store**.
 
-O projeto coleta preços, descontos e informações promocionais, mantém histórico de alterações no PostgreSQL e disponibiliza uma interface web para comparação, consulta de histórico e análise de comportamento promocional.
+O sistema reúne informações de catálogo, preços atuais e histórico promocional em uma interface com comparação, acompanhamento de jogos e recursos personalizados para usuários cadastrados.
 
-## 🚧 Status do Projeto
+> **Status:** versão beta em desenvolvimento. O código-fonte está disponível nesse repositório do GitHub.
 
-Em desenvolvimento.
+## ✨ Funcionalidades
 
-A versão atual já possui:
+### Comparação e acompanhamento de preços
 
-- Backend REST com FastAPI.
-- Frontend em React + Vite.
-- Persistência em PostgreSQL.
-- Comparação de preços entre Steam e Epic Games Store.
-- Histórico de preços baseado em mudanças relevantes.
-- Identificação de promoções e período de término quando fornecido pela fonte.
-- Coleta automática diária.
-- Página de detalhes com histórico de preços.
-- Página de ofertas com análise heurística de tendências promocionais.
-- Página de arquitetura da solução.
-- Rotinas de testes e ferramentas de diagnóstico.
+- Comparação de preços e descontos entre Steam e Epic Games Store.
+- Exibição de preço atual, preço original, desconto e link para a loja, conforme os dados disponíveis.
+- Consulta ao histórico de preços e promoções.
+- Página de ofertas com análise heurística de tendências, faixas de preço e descontos.
+- Estimativas de possíveis janelas promocionais baseadas no histórico disponível. Essas estimativas não garantem promoções futuras.
+- Rotinas específicas para coleta de dados atuais e históricos de cada loja.
 
-## ✨ Principais Funcionalidades
+### Conta e segurança
 
-### Comparação de preços
+- Cadastro e autenticação com usuário e senha.
+- Integração de login com Google.
+- Fluxos de confirmação e alteração de e-mail.
+- Recursos de gerenciamento de senha e segurança da conta.
+- Controle de sessões, incluindo invalidação de tokens após alterações relevantes de credenciais.
+- Limitação de requisições em rotas da API por meio de *rate limiting*.
 
-A aplicação apresenta os preços atuais dos jogos nas duas plataformas e permite visualizar:
+A disponibilidade e o comportamento de cada fluxo dependem da configuração do ambiente e dos serviços externos utilizados.
 
-- Preço atual.
-- Preço original.
-- Percentual de desconto.
-- Menor preço disponível.
-- Link para a loja.
-- Informações básicas do jogo.
+### Recursos personalizados
 
-### Histórico de preços
+- Lista de jogos favoritos.
+- Perfil do usuário e preferências de interface, incluindo tema claro ou escuro.
+- Sistema de conquistas, experiência e níveis.
+- Notificações relacionadas a conquistas.
+- Alertas de preços por e-mail, conforme as configurações da conta e do serviço de envio.
 
-O sistema registra alterações relevantes de preço e promoção, evitando criar registros repetidos apenas pela passagem do tempo.
+### Curadoria e participação da comunidade
 
-O histórico pode armazenar, quando disponível:
-
-- Preço atual.
-- Preço original.
-- Desconto.
-- Identificador da promoção.
-- Nome da promoção.
-- Tipo da promoção.
-- Início da promoção.
-- Fim da promoção.
-- Data da coleta.
-
-### Análise de promoções
-
-A página de ofertas utiliza dados históricos para apresentar uma análise heurística do comportamento promocional dos jogos, incluindo tendências, faixas de desconto, faixas de preço e estimativas de próximas janelas promocionais.
-
-A previsão é baseada no histórico coletado e não representa garantia de comportamento futuro.
-
-### Coleta automatizada
-
-A coleta diária é organizada em duas rotinas independentes:
-
-- **Steam:** consulta em lote utilizando `IStoreBrowseService/GetItems`, reduzindo a necessidade de acesso individual às páginas dos jogos.
-- **Epic Games Store:** consulta de preço atual e histórico por meio da EGDATA.
-
-O projeto também possui um agendador e um arquivo `.bat` para execução manual ou automática pelo Agendador de Tarefas do Windows.
+- Ferramentas administrativas para curadoria do catálogo.
+- Recebimento de relatos sobre jogos e informações do catálogo.
+- Encaminhamento de relatos para análise, evitando que um relato público provoque automaticamente a exclusão de um jogo.
+- Rotas administrativas destinadas a usuários autorizados.
 
 ## 🏗️ Arquitetura
 
-```text
-┌─────────────────────┐
-│ Steam / Epic        │
-│ Fontes de dados     │
-└──────────┬──────────┘
-           │
-           ↓
-┌─────────────────────┐
-│ Coleta / Ingestão   │
-│ Steam GetItems      │
-│ Epic / EGDATA       │
-└──────────┬──────────┘
-           │
-           ↓
-┌─────────────────────┐
-│ PostgreSQL          │
-│ Jogos               │
-│ Ofertas             │
-│ Histórico           │
-└──────────┬──────────┘
-           │
-           ↓
-┌─────────────────────┐
-│ FastAPI             │
-│ API da aplicação    │
-└──────────┬──────────┘
-           │
-           ↓
-┌─────────────────────┐
-│ React + Vite        │
-│ Interface web       │
-└─────────────────────┘
-```
 
-O projeto mantém componentes legados baseados em Playwright, mas a coleta diária atual foi estruturada prioritariamente em consultas HTTP/JSON para reduzir dependência de navegação de páginas.
+Steam / Epic Games Store
+          │
+          ▼
+Coletores e rotinas de atualização
+          │
+          ▼
+PostgreSQL
+(catálogo, preços e histórico)
+          │
+          ▼
+API REST com FastAPI
+          │
+          ▼
+Interface React + Vite
+
+
+O backend concentra as regras de negócio, autenticação, acesso aos dados, rotinas de coleta e serviços auxiliares. O frontend disponibiliza as páginas e os componentes com os quais o usuário interage.
 
 ## 🛠️ Tecnologias
 
 ### Backend
 
-- Python 3.10+
+- Python
 - FastAPI
 - SQLAlchemy
 - PostgreSQL
 - Requests
-- Playwright
+- Playwright, em rotinas que dependem de navegação automatizada
 - Schedule
 - python-dotenv
 - Uvicorn
+- SlowAPI para limitação de requisições
 
 ### Frontend
 
@@ -126,34 +87,46 @@ O projeto mantém componentes legados baseados em Playwright, mas a coleta diár
 - JavaScript
 - CSS
 
-## 📁 Estrutura do Projeto
+### Integrações externas
+
+- Steam
+- Epic Games Store
+- EGDATA, para dados relacionados à Epic Games Store
+- Google Sign-In
+- Resend, para envio de e-mails
+
+As integrações dependem da disponibilidade, das credenciais e dos limites definidos por cada serviço externo.
+
+## 📁 Estrutura do projeto
 
 ```text
 comparador-precos-jogos/
-│
 ├── backend/
 │   ├── coletores/
 │   ├── rotas/
+│   ├── seguranca/
 │   ├── scripts/
 │   │   ├── cadastro/
 │   │   ├── historico/
-│   │   └── importacao/
+│   │   ├── importacao/
+│   │   └── usuarios/
 │   ├── servicos/
-│   ├── tests/
+│   ├── templates/
+│   ├── testes/
 │   ├── tools/
 │   ├── app.py
 │   ├── banco_dados.py
 │   ├── config.py
 │   ├── modelos.py
 │   └── requirements.txt
-│
 ├── frontend/
 │   ├── public/
 │   └── src/
 │       ├── componentes/
+│       ├── contextos/
 │       ├── paginas/
 │       └── servicos/
-│
+├── Conceitos de Mascote/
 ├── executar_coleta_agora.bat
 ├── iniciar_projeto.bat
 ├── parar_projeto.bat
@@ -161,21 +134,42 @@ comparador-precos-jogos/
 └── README.md
 ```
 
-## 🚀 Como Executar
+A estrutura acima resume as principais pastas. Os arquivos podem mudar conforme a evolução do projeto.
 
-### Backend
+## ⚙️ Pré-requisitos
 
-No Windows:
+- Python compatível com as dependências do backend.
+- Node.js e npm.
+- Uma instância do PostgreSQL.
+- Variáveis de ambiente para backend e frontend.
+- Credenciais para integrações externas que forem utilizadas, como Google Sign-In e envio de e-mails.
+
+## 🚀 Como executar localmente
+
+### 1. Configurar o backend
+
+Na raiz do repositório, crie e ative um ambiente virtual e instale as dependências:
 
 ```bat
 cd backend
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app:app --reload
 ```
 
-### Frontend
+Configure as variáveis de ambiente usando `backend/.env.example` como referência. Preencha os dados de conexão com o PostgreSQL e as credenciais necessárias para as integrações desejadas. Não copie credenciais reais para o repositório.
+
+Inicie a API a partir da raiz do projeto:
+
+```bat
+python -m uvicorn backend.app:app --reload --host 127.0.0.1 --port 8001
+```
+
+Com a configuração local usada durante o desenvolvimento, a API fica disponível em `http://127.0.0.1:8001`. A documentação interativa pode ser acessada em `http://127.0.0.1:8001/docs` quando os recursos externos necessários estiverem acessíveis. O esquema OpenAPI fica em `http://127.0.0.1:8001/openapi.json`.
+
+Se o projeto for executado com outro host ou porta, ajuste os endereços de acordo.
+
+### 2. Configurar o frontend
 
 Em outro terminal:
 
@@ -185,66 +179,60 @@ npm install
 npm run dev
 ```
 
-Por padrão, o frontend é executado pelo Vite e o backend pela API FastAPI.
+O Vite exibirá no terminal o endereço local da interface. Configure `frontend/.env.example` conforme as instruções do arquivo e a URL em que a API estiver sendo executada.
 
-## ⚙️ Configuração
+### 3. Inicialização por script
 
-Utilize os arquivos `.env.example` como referência:
+O repositório também contém arquivos `.bat` para facilitar a inicialização, a parada do ambiente e a execução da coleta. Confira a configuração local desses arquivos antes de utilizá-los, especialmente em outra máquina.
 
-```text
-backend/.env.example
-frontend/.env.example
+## 🔄 Coleta de dados
+
+A aplicação possui rotinas separadas para as lojas:
+
+- **Steam:** coleta de informações de catálogo e preços usando os mecanismos implementados no projeto, incluindo consultas em lote e rotinas incrementais.
+- **Epic Games Store:** coleta de informações de catálogo e preços, com integração à EGDATA em rotinas relacionadas a preços e histórico.
+
+Existem scripts para cadastro de catálogo, atualização de metadados, coleta de preços e processamento de histórico. Alguns scripts podem ter pré-requisitos específicos; não os execute indiscriminadamente contra um banco de produção.
+
+A coleta manual pode ser iniciada por `executar_coleta_agora.bat`, de acordo com a configuração local. A execução automática pode ser organizada pelo Agendador de Tarefas do Windows. Confira os parâmetros e o comportamento do script antes de programar execuções recorrentes.
+
+Os dados coletados dependem das fontes externas, da disponibilidade delas e dos limites aplicados por cada serviço. O histórico disponível pode variar de jogo para jogo.
+
+## 🔐 Configuração e segurança
+
+- Use `backend/.env.example` e `frontend/.env.example` como referência.
+- **Nunca publique arquivos `.env` reais, senhas, tokens, chaves de API, certificados ou outras credenciais.**
+- Não inclua cópias locais do banco de dados, dumps, backups ou arquivos com dados privados no Git.
+- Use credenciais próprias para cada ambiente e mantenha as permissões administrativas restritas.
+- Antes de disponibilizar a aplicação na internet, configure HTTPS, CORS, origens permitidas, segredos de produção, banco de dados, envio de e-mails e políticas de backup.
+- Recursos que dependem de serviços externos só funcionarão quando as respectivas credenciais e configurações estiverem corretas.
+
+## 🧪 Validação e desenvolvimento
+
+O projeto foi desenvolvido de forma incremental, com verificações de sintaxe do backend e validações de lint e build do frontend durante a implementação. Isso não equivale a uma certificação completa nem garante que todos os fluxos tenham sido testados em produção.
+
+Para validar o frontend:
+
+```bat
+cd frontend
+npm run lint
+npm run build
 ```
 
-Não versione arquivos `.env` reais, chaves de API ou outras credenciais.
+Para conferir a inicialização do backend, execute a API e acesse o endpoint de saúde configurado no projeto. Os testes de integração devem ser realizados com um banco de desenvolvimento e credenciais de teste.
 
-## 🔄 Coleta Manual
+## 🗺️ Próximos passos
 
-A coleta histórica completa pode ser iniciada pelo arquivo:
-
-```text
-executar_coleta_agora.bat
-```
-
-O processo executa:
-
-```text
-Steam → histórico via GetItems
-Epic  → histórico via EGDATA
-```
-
-Os logs da execução são armazenados localmente e não fazem parte do repositório.
-
-## ⏰ Coleta Automática
-
-A mesma rotina pode ser executada diariamente pelo **Agendador de Tarefas do Windows**.
-
-O agendamento utiliza o mesmo arquivo `.bat` da execução manual, evitando manter implementações diferentes para coleta manual e automática.
-
-## 🧪 Testes e Ferramentas
-
-O projeto possui testes manuais e ferramentas de diagnóstico organizados em:
-
-```text
-backend/tests/manual/
-backend/tools/
-```
-
-Também foram utilizados scripts exploratórios locais durante a implementação. Esses arquivos não fazem parte do repositório principal e são mantidos no `.gitignore`.
-
-## 🔮 Próximos Passos
-
-Entre os próximos aprimoramentos planejados estão:
-
-- Ampliar o catálogo de jogos monitorados.
-- Migrar o cadastro de catálogo para fontes baseadas em API/JSON.
-- Melhorar a identificação e relacionamento entre jogos, edições e DLCs.
-- Expandir os dados coletados de cada produto.
-- Aprimorar a análise histórica e as estimativas de comportamento promocional.
-- Evoluir a estrutura do banco para suportar melhor versões, edições e conteúdos adicionais.
+- Preparar e validar a implantação da aplicação em um ambiente hospedado.
+- Revisar a configuração de produção e o gerenciamento de segredos.
+- Ampliar e qualificar os metadados e o catálogo de jogos.
+- Melhorar o relacionamento entre jogos, edições, bundles e DLCs.
+- Aprimorar a cobertura de testes automatizados e de integração.
+- Monitorar a confiabilidade das coletas e a qualidade dos dados históricos.
+- Evoluir a análise promocional com base nos dados efetivamente disponíveis.
 
 ## 👨‍💻 Autor
 
 **Ayrton Bomfim**
 
-Projeto desenvolvido para o curso de Ciência da Computação — UNIP.
+Projeto desenvolvido para o curso de Ciência da Computação da Universidade Paulista (UNIP).
