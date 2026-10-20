@@ -150,8 +150,104 @@ function AvisoBeta() {
   )
 }
 
+
+const MODO_MANUTENCAO = true
+
+function PaginaManutencao() {
+  return (
+    <main className="pagina-manutencao">
+      <div className="manutencao-grade" aria-hidden="true" />
+      <header className="manutencao-cabecalho">
+        <a className="manutencao-marca" href="/" aria-label="DESCTRL">
+          <span className="manutencao-marca-des">DES</span>
+          <span className="manutencao-marca-ctrl">CTRL</span>
+        </a>
+        <span className="manutencao-status">
+          <span className="manutencao-status-ponto" />
+          <span>Em manutenção</span>
+        </span>
+      </header>
+
+      <section className="manutencao-conteudo" aria-labelledby="manutencao-titulo">
+        <div className="manutencao-ilustracao" aria-hidden="true">
+          <div className="manutencao-orbita manutencao-orbita-externa" />
+          <div className="manutencao-orbita manutencao-orbita-interna" />
+          <div className="manutencao-brilho" />
+          <div className="manutencao-icone-robo">
+            <div className="robo-antena" />
+            <div className="robo-orelha robo-orelha-esquerda" />
+            <div className="robo-orelha robo-orelha-direita" />
+            <div className="robo-cabeca">
+              <span className="robo-olho robo-olho-esquerdo" />
+              <span className="robo-olho robo-olho-direito" />
+              <span className="robo-sorriso" />
+            </div>
+            <div className="robo-corpo" />
+            <div className="robo-pata robo-pata-esquerda" />
+            <div className="robo-pata robo-pata-direita" />
+            <div className="robo-cauda" />
+          </div>
+          <div className="manutencao-ferramenta manutencao-ferramenta-esquerda">⚙</div>
+          <div className="manutencao-ferramenta manutencao-ferramenta-direita">⌁</div>
+          <span className="manutencao-particula part-1" />
+          <span className="manutencao-particula part-2" />
+          <span className="manutencao-particula part-3" />
+          <span className="manutencao-particula part-4" />
+        </div>
+
+        <p className="manutencao-etiqueta">EM BREVE</p>
+        <h1 id="manutencao-titulo">
+          O DESCTRL chega
+          <span>em breve!</span>
+        </h1>
+        <p className="manutencao-descricao">
+          Estamos finalizando os últimos ajustes para lançar o DESCTRL e ajudar você a encontrar os melhores preços de jogos.
+        </p>
+
+        <div className="manutencao-beneficios">
+          <article className="manutencao-card">
+            <span className="manutencao-card-icone roxo" aria-hidden="true">✦</span>
+            <h2>Novas funcionalidades</h2>
+            <p>Estamos preparando melhorias e novos recursos.</p>
+          </article>
+          <article className="manutencao-card">
+            <span className="manutencao-card-icone ciano" aria-hidden="true">▥</span>
+            <h2>Dados mais precisos</h2>
+            <p>Aprimorando a coleta e a qualidade das informações.</p>
+          </article>
+          <article className="manutencao-card">
+            <span className="manutencao-card-icone rosa" aria-hidden="true">◇</span>
+            <h2>Mais estabilidade</h2>
+            <p>Trabalhando para uma navegação mais confiável.</p>
+          </article>
+          <article className="manutencao-card">
+            <span className="manutencao-card-icone ciano" aria-hidden="true">⌘</span>
+            <h2>Feito para quem joga</h2>
+            <p>Para continuar ajudando você a encontrar bons preços.</p>
+          </article>
+        </div>
+
+        <div className="manutencao-agradecimento">
+          <span aria-hidden="true">♥</span>
+          <div>
+            <strong>Obrigado pela paciência e pelo apoio!</strong>
+            <p>Voltaremos em breve.</p>
+          </div>
+        </div>
+      </section>
+
+      <footer className="manutencao-rodape">
+        <span>DESCTRL</span>
+        
+      </footer>
+    </main>
+  )
+}
+
 function App() {
   const { tema } = useTema()
+
+  if (MODO_MANUTENCAO) return <PaginaManutencao />
 
   return (
     <div className={`app tema-${tema}`}>

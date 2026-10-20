@@ -7943,3 +7943,567 @@ html {
     transition: none;
   }
 }
+
+
+/* ============================================================
+   PÁGINA TEMPORÁRIA DE MANUTENÇÃO DESCTRL
+   ============================================================ */
+.pagina-manutencao {
+  --manut-roxo: #8b5cf6;
+  --manut-roxo-claro: #c084fc;
+  --manut-ciano: #22d3ee;
+  --manut-fundo: #090817;
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: 0 clamp(20px, 6vw, 96px);
+  color: #f8f7ff;
+  background:
+    radial-gradient(ellipse at 50% 27%, rgba(104, 54, 205, .22), transparent 38%),
+    radial-gradient(ellipse at 8% 75%, rgba(34, 211, 238, .06), transparent 28%),
+    linear-gradient(145deg, #0c0b20 0%, var(--manut-fundo) 55%, #100a25 100%);
+  font-family: inherit;
+}
+.pagina-manutencao * { box-sizing: border-box; }
+.manutencao-grade {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: .22;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(139, 92, 246, .09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, .09) 1px, transparent 1px);
+  background-size: 54px 54px;
+  mask-image: linear-gradient(to bottom, transparent, #000 15%, #000 75%, transparent);
+}
+.manutencao-cabecalho {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(1320px, 100%);
+  min-height: 104px;
+  margin: 0 auto;
+}
+.manutencao-marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #f8f7ff;
+  text-decoration: none;
+  font-size: clamp(25px, 3vw, 36px);
+  font-weight: 950;
+  font-style: italic;
+  letter-spacing: -2px;
+}
+.manutencao-marca-ctrl {
+  padding: 5px 9px 7px;
+  border: 2px solid var(--manut-roxo);
+  border-radius: 9px;
+  color: #d8c9ff;
+  box-shadow: 0 0 20px rgba(139, 92, 246, .25), inset 0 0 12px rgba(139, 92, 246, .13);
+  letter-spacing: -1px;
+}
+.manutencao-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 17px;
+  border: 1px solid rgba(192, 132, 252, .45);
+  border-radius: 10px;
+  background: rgba(139, 92, 246, .08);
+  color: #d8b4fe;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .9px;
+  text-transform: uppercase;
+}
+.manutencao-status-ponto {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--manut-roxo-claro);
+  box-shadow: 0 0 12px var(--manut-roxo-claro);
+  animation: manutencao-pulso 1.8s ease-in-out infinite;
+}
+.manutencao-conteudo {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 8px 0 54px;
+  text-align: center;
+}
+.manutencao-ilustracao {
+  position: relative;
+  width: min(540px, 100%);
+  height: 310px;
+  margin: 0 auto 10px;
+  display: grid;
+  place-items: center;
+  perspective: 800px;
+}
+.manutencao-brilho {
+  position: absolute;
+  width: 290px;
+  height: 210px;
+  border-radius: 50%;
+  background: rgba(112, 57, 230, .27);
+  filter: blur(50px);
+}
+.manutencao-orbita {
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  border: 1px solid rgba(139, 92, 246, .45);
+  border-radius: 50%;
+}
+.manutencao-orbita-externa { width: 310px; height: 310px; border-style: dashed; opacity: .55; }
+.manutencao-orbita-interna { width: 225px; height: 225px; border-color: rgba(34, 211, 238, .24); }
+/* ============================================================
+   Mascote DESCTRL: gatinho robô chibi sentado
+   Cores e contorno ficam nas variáveis abaixo.
+   A antena está oculta; para trazê-la de volta, apague a regra
+   ".robo-antena { display: none; }".
+   ============================================================ */
+.manutencao-icone-robo {
+  --gato-contorno: #120d34;
+  --gato-borda: #7a68ee;
+  --gato-corpo-1: #5646c8;
+  --gato-corpo-2: #33268a;
+  --gato-corpo-3: #1d1556;
+  --gato-ciano: #22d3ee;
+  --gato-ciano-claro: #a5f3fc;
+  --gato-magenta: #e879f9;
+  --gato-pata: #f1f0fb;
+
+  position: relative;
+  z-index: 1;
+  width: 240px;
+  height: 226px;
+  filter: drop-shadow(0 16px 22px rgba(0, 0, 0, .38));
+  animation: manutencao-flutuar 4s ease-in-out infinite;
+}
+
+/* Sombra no chão: fica no elemento pai, então não flutua junto com o gato */
+.manutencao-ilustracao::after {
+  content: '';
+  grid-area: 1 / 1;
+  place-self: center;
+  z-index: 0;
+  width: 180px;
+  height: 22px;
+  transform: translateY(112px);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(34, 211, 238, .4), rgba(139, 92, 246, .22) 55%, transparent 74%);
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+/* Marcas de alegria entre as orelhas */
+.manutencao-icone-robo::before,
+.manutencao-icone-robo::after {
+  content: '';
+  position: absolute;
+  z-index: 5;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--gato-ciano);
+  box-shadow: 0 0 8px rgba(34, 211, 238, .85);
+}
+.manutencao-icone-robo::before { left: 116px; top: 14px; height: 12px; transform: rotate(-30deg); }
+.manutencao-icone-robo::after  { left: 132px; top: 8px;  height: 10px; transform: rotate(26deg); }
+
+/* ---------- Cabeça ---------- */
+.robo-cabeca {
+  position: absolute;
+  z-index: 3;
+  top: 44px;
+  left: 45px;
+  width: 150px;
+  height: 118px;
+  border: 3px solid var(--gato-contorno);
+  border-radius: 46% 46% 44% 44% / 52% 52% 48% 48%;
+  background:
+    /* emenda curva na bochecha esquerda */
+    radial-gradient(circle at -14px 80%, transparent 33px, rgba(12, 9, 38, .55) 34px 36px, transparent 37px),
+    radial-gradient(ellipse at 30% 16%, rgba(170, 150, 255, .6), transparent 48%),
+    linear-gradient(160deg, var(--gato-corpo-1) 0%, var(--gato-corpo-2) 58%, var(--gato-corpo-3) 100%);
+  box-shadow:
+    0 0 0 2px rgba(150, 130, 255, .5),
+    inset 0 3px 0 rgba(200, 188, 255, .55),
+    inset -5px 0 0 rgba(130, 110, 240, .22),
+    inset 0 -12px 18px rgba(8, 6, 36, .55),
+    0 0 26px rgba(139, 92, 246, .4);
+  transform: rotate(-4deg);
+  transform-origin: 50% 90%;
+}
+/* Brilho de luz no alto da cabeça */
+.robo-cabeca::before {
+  content: '';
+  position: absolute;
+  top: 9px;
+  left: 20px;
+  width: 48px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .4), rgba(255, 255, 255, 0));
+  transform: rotate(-16deg);
+  filter: blur(1px);
+}
+/* Emenda de painel na lateral direita */
+.robo-cabeca::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  width: 42px;
+  height: 28px;
+  border-top: 2px solid rgba(12, 9, 38, .6);
+  border-right: 2px solid rgba(12, 9, 38, .6);
+  border-radius: 0 72% 0 0;
+  box-shadow: 1px -1px 0 rgba(170, 150, 255, .35);
+}
+
+/* ---------- Orelhas ----------
+   Três camadas por orelha: borda clara (o próprio elemento),
+   corpo roxo (::before) e brilho ciano interno (::after). */
+.robo-orelha {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  width: 76px;
+  height: 96px;
+  background: var(--gato-borda);
+  clip-path: path('M 1.2 96.0 C 2.4 55.2 10.7 24.0 28.5 7.2 Q 38.0 -1.2 47.5 7.2 C 65.3 24.0 73.6 55.2 74.8 96.0 Z');
+}
+.robo-orelha::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(165deg, #4a3cb0 0%, var(--gato-corpo-3) 80%);
+  clip-path: path('M 5.9 96.0 C 7.1 58.8 14.2 30.0 29.7 13.2 Q 38.0 6.0 46.3 13.2 C 61.8 30.0 68.9 58.8 70.1 96.0 Z');
+}
+.robo-orelha::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 100%, var(--gato-ciano-claro) 0%, var(--gato-ciano) 36%, #3b6cf0 76%, #5b3fd0 100%);
+  clip-path: path('M 13.1 96.0 C 14.2 64.8 20.2 39.6 32.1 25.2 Q 38.0 18.0 43.9 25.2 C 55.8 39.6 61.8 64.8 62.9 96.0 Z');
+}
+.robo-orelha-esquerda {
+  left: 45px;
+  transform: rotate(-16deg);
+  transform-origin: 50% 100%;
+}
+/* A direita é o espelho da esquerda, com inclinação um pouco diferente */
+.robo-orelha-direita {
+  right: 45px;
+  transform: scaleX(-1) rotate(-12deg);
+  transform-origin: 50% 100%;
+}
+
+/* A antena não existe no desenho de referência */
+.robo-antena { display: none; }
+
+/* ---------- Olhos: arcos de sorriso, de olhos fechados ---------- */
+.robo-olho {
+  position: absolute;
+  top: 42px;
+  width: 35px;
+  height: 23px;
+  border: 6px solid var(--gato-ciano-claro);
+  border-bottom-color: transparent;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  filter:
+    drop-shadow(0 0 5px rgba(34, 211, 238, .95))
+    drop-shadow(0 0 12px rgba(34, 211, 238, .55));
+}
+.robo-olho-esquerdo { left: 20px; transform: rotate(-7deg); }
+.robo-olho-direito  { right: 20px; transform: rotate(7deg); }
+
+/* ---------- Nariz e boca ---------- */
+.robo-sorriso {
+  position: absolute;
+  top: 82px;
+  left: 61px;
+  width: 11px;
+  height: 8px;
+  border: 0;
+  border-bottom: 3px solid var(--gato-ciano-claro);
+  border-radius: 0 0 55% 55%;
+  filter: drop-shadow(0 0 4px rgba(34, 211, 238, .8));
+}
+.robo-sorriso::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 100%;
+  box-sizing: border-box;
+  width: 100%;
+  height: calc(100% + 3px);
+  border-bottom: 3px solid var(--gato-ciano-claro);
+  border-radius: 0 0 55% 55%;
+}
+.robo-sorriso::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 100%;
+  width: 9px;
+  height: 6px;
+  transform: translateX(-50%);
+  border-radius: 50% 50% 60% 60%;
+  background: var(--gato-ciano-claro);
+}
+
+/* ---------- Corpo ---------- */
+.robo-corpo {
+  position: absolute;
+  z-index: 1;
+  bottom: 6px;
+  left: 70px;
+  width: 100px;
+  height: 78px;
+  border: 3px solid var(--gato-contorno);
+  border-radius: 38px 38px 30px 30px / 42px 42px 30px 30px;
+  background: linear-gradient(160deg, #46399f 0%, #2b206f 60%, var(--gato-corpo-3) 100%);
+  box-shadow:
+    0 0 0 2px rgba(150, 130, 255, .4),
+    inset 0 3px 0 rgba(190, 175, 255, .4),
+    inset 0 -10px 14px rgba(8, 6, 36, .5);
+}
+/* Painel do peito */
+.robo-corpo::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 30px;
+  width: 34px;
+  height: 31px;
+  border: 2px solid rgba(160, 140, 250, .8);
+  border-radius: 11px;
+  background: rgba(10, 8, 40, .6);
+  box-shadow: 0 0 10px rgba(139, 92, 246, .5), inset 0 0 8px rgba(139, 92, 246, .25);
+}
+/* Triângulo invertido */
+.robo-corpo::after {
+  content: '';
+  position: absolute;
+  top: 30px;
+  left: 36px;
+  width: 22px;
+  height: 17px;
+  border: 0;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  background: linear-gradient(180deg, var(--gato-magenta), #8b5cf6);
+  transform: none;
+  box-shadow: none;
+}
+
+/* ---------- Patas dianteiras com ponta clara ---------- */
+.robo-pata {
+  position: absolute;
+  z-index: 4;
+  bottom: 0;
+  width: 38px;
+  height: 34px;
+  border: 3px solid var(--gato-contorno);
+  border-radius: 17px 17px 15px 15px / 20px 20px 15px 15px;
+  background: linear-gradient(180deg, #34297a 0 42%, var(--gato-pata) 42% 100%);
+  box-shadow: 0 0 0 1.5px rgba(150, 130, 255, .4), inset 0 -4px 5px rgba(120, 110, 190, .35);
+}
+.robo-pata-esquerda { left: 76px; transform: rotate(4deg); }
+.robo-pata-direita  { right: 76px; transform: rotate(-4deg); }
+/* Dedinhos */
+.robo-pata::before,
+.robo-pata::after {
+  content: '';
+  position: absolute;
+  top: 17px;
+  width: 2px;
+  height: 9px;
+  border-radius: 2px;
+  background: rgba(18, 13, 52, .35);
+}
+.robo-pata::before { left: 11px; }
+.robo-pata::after  { right: 11px; }
+
+/* ---------- Cauda segmentada, brilhando em ciano ----------
+   O formato é um "C" aberto para a esquerda: nasce atrás do corpo,
+   sobe pela lateral e enrola a ponta de volta para a bochecha.
+   ::before = contorno escuro, ::after = miolo com faixas em cone. */
+.robo-cauda {
+  position: absolute;
+  z-index: 0;
+  left: 146px;
+  top: 130px;
+  width: 96px;
+  height: 96px;
+  border: 0;
+  border-radius: 0;
+  transform: none;
+  background: none;
+  filter: drop-shadow(0 0 8px rgba(34, 211, 238, .5));
+}
+.robo-cauda::before,
+.robo-cauda::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 0;
+  border-radius: 0;
+}
+.robo-cauda::before {
+  background: var(--gato-contorno);
+  clip-path: path('M14.3 54.6 L19.9 55.7 L25.4 56.8 L31.0 57.9 L36.5 59.0 L42.1 60.1 L47.6 61.2 L48.6 61.4 L49.5 61.5 L50.4 61.6 L51.3 61.6 L52.2 61.5 L53.1 61.3 L54.0 61.1 L54.9 60.9 L55.7 60.6 L56.6 60.2 L57.4 59.8 L58.2 59.3 L59.0 58.7 L59.7 58.1 L60.4 57.5 L61.0 56.8 L61.6 56.1 L62.2 55.3 L62.7 54.5 L63.1 53.6 L63.5 52.7 L63.8 51.8 L64.1 50.9 L64.3 50.0 L64.4 49.0 L64.5 48.0 L64.5 47.1 L64.5 46.1 L64.3 45.1 L64.1 44.2 L63.9 43.2 L63.6 42.3 L63.2 41.4 L62.8 40.5 L62.3 39.6 L61.7 38.8 L61.1 38.0 L60.4 37.2 L59.7 36.5 L58.9 35.9 L58.1 35.3 L57.3 34.7 L56.4 34.2 L55.5 33.8 L54.5 33.4 L53.5 33.1 L52.5 32.9 L51.5 32.7 L50.5 32.6 L49.5 32.5 L48.4 32.6 L47.4 32.7 L46.4 32.8 L45.3 33.1 L44.3 33.4 L43.0 33.9 L40.2 34.7 L37.2 34.7 L34.4 34.0 L31.8 32.6 L29.7 30.5 L28.2 28.0 L27.4 25.1 L27.4 22.2 L28.1 19.3 L29.6 16.7 L31.6 14.6 L34.2 13.1 L36.2 12.2 L38.6 11.4 L41.0 10.6 L43.6 10.1 L46.1 9.7 L48.7 9.5 L51.3 9.4 L53.8 9.6 L56.4 9.9 L59.0 10.4 L61.5 11.0 L63.9 11.8 L66.4 12.8 L68.7 13.9 L71.0 15.2 L73.1 16.7 L75.2 18.3 L77.2 20.0 L79.0 21.8 L80.7 23.8 L82.3 25.9 L83.7 28.1 L85.0 30.4 L86.2 32.7 L87.2 35.2 L88.0 37.7 L88.6 40.3 L89.1 42.9 L89.4 45.5 L89.5 48.1 L89.4 50.8 L89.2 53.4 L88.8 56.0 L88.2 58.6 L87.5 61.2 L86.5 63.7 L85.4 66.1 L84.2 68.4 L82.8 70.7 L81.2 72.9 L79.5 74.9 L77.6 76.9 L75.7 78.7 L73.6 80.4 L71.4 81.9 L69.1 83.3 L66.7 84.6 L64.2 85.6 L61.7 86.5 L59.1 87.3 L56.4 87.8 L53.8 88.2 L51.1 88.4 L48.4 88.4 L45.7 88.3 L43.1 87.9 L37.4 87.1 L31.8 86.2 L26.2 85.3 L20.5 84.5 L14.9 83.6 L9.3 82.8 Z');
+}
+.robo-cauda::after {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .38) 0%, rgba(255, 255, 255, 0) 38%, rgba(6, 10, 60, .4) 100%),
+    repeating-conic-gradient(from -25deg at 50px 48px, #3ee6ff 0 26deg, #1d44b0 26deg 30deg);
+  clip-path: path('M13.8 57.4 L19.4 58.5 L24.9 59.6 L30.5 60.7 L36.1 61.8 L41.6 62.9 L47.1 64.0 L48.3 64.2 L49.3 64.3 L50.4 64.4 L51.5 64.3 L52.6 64.2 L53.7 64.1 L54.8 63.8 L55.9 63.5 L56.9 63.1 L57.9 62.7 L58.9 62.1 L59.9 61.5 L60.8 60.9 L61.6 60.1 L62.4 59.4 L63.2 58.5 L63.9 57.6 L64.6 56.7 L65.2 55.7 L65.7 54.7 L66.1 53.7 L66.5 52.6 L66.8 51.5 L67.1 50.4 L67.2 49.2 L67.3 48.1 L67.3 46.9 L67.2 45.7 L67.1 44.6 L66.8 43.4 L66.5 42.3 L66.2 41.2 L65.7 40.1 L65.2 39.0 L64.6 38.0 L63.9 37.1 L63.2 36.1 L62.4 35.2 L61.5 34.4 L60.6 33.6 L59.6 32.9 L58.6 32.3 L57.6 31.7 L56.5 31.2 L55.3 30.8 L54.2 30.4 L53.0 30.1 L51.8 29.9 L50.6 29.8 L49.4 29.8 L48.1 29.8 L46.9 29.9 L45.7 30.1 L44.5 30.4 L43.3 30.8 L41.9 31.3 L39.8 31.9 L37.6 32.0 L35.4 31.4 L33.5 30.3 L31.9 28.8 L30.8 26.9 L30.2 24.7 L30.2 22.5 L30.7 20.4 L31.8 18.4 L33.3 16.8 L35.3 15.7 L37.2 14.9 L39.4 14.0 L41.7 13.4 L44.0 12.8 L46.4 12.5 L48.8 12.3 L51.2 12.2 L53.6 12.4 L56.0 12.6 L58.3 13.1 L60.6 13.7 L62.9 14.4 L65.2 15.3 L67.3 16.4 L69.4 17.6 L71.5 18.9 L73.4 20.4 L75.2 22.0 L76.9 23.7 L78.5 25.5 L80.0 27.5 L81.3 29.5 L82.5 31.6 L83.6 33.8 L84.5 36.1 L85.3 38.4 L85.9 40.8 L86.3 43.2 L86.6 45.7 L86.7 48.1 L86.7 50.6 L86.4 53.0 L86.1 55.5 L85.5 57.9 L84.8 60.2 L84.0 62.6 L82.9 64.8 L81.8 67.0 L80.5 69.1 L79.0 71.1 L77.4 73.1 L75.7 74.9 L73.9 76.6 L71.9 78.1 L69.9 79.6 L67.8 80.9 L65.5 82.0 L63.2 83.0 L60.9 83.9 L58.5 84.5 L56.0 85.1 L53.5 85.4 L51.0 85.6 L48.5 85.6 L46.0 85.5 L43.5 85.2 L37.8 84.3 L32.2 83.5 L26.6 82.6 L21.0 81.7 L15.4 80.9 L9.8 80.0 Z');
+}
+.manutencao-ferramenta {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(139,92,246,.5);
+  border-radius: 15px;
+  background: rgba(21,19,49,.88);
+  color: var(--manut-roxo-claro);
+  font-size: 30px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.2);
+}
+.manutencao-ferramenta-esquerda { left: 22px; bottom: 38px; transform: rotate(-10deg); }
+.manutencao-ferramenta-direita { right: 22px; top: 47px; color: var(--manut-ciano); transform: rotate(9deg); }
+.manutencao-particula { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: var(--manut-ciano); box-shadow: 0 0 12px var(--manut-ciano); }
+.part-1 { top: 44px; left: 20%; }
+.part-2 { top: 78px; right: 18%; background: var(--manut-roxo-claro); }
+.part-3 { bottom: 47px; left: 29%; background: var(--manut-roxo-claro); }
+.part-4 { bottom: 80px; right: 27%; }
+.manutencao-etiqueta {
+  margin: 0 0 18px;
+  color: #c4b5fd;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 2.4px;
+}
+.manutencao-conteudo h1 {
+  margin: 0;
+  color: #fbfaff;
+  font-size: clamp(34px, 5vw, 62px);
+  font-weight: 850;
+  letter-spacing: -2.5px;
+  line-height: 1.16;
+  padding-bottom: .08em;
+}
+.manutencao-conteudo h1 span {
+  display: block;
+  color: #a78bfa;
+  background: linear-gradient(90deg, #818cf8, #c084fc 65%, #e879f9);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.manutencao-descricao {
+  max-width: 720px;
+  margin: 24px auto 38px;
+  color: #c4c2d8;
+  font-size: clamp(15px, 1.5vw, 18px);
+  line-height: 1.7;
+}
+.manutencao-beneficios {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  text-align: left;
+}
+.manutencao-card {
+  min-height: 174px;
+  padding: 24px 22px;
+  border: 1px solid rgba(139,92,246,.25);
+  border-radius: 15px;
+  background: linear-gradient(145deg, rgba(25,22,54,.76), rgba(15,14,35,.72));
+  box-shadow: inset 0 1px rgba(255,255,255,.025);
+}
+.manutencao-card-icone {
+  display: grid;
+  place-items: center;
+  width: 39px;
+  height: 39px;
+  margin-bottom: 14px;
+  border-radius: 11px;
+  font-size: 25px;
+  font-weight: 800;
+  background: rgba(139,92,246,.13);
+}
+.manutencao-card-icone.roxo { color: #c084fc; }
+.manutencao-card-icone.ciano { color: var(--manut-ciano); background: rgba(34,211,238,.1); }
+.manutencao-card-icone.rosa { color: #e879f9; background: rgba(232,121,249,.1); }
+.manutencao-card h2 { margin: 0 0 8px; color: #f7f5ff; font-size: 15px; font-weight: 800; }
+.manutencao-card p { margin: 0; color: #bcb9d3; font-size: 13px; line-height: 1.6; }
+.manutencao-agradecimento {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin: 30px auto 0;
+  padding: 15px 22px;
+  border: 1px solid rgba(139,92,246,.42);
+  border-radius: 13px;
+  background: rgba(69,39,129,.2);
+  text-align: left;
+}
+.manutencao-agradecimento > span { color: #e879f9; font-size: 26px; }
+.manutencao-agradecimento strong { color: #f5f3ff; font-size: 14px; }
+.manutencao-agradecimento p { margin: 5px 0 0; color: #c4b5fd; font-size: 13px; }
+.manutencao-rodape {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: min(1320px, 100%);
+  margin: 0 auto;
+  padding: 22px 0 28px;
+  border-top: 1px solid rgba(139,92,246,.24);
+  background: transparent;
+  color: #8985a7;
+  font-size: 11px;
+  letter-spacing: .5px;
+}
+.manutencao-rodape span:first-child { color: #b5a4ed; font-weight: 850; letter-spacing: 1.4px; text-align: center; }
+.manutencao-rodape span:empty { display: none; }
+@keyframes manutencao-flutuar { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-8px) rotate(1deg); } }
+@keyframes manutencao-pulso { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
+
+@media (max-width: 900px) {
+  .manutencao-beneficios { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .manutencao-ilustracao { height: 275px; }
+}
+@media (max-width: 560px) {
+  .pagina-manutencao { padding: 0 19px; }
+  .manutencao-cabecalho { min-height: 82px; gap: 12px; }
+  .manutencao-marca { font-size: 25px; }
+  .manutencao-marca-ctrl { padding: 4px 7px 5px; }
+  .manutencao-status { padding: 9px 10px; font-size: 9px; letter-spacing: .4px; }
+  .manutencao-ilustracao { height: 235px; margin-top: 8px; }
+  .manutencao-orbita-externa { width: 240px; height: 240px; }
+  .manutencao-orbita-interna { width: 190px; height: 190px; }
+  .manutencao-ilustracao::after { transform: translateY(93px); }
+  .manutencao-icone-robo { scale: .82; }
+  .manutencao-ferramenta-esquerda { left: 0; bottom: 25px; }
+  .manutencao-ferramenta-direita { right: 0; top: 27px; }
+  .manutencao-conteudo h1 { letter-spacing: -1.5px; }
+  .manutencao-descricao { margin: 16px auto 25px; }
+  .manutencao-beneficios { grid-template-columns: 1fr; gap: 11px; }
+  .manutencao-card { min-height: auto; padding: 17px; }
+  .manutencao-card-icone { margin-bottom: 10px; }
+  .manutencao-agradecimento { width: 100%; padding: 14px; }
+  .manutencao-rodape { gap: 10px; font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .manutencao-status-ponto, .manutencao-icone-robo { animation: none; }
+}
