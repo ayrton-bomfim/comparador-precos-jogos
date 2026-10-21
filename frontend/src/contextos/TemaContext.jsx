@@ -4,7 +4,7 @@ const TemaContext = createContext(null)
 
 export function TemaProvider({ children }) {
   const [tema, setTema] = useState(() => {
-    return localStorage.getItem('tema-comparador') || 'claro'
+    return localStorage.getItem('tema-comparador') || 'escuro'
   })
 
   useEffect(() => {

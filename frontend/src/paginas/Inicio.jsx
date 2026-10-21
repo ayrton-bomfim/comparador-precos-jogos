@@ -3,13 +3,11 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import Cabecalho from '../componentes/Cabecalho'
 import CarrosselJogos from '../componentes/CarrosselJogos'
 import { API_JOGOS_URL } from '../servicos/api'
+import { useTema } from '../contextos/TemaContext'
 
 function Inicio() {
   const navigate = useNavigate()
-  const [tema, setTema] = useState(() => {
-    const salvo = localStorage.getItem('tema-comparador')
-    return salvo === 'escuro' ? 'escuro' : 'claro'
-  })
+  const { tema } = useTema()
 
   const [secoesVitrine, setSecoesVitrine] = useState({ brasileiros: [], comunidade: [], em_alta: [], oportunidades: [] })
   const [jogosBusca, setJogosBusca] = useState([])
@@ -281,13 +279,9 @@ function Inicio() {
     carregarJogosBuscaComparacao()
   }, [buscaComparacao])
 
-  useEffect(() => {
-    localStorage.setItem('tema-comparador', tema)
-  }, [tema])
-
   return (
-    <div className={`app tema-${tema}`}>
-      <Cabecalho tema={tema} setTema={setTema} />
+    <>
+      <Cabecalho />
 
       <main>
         <section className="hero">
@@ -585,9 +579,7 @@ function Inicio() {
 
 
       </main>
-
-
-    </div>
+    </>
   )
 }
 
