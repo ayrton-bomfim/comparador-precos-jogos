@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 
-export const API_BASE = 'http://127.0.0.1:8000'
+import { API_URL } from '../servicos/api'
+
+export const API_BASE = API_URL
 
 const TOKEN_KEY = 'desctrl_token'
 const AuthContext = createContext(null)
