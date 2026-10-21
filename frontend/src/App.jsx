@@ -151,7 +151,7 @@ function AvisoBeta() {
 }
 
 
-const MODO_MANUTENCAO = true
+const MODO_MANUTENCAO = false
 
 function PaginaManutencao() {
   return (

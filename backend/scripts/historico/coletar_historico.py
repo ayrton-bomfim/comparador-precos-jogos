@@ -36,7 +36,8 @@ from backend.modelos import Jogo, HistoricoPreco, AuditoriaConteudo
 # Reutiliza a classificação regional corrigida do coletor v10.
 # O v10 não executa sua rotina principal ao ser importado.
 try:
-    from coletar_dados_steam_completo_v10 import (
+    # Reutiliza a classificação regional corrigida do coletor v10.
+    from backend.scripts.historico.coletar_dados_steam_completo_v10 import (
         processar_jogo as processar_disponibilidade_steam_br,
     )
 except ImportError as erro_import:
