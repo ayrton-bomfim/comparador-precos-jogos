@@ -74,6 +74,7 @@ def salvar_alerta(jogo_id:int, entrada:AlertaPrecoEntrada, db:Session=Depends(ge
     a.ativo=entrada.ativo; a.lojas=list(entrada.lojas); a.condicao=entrada.condicao; a.preco_alvo=entrada.preco_alvo
     # Alterar a configuração reabilita a avaliação da condição.
     a.ultima_condicao_ativa = False
+    a.ultima_condicao_site_ativa = False
     db.commit(); db.refresh(a)
     return {"ok":True,"alerta":serializar(a)}
 @router.delete("/{jogo_id}")

@@ -1,11 +1,14 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="supported-color-schemes" content="dark">
-  <title>Alerta de preço: $nome_jogo</title>
+  <title>$assunto</title>
+  <!--[if mso]>
+  <xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
+  <![endif]-->
   <style>
     /* Alguns clientes ignoram CSS no head; os estilos essenciais também estão inline. */
     @media screen and (max-width: 600px) {
@@ -13,18 +16,20 @@
       .content-pad { padding-left: 20px !important; padding-right: 20px !important; }
       .game-image { width: 100% !important; height: auto !important; }
       .price-current { font-size: 30px !important; }
-      .mobile-stack { display: block !important; width: 100% !important; }
     }
   </style>
 </head>
-<body style="margin:0; padding:0; background-color:#0B0B0F; font-family:Arial, Helvetica, sans-serif; color:#F8F7FF; -webkit-text-size-adjust:100%;">
+<body bgcolor="#0B0B0F" style="margin:0; padding:0; background-color:#0B0B0F; font-family:Arial, Helvetica, sans-serif; color:#F8F7FF; -webkit-text-size-adjust:100%;">
+  <!-- Preheader: texto de prévia na caixa de entrada -->
   <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent; mso-hide:all;">
     $preheader
   </div>
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%; border-collapse:collapse; background-color:#0B0B0F;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#0B0B0F" style="width:100%; border-collapse:collapse; background-color:#0B0B0F;">
     <tr>
       <td align="center" style="padding:28px 12px;">
-        <table role="presentation" class="email-shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:100%; max-width:600px; border-collapse:separate; border-spacing:0; background-color:#15131F; border:1px solid #30264B; border-radius:16px; overflow:hidden;">
+        <table role="presentation" class="email-shell" width="600" cellspacing="0" cellpadding="0" border="0" bgcolor="#15131F" style="width:100%; max-width:600px; border-collapse:separate; border-spacing:0; background-color:#15131F; border:1px solid #30264B; border-radius:16px; overflow:hidden;">
+
+          <!-- Cabeçalho -->
           <tr>
             <td class="content-pad" style="padding:26px 32px 22px; border-bottom:1px solid #30264B;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
@@ -39,61 +44,38 @@
               </table>
             </td>
           </tr>
+
+          <!-- Título -->
           <tr>
-            <td class="content-pad" style="padding:28px 32px 10px;">
-              <p style="margin:0 0 8px; color:#C4B5FD; font-size:12px; line-height:18px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">Boa notícia para sua lista</p>
-              <h1 style="margin:0; color:#FFFFFF; font-size:27px; line-height:34px; font-weight:800; letter-spacing:-0.5px;">O preço de um jogo que você acompanha caiu.</h1>
-              <p style="margin:12px 0 0; color:#C9C5D8; font-size:15px; line-height:23px;">Encontramos uma nova oferta para um jogo dos seus favoritos.</p>
+            <td class="content-pad" style="padding:28px 32px 6px;">
+              <p style="margin:0 0 8px; color:#C4B5FD; font-size:12px; line-height:18px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">$eyebrow</p>
+              <h1 style="margin:0; color:#FFFFFF; font-size:24px; line-height:31px; font-weight:800; letter-spacing:-0.4px;">$titulo</h1>
+              <p style="margin:10px 0 0; color:#C9C5D8; font-size:15px; line-height:23px;">$subtitulo</p>
             </td>
           </tr>
+
+          <!-- Cards dos jogos (1 card grande ou vários compactos) -->
+          $cards_html
+
+          <!-- "Ver mais" (só aparece quando passa do limite de jogos) -->
+          $mais_html
+
+          <!-- Rodapé -->
           <tr>
-            <td class="content-pad" style="padding:22px 32px 0;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate; border-spacing:0; overflow:hidden; border:1px solid #39304F; border-radius:12px; background-color:#0F0E16;">
-                <tr>
-                  <td align="center" style="padding:0;">
-                    <img class="game-image" src="$imagem_jogo_url" width="534" alt="Capa de $nome_jogo" style="display:block; width:100%; max-width:534px; height:auto; border:0; outline:none; text-decoration:none; color:#F8F7FF; font-size:16px;">
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:20px 22px 22px;">
-                    <p style="margin:0 0 7px; color:#B9B2CD; font-size:12px; line-height:18px; text-transform:uppercase; letter-spacing:1.1px;">Oferta encontrada em $loja_nome</p>
-                    <h2 style="margin:0; color:#FFFFFF; font-size:22px; line-height:29px; font-weight:800;">$nome_jogo</h2>
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:17px; border-collapse:collapse;">
-                      <tr>
-                        <td style="padding:0 10px 0 0; vertical-align:middle;">
-                          <span style="display:inline-block; padding:6px 9px; border-radius:6px; background-color:#3B1D69; color:#DDD0FF; font-size:13px; line-height:17px; font-weight:800;">-$desconto_percentual%</span>
-                        </td>
-                        <td style="padding:0; vertical-align:middle;">
-                          <span style="color:#9B95AA; font-size:14px; line-height:20px; text-decoration:line-through;">$preco_anterior</span>
-                        </td>
-                      </tr>
-                    </table>
-                    <p class="price-current" style="margin:7px 0 0; color:#C4B5FD; font-size:36px; line-height:42px; font-weight:800; letter-spacing:-0.7px;">$preco_atual</p>
-                    <p style="margin:5px 0 0; color:#A7A0B9; font-size:12px; line-height:18px;">Preço consultado em $data_consulta. O valor pode mudar na loja.</p>
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:22px; border-collapse:separate;">
-                      <tr>
-                        <td align="center" bgcolor="#8B5CF6" style="border-radius:8px;">
-                          <a href="$oferta_url" target="_blank" style="display:inline-block; padding:14px 22px; border:1px solid #8B5CF6; border-radius:8px; color:#FFFFFF; font-size:15px; line-height:20px; font-weight:800; text-decoration:none;">Ver oferta na loja&nbsp; &#8599;</a>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr>
-            <td class="content-pad" style="padding:24px 32px 28px;">
-              <p style="margin:0; color:#B9B2CD; font-size:13px; line-height:21px;">Você está recebendo este e-mail porque acompanha este jogo no DESCTRL. Os preços e descontos são informativos e podem mudar a qualquer momento.</p>
-              <p style="margin:16px 0 0; color:#8E879F; font-size:12px; line-height:19px;">DESCTRL · Compare preços, escolha o melhor momento.</p>
-              <p style="margin:8px 0 0; color:#8E879F; font-size:12px; line-height:19px;"><a href="$preferencias_url" style="color:#C4B5FD; text-decoration:underline;">Gerenciar alertas de preço</a></p>
+            <td class="content-pad" style="padding:26px 32px 28px;">
+              <p style="margin:0; color:#B9B2CD; font-size:13px; line-height:21px;">$aviso_rodape Os preços e descontos são informativos e podem mudar a qualquer momento.</p>
+              <p style="margin:16px 0 0; color:#A39CB5; font-size:12px; line-height:19px;">DESCTRL · Compare preços, escolha o melhor momento.</p>
+              <p style="margin:8px 0 0; color:#A39CB5; font-size:12px; line-height:19px;">
+                <a href="$preferencias_url" style="color:#C4B5FD; text-decoration:underline;">Gerenciar notificações por e-mail</a>
+              </p>
             </td>
           </tr>
         </table>
+
         <table role="presentation" class="email-shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:100%; max-width:600px; border-collapse:collapse;">
           <tr>
-            <td align="center" style="padding:18px 20px 0; color:#777187; font-size:11px; line-height:17px;">
-              Este é um e-mail automático do DESCTRL. Se você não reconhece esta atividade, pode revisar as preferências da sua conta.
+            <td align="center" style="padding:18px 20px 0; color:#9A93AB; font-size:12px; line-height:18px;">
+              Este é um e-mail automático do DESCTRL. Não é necessário respondê-lo.
             </td>
           </tr>
         </table>

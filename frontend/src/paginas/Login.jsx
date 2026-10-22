@@ -19,7 +19,6 @@ function Login() {
     return <main className="pagina-login"><div className="login-card">Carregando...</div></main>
   }
 
-  // Se já estiver autenticado, padroniza o destino para a página inicial.
   if (autenticado) {
     return <Navigate to="/" replace />
   }
@@ -95,13 +94,15 @@ function Login() {
             />
           </label>
 
-          <div className="login-esqueci-senha" aria-label="Recuperação de senha ainda não disponível">
-            Esqueci minha senha
+          <div className="login-esqueci-senha-wrap">
+            <Link className="login-esqueci-senha" to="/recuperar-senha">
+              Esqueci minha senha
+            </Link>
           </div>
 
           {erro && <div className="login-erro" role="alert">{erro}</div>}
 
-          <button type="submit" disabled={entrando}>
+          <button type="submit" disabled={entrando || entrandoGoogle}>
             {entrando ? 'Entrando...' : 'Entrar'}
           </button>
         </form>

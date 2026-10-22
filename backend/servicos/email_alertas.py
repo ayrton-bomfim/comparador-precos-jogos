@@ -22,7 +22,7 @@ def enviar_alerta_preco(
     preco_atual: str,
     oferta_url: str,
     data_consulta: str | None = None,
-    preferencias_url: str = "https://desctrl.com.br/",
+    preferencias_url: str = "https://desctrl.com.br/perfil?aba=configuracoes",
     preheader: str | None = None,
 ) -> dict[str, Any]:
     """Renderiza e envia um alerta de preço.

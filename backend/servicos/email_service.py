@@ -6,12 +6,11 @@ import os
 from typing import Any
 
 import resend
-from dotenv import load_dotenv
 
-load_dotenv()
+from ..config import settings  # Garante o carregamento explícito de backend/.env.
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
-RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev").strip()
+RESEND_FROM_EMAIL = settings.RESEND_FROM_EMAIL
 
 
 class EmailServiceError(RuntimeError):
@@ -19,10 +18,10 @@ class EmailServiceError(RuntimeError):
 
 
 def enviar_email(destinatario: str, assunto: str, html: str) -> dict[str, Any]:
-    """Envia um e-mail transacional e retorna os dados de resposta do Resend.
+    """Envia e-mail transacional via Resend.
 
-    Requer RESEND_API_KEY no ambiente. O remetente padrão de onboarding é útil
-    para o teste inicial; para produção, configure um remetente de domínio verificado.
+    Em produção, configure RESEND_API_KEY e RESEND_FROM_EMAIL no arquivo
+    backend/.env. O remetente padrão de onboarding é destinado apenas a testes.
     """
     if not RESEND_API_KEY:
         raise EmailServiceError(
@@ -30,7 +29,7 @@ def enviar_email(destinatario: str, assunto: str, html: str) -> dict[str, Any]:
         )
 
     if not destinatario or not destinatario.strip():
-        raise ValueError("O endereço do destinatário é obrigatório.")
+        raise ValueError("O endereço de e-mail do destinatário é obrigatório.")
     if not assunto or not assunto.strip():
         raise ValueError("O assunto do e-mail é obrigatório.")
     if not html or not html.strip():
@@ -47,7 +46,6 @@ def enviar_email(destinatario: str, assunto: str, html: str) -> dict[str, Any]:
         })
         if isinstance(resposta, dict):
             return resposta
-        # Compatibilidade com versões do SDK que retornam objetos de resposta.
         if hasattr(resposta, "model_dump"):
             return resposta.model_dump()
         if hasattr(resposta, "__dict__"):

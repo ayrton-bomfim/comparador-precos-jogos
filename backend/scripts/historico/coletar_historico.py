@@ -699,7 +699,17 @@ async def coletar_historico_precos(
             else:
                 print("Nenhum jogo elegível para coleta diária nesta execução.")
                 db.commit()
-            return
+            return {
+                "status": "sem_itens",
+                "fonte": "Steam",
+                "total_catalogo": len(jogos_catalogo),
+                "total_candidatos": total_candidatos_diarios,
+                "total_processado": 0,
+                "novos_registros": 0,
+                "ignorados": 0,
+                "erros": 0,
+                "modo": "somente_disponibilidade_br" if somente_disponibilidade_br else "historico_precos",
+            }
 
         if somente_disponibilidade_br:
             print("\nMODO SOMENTE DISPONIBILIDADE BR")
@@ -749,7 +759,17 @@ async def coletar_historico_precos(
                 f"erros={resumo_disponibilidade['erros_disponibilidade']}, "
                 f"não classificáveis={resumo_disponibilidade['nao_classificados_com_sucesso']}"
             )
-            return
+            erros_disponibilidade = resumo_disponibilidade["erros_disponibilidade"]
+            return {
+                "status": "parcial" if erros_disponibilidade else "concluida",
+                "fonte": "Steam",
+                "modo": "somente_disponibilidade_br",
+                "total_processado": len(jogos),
+                "novos_registros": 0,
+                "ignorados": resumo_disponibilidade["nao_classificados_com_sucesso"],
+                "erros": erros_disponibilidade,
+                "resumo_disponibilidade": resumo_disponibilidade,
+            }
 
         ids = [jogo.steam_id for jogo in jogos]
         dados_lote = await coletor.coletar_precos_lote(ids)
@@ -1165,11 +1185,27 @@ async def coletar_historico_precos(
             f"  Fim: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         )
 
+        erros_totais = erros + resumo_disponibilidade["erros_disponibilidade"]
+        return {
+            "status": "parcial" if erros_totais else "concluida",
+            "fonte": "Steam",
+            "modo": "historico_precos",
+            "total_catalogo": len(jogos_catalogo),
+            "total_candidatos": total_candidatos_diarios,
+            "total_processado": len(jogos),
+            "novos_registros": alterados,
+            "ignorados": ignorados,
+            "erros": erros,
+            "resumo_disponibilidade": resumo_disponibilidade,
+            "erros_disponibilidade": resumo_disponibilidade["erros_disponibilidade"],
+        }
+
     except Exception as erro:
         db.rollback()
         print(f"\nErro geral: {erro}")
         import traceback
         traceback.print_exc()
+        raise
 
     finally:
         db.close()

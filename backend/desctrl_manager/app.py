@@ -218,6 +218,12 @@ class DesctrlManager(tk.Tk):
     def _collector_environment(self, schedule_time=None):
         env = os.environ.copy()
         env["DATABASE_URL"] = self._database_url().render_as_string(hide_password=False)
+
+        # Garante que o processo filho consiga imprimir nomes de jogos
+        # com caracteres fora da codificação padrão do Windows.
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTHONUTF8"] = "1"
+
         if schedule_time:
             env["COLETA_HORARIO"] = schedule_time
         return env

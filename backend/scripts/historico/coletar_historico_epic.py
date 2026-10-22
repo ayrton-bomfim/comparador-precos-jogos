@@ -18,6 +18,7 @@ O EpicScraper antigo permanece no projeto e pode continuar sendo usado
 como legado/fallback em testes específicos.
 """
 
+import argparse
 import asyncio
 from datetime import datetime, timedelta, timezone
 
@@ -243,11 +244,13 @@ class _BuscaCatalogoEpic:
             f"após {self.MAX_TENTATIVAS} tentativas: {ultima_erro}"
         )
 
-    def coletar_precos(self, offer_ids):
+    def coletar_precos(self, offer_ids, max_paginas_por_tipo=None, max_resultados=None):
         """
         Retorna {offer_id: dados_normalizados} para os offer IDs solicitados.
 
-        A busca é feita por BASE_GAME, EDITION e EXPERIENCE, conforme o catálogo atual.
+        A busca é feita por BASE_GAME, EDITION e EXPERIENCE. Em testes limitados,
+        max_paginas_por_tipo restringe a busca e max_resultados permite parar assim
+        que houver dados suficientes para montar uma amostra real do catálogo.
         """
         import time
 
@@ -255,11 +258,20 @@ class _BuscaCatalogoEpic:
         resultados = {}
 
         for offer_type in ("BASE_GAME", "EDITION", "EXPERIENCE"):
-            primeira_pagina = True
+            if not restantes:
+                break
+
             pagina = 1
             total_tipo = None
 
-            while True:
+            while restantes:
+                if max_paginas_por_tipo is not None and pagina > max_paginas_por_tipo:
+                    print(
+                        f"  Limite de {max_paginas_por_tipo} páginas atingido em "
+                        f"{offer_type}; {len(restantes)} offer ID(s) ainda não encontrados."
+                    )
+                    break
+
                 ofertas, total = self._buscar_pagina(
                     offer_type,
                     pagina,
@@ -287,7 +299,19 @@ class _BuscaCatalogoEpic:
                     resultados[offer_id] = dados
                     restantes.discard(offer_id)
 
-                if not ofertas:
+                    if max_resultados is not None and len(resultados) >= max_resultados:
+                        print(
+                            f"  Limite de {max_resultados} ofertas encontradas; "
+                            "encerrando a busca de teste."
+                        )
+                        return resultados, restantes
+
+                if not ofertas or not restantes:
+                    if not restantes:
+                        print(
+                            "  Todos os offer IDs solicitados foram encontrados; "
+                            "encerrando a busca paginada."
+                        )
                     break
 
                 paginas_total = max(
@@ -500,9 +524,13 @@ def _salvar_lote_com_fallback(db, pendencias):
 
 
 
-async def coletar_historico_epic():
+async def coletar_historico_epic(limite_ofertas=None):
     """
     Coleta o estado atual das ofertas Epic ativas.
+
+    Args:
+        limite_ofertas: limita a quantidade de jogos/ofertas processados nesta
+            execução. None mantém o comportamento completo.
 
     Otimizações:
         1. Últimos históricos carregados em uma única consulta SQL.
@@ -550,37 +578,102 @@ async def coletar_historico_epic():
             .all()
         )
 
-        total = len(jogos_ofertas)
+        total_catalogo = len(jogos_ofertas)
+        if limite_ofertas is not None and limite_ofertas < 1:
+            raise ValueError("limite_ofertas deve ser maior que zero.")
 
         print(
-            f"Encontrados {total} jogos/ofertas ativos na Epic."
+            f"Encontrados {total_catalogo} jogos/ofertas ativos na Epic."
         )
+        if limite_ofertas is not None:
+            print(
+                f"Modo de teste: selecionar até {limite_ofertas} ofertas "
+                "presentes nas primeiras 5 páginas de cada tipo."
+            )
         print()
 
         if not jogos_ofertas:
             print("Nenhuma oferta Epic ativa encontrada.")
-            return
+            return {
+                "status": "sem_ofertas",
+                "fonte": "EGDATA",
+                "total_catalogo": total_catalogo,
+                "total_processado": 0,
+                "novos_registros": 0,
+                "ignorados": 0,
+                "erros": 0,
+            }
 
-        ultimos_historicos = _carregar_ultimos_historicos(
-            db,
-            jogos_ofertas,
-        )
-
-        offer_ids = {
+        todos_offer_ids = {
             str(oferta.offer_id)
             for _, oferta in jogos_ofertas
             if oferta.offer_id
         }
 
         print(
-            f"Consultando preços de {len(offer_ids)} offer IDs "
-            "por páginas de catálogo..."
+            f"Consultando preços para encontrar "
+            f"{limite_ofertas if limite_ofertas is not None else len(todos_offer_ids)} "
+            "ofertas de teste/produção por páginas de catálogo..."
         )
 
         busca = _BuscaCatalogoEpic()
-        precos, faltantes = await asyncio.to_thread(
+        max_paginas_por_tipo = 5 if limite_ofertas is not None else None
+        max_resultados = limite_ofertas if limite_ofertas is not None else None
+        precos, faltantes_busca = await asyncio.to_thread(
             busca.coletar_precos,
-            offer_ids,
+            todos_offer_ids,
+            max_paginas_por_tipo,
+            max_resultados,
+        )
+
+        if limite_ofertas is not None:
+            # A amostra é formada por ofertas que realmente apareceram na EGDATA.
+            # Não classificamos como erros os IDs do catálogo local que ficaram fora
+            # da janela curta de páginas usada exclusivamente pelo teste.
+            jogos_selecionados = []
+            ids_selecionados = set()
+            for jogo, oferta in jogos_ofertas:
+                offer_id = str(oferta.offer_id or "")
+                if offer_id in precos and offer_id not in ids_selecionados:
+                    jogos_selecionados.append((jogo, oferta))
+                    ids_selecionados.add(offer_id)
+                    if len(jogos_selecionados) >= limite_ofertas:
+                        break
+            jogos_ofertas = jogos_selecionados
+            offer_ids = ids_selecionados
+            precos = {offer_id: precos[offer_id] for offer_id in offer_ids}
+            faltantes = set()
+            print(
+                f"Ofertas selecionadas para processamento: {len(jogos_ofertas)}."
+            )
+            if len(jogos_ofertas) < limite_ofertas:
+                print(
+                    "AVISO: a busca limitada encontrou menos ofertas do que o "
+                    "solicitado; somente as ofertas encontradas serão processadas."
+                )
+        else:
+            offer_ids = todos_offer_ids
+            faltantes = faltantes_busca
+
+        total = len(jogos_ofertas)
+        if not jogos_ofertas:
+            print("Nenhuma oferta do catálogo local foi encontrada nas páginas consultadas.")
+            return {
+                "status": "sem_ofertas_encontradas_no_teste",
+                "fonte": "EGDATA",
+                "total_catalogo": total_catalogo,
+                "total_processado": 0,
+                "novos_registros": 0,
+                "ignorados": 0,
+                "erros": 0,
+                "offer_ids_consultados": 0,
+                "precos_encontrados": 0,
+                "offer_ids_faltantes": 0,
+            }
+
+        ultimos_historicos = _carregar_ultimos_historicos(
+            db,
+            jogos_ofertas,
         )
 
         print()
@@ -588,12 +681,11 @@ async def coletar_historico_epic():
             f"✓ Preços encontrados em lote: {len(precos)}/{len(offer_ids)}"
         )
 
-        if faltantes:
+        if faltantes and limite_ofertas is None:
             print(
-                f"⚠️ Offer IDs não encontrados na busca: "
+                f"⚠️ Offer IDs não encontrados na busca completa: "
                 f"{len(faltantes)}"
             )
-
         print()
 
         for indice, (jogo, oferta) in enumerate(
@@ -730,6 +822,19 @@ async def coletar_historico_epic():
         print(f"  Total processado: {total}")
         print(f"  Fim: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
 
+        return {
+            "status": "parcial" if erros else "concluida",
+            "fonte": "EGDATA",
+            "total_catalogo": total_catalogo,
+            "total_processado": total,
+            "novos_registros": novos,
+            "ignorados": ignorados,
+            "erros": erros,
+            "offer_ids_consultados": len(offer_ids),
+            "precos_encontrados": len(precos),
+            "offer_ids_faltantes": len(faltantes),
+        }
+
     except Exception as erro:
         db.rollback()
         print()
@@ -748,4 +853,16 @@ coletar_historico_epic_egdata = coletar_historico_epic
 
 
 if __name__ == "__main__":
-    asyncio.run(coletar_historico_epic())
+    parser = argparse.ArgumentParser(
+        description="Coleta incremental do histórico de preços da Epic via EGDATA."
+    )
+    parser.add_argument(
+        "--limite-ofertas",
+        type=int,
+        default=None,
+        help="Limita a quantidade de ofertas processadas nesta execução.",
+    )
+    args = parser.parse_args()
+    if args.limite_ofertas is not None and args.limite_ofertas < 1:
+        parser.error("--limite-ofertas deve ser maior que zero.")
+    asyncio.run(coletar_historico_epic(limite_ofertas=args.limite_ofertas))

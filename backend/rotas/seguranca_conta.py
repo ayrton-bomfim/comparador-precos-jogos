@@ -2,7 +2,6 @@
 from datetime import datetime, timedelta, timezone
 import hashlib
 import logging
-import os
 import re
 import secrets
 from html import escape
@@ -13,6 +12,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ..banco_dados import get_db
+from ..config import settings
 from ..modelos import Usuario, TokenSegurancaUsuario
 from ..seguranca.autenticacao import obter_usuario_atual, hash_password, verify_password
 from ..servicos.email_service import enviar_email, EmailServiceError
@@ -67,7 +67,7 @@ def _criar_token(db: Session, usuario: Usuario, finalidade: str, email_pendente:
     return bruto
 
 def _url_frontend(caminho: str, token: str) -> str:
-    base = os.getenv("FRONTEND_URL", "http://localhost:5173").strip().rstrip("/")
+    base = settings.FRONTEND_URL
     return f"{base}{caminho}?{urlencode({'token': token})}"
 
 def _enviar_link(destinatario: str, assunto: str, titulo: str, explicacao: str, url: str):

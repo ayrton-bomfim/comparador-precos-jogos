@@ -62,12 +62,16 @@
   font-weight: 800;
 }
 
+.login-form button:disabled {
+  cursor: wait;
+  opacity: .7;
+}
+
 .login-erro {
   padding: 11px 13px;
   border-radius: 10px;
   background: rgba(220, 70, 70, .13);
 }
-
 
 .login-cadastro-link {
   margin-top: 22px;
@@ -80,26 +84,35 @@
   font-weight: 800;
 }
 
-
-/* Recuperação de senha: indicação visual até o fluxo de e-mail ser implementado */
-.login-esqueci-senha {
+/* Link de recuperação de senha */
+.login-esqueci-senha-wrap {
   justify-self: end;
   margin-top: -10px;
+  line-height: 1.4;
+}
+
+.login-esqueci-senha {
   color: var(--roxo-tema, #b58aff);
   font-size: 13px;
   font-weight: 700;
-  line-height: 1.4;
-  cursor: default;
-  user-select: none;
+  text-decoration: none;
+  cursor: pointer;
 }
 
+.login-esqueci-senha:hover {
+  text-decoration: underline;
+}
+
+.login-esqueci-senha:focus-visible {
+  outline: 2px solid var(--roxo-tema, #b58aff);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
 
 .login-google-separador { display: flex; align-items: center; gap: 12px; margin: 20px 0 14px; opacity: .65; font-size: 12px; }
 .login-google-separador::before, .login-google-separador::after { content: ''; flex: 1; height: 1px; background: currentColor; opacity: .25; }
 .login-google-status { margin: 10px 0 0; text-align: center; font-size: 12px; opacity: .75; }
 
-
-/* Saída para continuar navegando sem autenticação. */
 .login-voltar-inicio {
   margin-top: 16px;
   text-align: center;
