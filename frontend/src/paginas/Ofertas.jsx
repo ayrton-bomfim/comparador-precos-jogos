@@ -2083,6 +2083,7 @@ function GraficoHistoricoOfertas({
   comportamentoDesenvolvedora,
 }) {
   const [pontoSelecionado, setPontoSelecionado] = useState(null)
+  const [graficoExpandido, setGraficoExpandido] = useState(false)
   const [pontosFixados, setPontosFixados] = useState([])
   const tooltipTimersRef = useRef(new Map())
   const [agoraAtual] = useState(() => Date.now())
@@ -2104,6 +2105,28 @@ function GraficoHistoricoOfertas({
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (!graficoExpandido) return undefined
+
+    const fecharComEscape = (evento) => {
+      if (evento.key === 'Escape') setGraficoExpandido(false)
+    }
+
+    document.addEventListener('keydown', fecharComEscape)
+    document.body.classList.add('grafico-tela-cheia-ofertas')
+
+    return () => {
+      document.removeEventListener('keydown', fecharComEscape)
+      document.body.classList.remove('grafico-tela-cheia-ofertas')
+    }
+  }, [graficoExpandido])
+
+  const alternarGraficoExpandido = () => {
+    if (!window.matchMedia('(max-width: 760px)').matches) return
+    setGraficoExpandido((atual) => !atual)
+  }
+
 
   const plataformasDisponiveis = useMemo(
     () =>
@@ -3150,8 +3173,19 @@ function GraficoHistoricoOfertas({
 
   if (!grafico) {
     return (
-      <div className="grafico-interativo">
-        {renderControles()}
+      <div className={`grafico-interativo${graficoExpandido ? " grafico-tela-cheia-ofertas" : ""}`}>
+        <div className="cabecalho-grafico-ofertas">
+          {renderControles()}
+          <button
+            type="button"
+            className="botao-expandir-grafico-ofertas"
+            onClick={alternarGraficoExpandido}
+            aria-label={graficoExpandido ? 'Fechar gráfico ampliado' : 'Expandir gráfico'}
+            aria-expanded={graficoExpandido}
+          >
+            {graficoExpandido ? <span aria-hidden="true">×</span> : '⛶ Tela cheia'}
+          </button>
+        </div>
         <div className="grafico-legenda">
           {plataformasDisponiveis.has('Steam') && (
             <span>
@@ -3174,8 +3208,19 @@ function GraficoHistoricoOfertas({
   }
 
   return (
-    <div className="grafico-interativo">
-      {renderControles()}
+    <div className={`grafico-interativo${graficoExpandido ? " grafico-tela-cheia-ofertas" : ""}`}>
+      <div className="cabecalho-grafico-ofertas">
+          {renderControles()}
+          <button
+            type="button"
+            className="botao-expandir-grafico-ofertas"
+            onClick={alternarGraficoExpandido}
+            aria-label={graficoExpandido ? 'Fechar gráfico ampliado' : 'Expandir gráfico'}
+            aria-expanded={graficoExpandido}
+          >
+            {graficoExpandido ? <span aria-hidden="true">×</span> : '⛶ Tela cheia'}
+          </button>
+        </div>
 
       <div className="grafico-legenda">
         {grafico.pontosSeries.map((serie) => (
@@ -3615,17 +3660,29 @@ function Ofertas() {
           registrarConsultaOferta(jogoInicial.id)
           diagnosticoPerformance.carregar.etapas.jogos = performance.now() - inicioJogo
         } else {
-          // Abertura direta: usa somente uma página pequena do catálogo.
+          // Abertura direta: reutiliza o ranking da seção "Recomendados pela comunidade"
+          // da página inicial. O endpoint já ordena por quantidade de recomendações
+          // e aplica os filtros de visibilidade e promoção ativa.
           const inicioJogos = performance.now()
-          const resposta = await fetch(`${API}/?pagina=1&por_pagina=20&filtro=todos&ordenacao=nome`)
-          if (!resposta.ok) {
-            throw new Error('Não foi possível carregar os jogos.')
+          const respostaVitrine = await fetch(`${API}/vitrine/secoes`)
+          if (!respostaVitrine.ok) {
+            throw new Error('Não foi possível carregar as recomendações da comunidade.')
           }
-          const payload = await resposta.json()
-          const lista = Array.isArray(payload) ? payload : (payload.jogos || [])
-          jogoInicial = lista[0] || null
+
+          const dadosVitrine = await respostaVitrine.json()
+          const primeiroRecomendado = dadosVitrine.comunidade?.[0] || null
+
+          if (primeiroRecomendado?.id != null) {
+            // Busca os detalhes completos usados pelo comparador e pelo histórico.
+            const respostaJogo = await fetch(`${API}/${encodeURIComponent(primeiroRecomendado.id)}`)
+            if (!respostaJogo.ok) {
+              throw new Error('Não foi possível carregar o jogo mais recomendado pela comunidade.')
+            }
+            jogoInicial = await respostaJogo.json()
+            if (!cancelado) setJogos([jogoInicial])
+          }
+
           diagnosticoPerformance.carregar.etapas.jogos = performance.now() - inicioJogos
-          if (!cancelado) setJogos(lista)
         }
 
         if (cancelado) return

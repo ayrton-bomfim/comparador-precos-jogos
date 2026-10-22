@@ -2161,3 +2161,962 @@
   }
 
   }
+
+
+
+/* ============================================================
+   RESPONSIVIDADE REFINADA — PREVISÃO DE PREÇOS
+   Ajustes locais da página Ofertas, sem alterar cálculos ou dados.
+   ============================================================ */
+
+.pagina-ofertas {
+  width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+  padding-bottom: clamp(36px, 5vw, 72px);
+}
+
+.ofertas-hero {
+  padding: clamp(38px, 6vw, 72px) 24px clamp(34px, 5vw, 58px);
+}
+
+.ofertas-hero-conteudo,
+.ofertas-secao {
+  width: min(1180px, calc(100% - 48px));
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.ofertas-hero-conteudo h1 {
+  max-width: 760px;
+  font-size: clamp(2rem, 4.2vw, 3.65rem);
+  line-height: 1.06;
+  overflow-wrap: anywhere;
+}
+
+.ofertas-hero-conteudo p {
+  max-width: 680px;
+  font-size: clamp(.94rem, 1.3vw, 1.05rem);
+  line-height: 1.6;
+}
+
+.ofertas-secao {
+  padding-top: clamp(30px, 4vw, 48px);
+}
+
+.ofertas-titulo-secao {
+  margin-bottom: 16px;
+}
+
+.jogo-selecionado-card {
+  min-height: 0;
+  padding: clamp(20px, 3vw, 34px);
+  border-radius: 18px;
+}
+
+.jogo-selecionado-info {
+  min-height: 0;
+  padding-bottom: 28px;
+}
+
+.jogo-info-cabecalho {
+  gap: 16px;
+}
+
+.jogo-selecionado-info h3 {
+  max-width: 100%;
+  font-size: clamp(1.7rem, 3vw, 2.45rem);
+  overflow-wrap: anywhere;
+}
+
+.jogo-precos {
+  align-items: stretch;
+  gap: 10px;
+  margin: 18px 0 14px;
+}
+
+.jogo-preco-plataforma,
+.jogo-precos-comparacao .jogo-preco-plataforma,
+.jogo-precos-comparacao .jogo-preco-plataforma-unica {
+  width: min(300px, 100%);
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 1 300px;
+}
+
+.jogo-promocoes-bloco {
+  max-width: 100%;
+}
+
+.jogo-promocoes-plataformas,
+.jogo-promocoes-plataformas:has(.jogo-promocao-plataforma:only-child) {
+  grid-template-columns: repeat(2, minmax(0, 300px));
+  width: min(100%, 612px);
+  gap: 10px;
+}
+
+.jogo-promocoes-plataformas .jogo-promocao-plataforma {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.previsao-card {
+  grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+  align-items: start;
+  gap: clamp(18px, 2.5vw, 28px);
+  padding: clamp(18px, 2.6vw, 28px);
+  border-radius: 18px;
+}
+
+.previsao-principal {
+  min-width: 0;
+}
+
+.previsao-principal h2 {
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+  line-height: 1.2;
+}
+
+.previsao-principal > strong {
+  max-width: 100%;
+  font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
+.previsao-principal p {
+  max-width: 100%;
+}
+
+.previsoes-comparacao {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.previsao-plataforma {
+  min-width: 0;
+  padding: 13px;
+}
+
+.previsao-plataforma .previsao-indicadores {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.previsao-plataforma .previsao-indicadores div {
+  min-width: 0;
+  min-height: 96px;
+  height: auto;
+  padding: 11px 8px;
+}
+
+.previsao-indicadores {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.previsao-indicadores div {
+  min-width: 0;
+  min-height: 100px;
+  padding: 13px 10px;
+}
+
+.previsao-indicadores span {
+  min-height: 0;
+  font-size: .68rem;
+  overflow-wrap: anywhere;
+}
+
+.previsao-indicadores strong {
+  min-height: 0;
+  font-size: .98rem;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.ofertas-grafico-card {
+  min-width: 0;
+  padding: clamp(14px, 2vw, 20px);
+  border-radius: 18px;
+}
+
+.grafico-controles {
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.grafico-grupo-controle {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.grafico-filtros {
+  min-width: 0;
+}
+
+.grafico-area {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ofertas-grafico {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  max-width: 100%;
+}
+
+.ofertas-indicadores {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ofertas-indicadores div {
+  min-width: 0;
+  padding: 14px;
+}
+
+.ofertas-indicadores span,
+.desenvolvedora-card span {
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.ofertas-indicadores strong {
+  overflow-wrap: anywhere;
+  font-size: 1rem;
+}
+
+.indicadores-plataformas {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.indicadores-plataforma {
+  min-width: 0;
+  padding: 12px;
+}
+
+.indicadores-plataforma .ofertas-indicadores {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.desenvolvedora-card {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.desenvolvedora-card div {
+  min-width: 0;
+  min-height: 82px;
+  padding: 13px;
+}
+
+.desenvolvedora-sazonalidade {
+  min-width: 0;
+  padding: clamp(12px, 2vw, 18px);
+}
+
+.desenvolvedora-subtitulo {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.desenvolvedora-meses {
+  gap: clamp(3px, .8vw, 8px);
+}
+
+.desenvolvedora-mes small {
+  font-size: clamp(.58rem, .8vw, .68rem);
+}
+
+.desenvolvedora-jogos-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.desenvolvedora-jogo {
+  grid-template-columns: minmax(58px, 82px) minmax(0, 1fr);
+  min-width: 0;
+}
+
+.desenvolvedora-jogo strong {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 980px) {
+  .ofertas-hero-conteudo,
+  .ofertas-secao {
+    width: calc(100% - 40px);
+  }
+
+  .previsao-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .previsoes-comparacao {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .previsao-indicadores {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .desenvolvedora-card {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .ofertas-hero {
+    padding: 36px 0 30px;
+  }
+
+  .ofertas-hero-conteudo,
+  .ofertas-secao {
+    width: calc(100% - 32px);
+  }
+
+  .ofertas-hero-conteudo h1 {
+    max-width: 100%;
+    margin-top: 10px;
+    font-size: clamp(1.85rem, 7.5vw, 2.45rem);
+    line-height: 1.08;
+    letter-spacing: -.04em;
+  }
+
+  .ofertas-hero-conteudo p {
+    margin-bottom: 22px;
+    font-size: .93rem;
+    line-height: 1.55;
+  }
+
+  .ofertas-pesquisa {
+    min-height: 48px;
+    padding: 0 13px;
+    border-radius: 12px;
+  }
+
+  .ofertas-pesquisa input {
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .ofertas-secao {
+    padding-top: 30px;
+  }
+
+  .ofertas-titulo-secao {
+    margin-bottom: 13px;
+  }
+
+  .ofertas-titulo-secao h2 {
+    font-size: 1.4rem;
+  }
+
+  .jogo-selecionado-card {
+    padding: 18px 16px;
+    border-radius: 15px;
+  }
+
+  .jogo-selecionado-info {
+    padding-bottom: 24px;
+  }
+
+  .jogo-info-cabecalho {
+    gap: 12px;
+  }
+
+  .jogo-filtro-plataforma {
+    position: static;
+    display: flex;
+    width: 100%;
+    margin-top: 4px;
+    gap: 4px;
+  }
+
+  .jogo-filtro-plataforma button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 7px 8px;
+    font-size: .74rem;
+  }
+
+  .jogo-selecionado-info h3 {
+    font-size: clamp(1.6rem, 7vw, 2rem);
+  }
+
+  .jogo-precos,
+  .jogo-precos-comparacao {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    max-width: none;
+    gap: 9px;
+  }
+
+  .jogo-preco-plataforma,
+  .jogo-precos-comparacao .jogo-preco-plataforma,
+  .jogo-precos-comparacao .jogo-preco-plataforma-unica {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    flex: 1 1 auto;
+  }
+
+  .jogo-preco-plataforma {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 11px;
+  }
+
+  .jogo-preco-plataforma-cabecalho {
+    grid-column: 1 / -1;
+  }
+
+  .jogo-promocoes-plataformas,
+  .jogo-promocoes-plataformas:has(.jogo-promocao-plataforma:only-child) {
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    gap: 9px;
+  }
+
+  .previsao-card {
+    gap: 18px;
+    padding: 17px;
+    border-radius: 15px;
+  }
+
+  .previsao-principal h2 {
+    font-size: 1.25rem;
+  }
+
+  .previsao-principal > strong {
+    font-size: clamp(1.45rem, 6.5vw, 1.8rem);
+  }
+
+  .previsoes-comparacao {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .previsao-plataforma {
+    padding: 12px;
+  }
+
+  .previsao-plataforma .previsao-indicadores {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .previsao-plataforma .previsao-indicadores div {
+    min-height: 88px;
+    padding: 10px 7px;
+  }
+
+  .previsao-indicadores {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .previsao-indicadores div {
+    min-height: 88px;
+    padding: 11px 8px;
+    border-radius: 12px;
+  }
+
+  .previsao-indicadores span {
+    font-size: .64rem;
+    letter-spacing: .035em;
+  }
+
+  .previsao-indicadores strong {
+    font-size: .91rem;
+  }
+
+  .ofertas-grafico-card {
+    padding: 13px 11px;
+    border-radius: 15px;
+  }
+
+  .grafico-controles {
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+
+  .grafico-grupo-controle {
+    gap: 8px;
+  }
+
+  .grafico-grupo-controle > span {
+    width: 100%;
+    font-size: .7rem;
+  }
+
+  .grafico-filtros {
+    gap: 6px;
+  }
+
+  .grafico-filtros button {
+    min-height: 36px;
+    padding: 7px 10px;
+    font-size: .76rem;
+  }
+
+  .grafico-legenda {
+    gap: 9px 13px;
+    font-size: .7rem;
+  }
+
+  .grafico-area {
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .ofertas-grafico {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    height: auto;
+  }
+
+  .ofertas-indicadores,
+  .indicadores-plataforma .ofertas-indicadores {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .ofertas-indicadores div {
+    padding: 12px 10px;
+    border-radius: 12px;
+  }
+
+  .ofertas-indicadores span {
+    font-size: .66rem;
+  }
+
+  .ofertas-indicadores strong {
+    font-size: .95rem;
+  }
+
+  .indicadores-plataformas {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .indicadores-plataforma {
+    padding: 11px;
+    border-radius: 14px;
+  }
+
+  .desenvolvedora-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    overflow: visible;
+    background: transparent;
+    border: 0;
+  }
+
+  .desenvolvedora-card div {
+    min-height: 78px;
+    padding: 12px;
+    border: 1px solid var(--borda-tema);
+    border-radius: 12px;
+  }
+
+  .desenvolvedora-card div:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .desenvolvedora-sazonalidade {
+    padding: 11px 9px;
+    border-radius: 13px;
+  }
+
+  .desenvolvedora-subtitulo {
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .desenvolvedora-subtitulo > span {
+    font-size: .66rem;
+    line-height: 1.4;
+  }
+
+  .desenvolvedora-subtitulo small {
+    font-size: .72rem;
+  }
+
+  .desenvolvedora-meses {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 3px;
+    min-height: 82px;
+  }
+
+  .desenvolvedora-mes {
+    gap: 5px;
+  }
+
+  .desenvolvedora-mes-barra {
+    height: 52px;
+    padding: 2px;
+    border-radius: 5px;
+  }
+
+  .desenvolvedora-mes small {
+    font-size: .56rem;
+  }
+
+  .desenvolvedora-jogos-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .desenvolvedora-jogo {
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 10px;
+    padding: 9px;
+  }
+
+  .desenvolvedora-jogo img {
+    width: 76px;
+    height: 49px;
+  }
+}
+
+@media (max-width: 380px) {
+  .ofertas-hero-conteudo,
+  .ofertas-secao {
+    width: calc(100% - 24px);
+  }
+
+  .jogo-selecionado-card,
+  .previsao-card {
+    padding: 13px;
+  }
+
+  .previsao-indicadores div,
+  .previsao-plataforma .previsao-indicadores div {
+    padding: 9px 6px;
+  }
+
+  .previsao-indicadores span {
+    font-size: .6rem;
+  }
+
+  .previsao-indicadores strong {
+    font-size: .84rem;
+  }
+
+  .desenvolvedora-meses {
+    gap: 2px;
+  }
+
+  .desenvolvedora-mes small {
+    font-size: .52rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jogo-filtro-plataforma button,
+  .grafico-filtros button,
+  .desenvolvedora-jogo {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   OFERTAS — COMPARAÇÃO LADO A LADO NO MOBILE
+   Mantém o padrão visual da página de detalhes do jogo.
+   ============================================================ */
+@media (max-width: 700px) {
+  .jogo-selecionado-card {
+    padding: 16px 12px 18px;
+  }
+
+  .jogo-precos-comparacao {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+    margin: 12px 0 10px;
+  }
+
+  .jogo-precos-comparacao .jogo-preco-plataforma,
+  .jogo-precos-comparacao .jogo-preco-plataforma-unica {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 9px;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    min-height: 0;
+    flex: initial;
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  .jogo-precos-comparacao .jogo-preco-plataforma-cabecalho {
+    grid-column: 1;
+    margin: 0;
+  }
+
+  .jogo-precos-comparacao .jogo-preco-item {
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .jogo-precos-comparacao .jogo-preco-item span {
+    font-size: .62rem;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .jogo-precos-comparacao .jogo-preco-item strong {
+    font-size: .95rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .jogo-promocoes-bloco {
+    margin-top: 8px;
+  }
+
+  .jogo-promocoes-plataformas,
+  .jogo-promocoes-plataformas:has(.jogo-promocao-plataforma:only-child) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .jogo-promocoes-plataformas .jogo-promocao-plataforma {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    padding: 10px;
+    box-sizing: border-box;
+    border-radius: 12px;
+  }
+
+  .jogo-promocoes-plataformas .jogo-promocao-plataforma strong {
+    font-size: .78rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  .jogo-promocoes-plataformas .jogo-promocao-plataforma small {
+    font-size: .67rem;
+    line-height: 1.3;
+  }
+}
+
+@media (max-width: 360px) {
+  .jogo-precos-comparacao,
+  .jogo-promocoes-plataformas,
+  .jogo-promocoes-plataformas:has(.jogo-promocao-plataforma:only-child) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+
+/* Histórico de preços em Ofertas: proporção adaptativa e expansão exclusiva para mobile. */
+.cabecalho-grafico-ofertas {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+}
+
+.cabecalho-grafico-ofertas .grafico-controles {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.botao-expandir-grafico-ofertas {
+  display: none;
+  flex: 0 0 auto;
+  width: 42px;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--borda-tema);
+  border-radius: 11px;
+  background: var(--fundo);
+  color: var(--texto);
+  font: inherit;
+  font-size: 1.3rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.grafico-interativo .grafico-area {
+  width: 100%;
+  min-width: 0;
+  height: clamp(300px, 42vw, 440px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.grafico-interativo .ofertas-grafico {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+@media (max-width: 760px) {
+  .botao-expandir-grafico-ofertas {
+    display: inline-flex;
+  }
+
+  .grafico-interativo .grafico-area {
+    height: clamp(230px, 62vw, 360px);
+  }
+
+  .grafico-interativo .grafico-controles {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .grafico-interativo .grafico-grupo-controle {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .grafico-interativo .grafico-filtros {
+    gap: 6px;
+  }
+
+  .grafico-interativo .grafico-filtros button {
+    min-height: 38px;
+    padding: 7px 10px;
+  }
+
+  .grafico-interativo.grafico-tela-cheia-ofertas {
+    position: fixed;
+    z-index: 9999;
+    inset: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    overflow-y: auto;
+    background: var(--fundo);
+  }
+
+  .grafico-interativo.grafico-tela-cheia-ofertas .cabecalho-grafico-ofertas {
+    align-items: flex-start;
+    flex: 0 0 auto;
+  }
+
+  .grafico-interativo.grafico-tela-cheia-ofertas .grafico-controles {
+    flex-direction: column;
+    align-items: stretch;
+    margin: 0;
+  }
+
+  .grafico-interativo.grafico-tela-cheia-ofertas .grafico-grupo-controle {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .grafico-interativo.grafico-tela-cheia-ofertas .grafico-legenda {
+    flex: 0 0 auto;
+    margin: 0;
+  }
+
+  .grafico-interativo.grafico-tela-cheia-ofertas .grafico-area {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 260px;
+    max-height: none;
+  }
+
+  .grafico-interativo.grafico-tela-cheia-ofertas .ofertas-grafico {
+    min-height: 260px;
+  }
+
+  body.grafico-tela-cheia-ofertas {
+    overflow: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .botao-expandir-grafico-ofertas {
+    transition: none;
+  }
+}
+
+
+/* Alinhamento fino com o histórico da página Detalhes do Jogo. */
+.botao-expandir-grafico-ofertas {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--borda-tema);
+  border-radius: 9px;
+  background: var(--fundo-card);
+  color: var(--texto);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: border-color .18s ease, background .18s ease, color .18s ease;
+}
+
+.botao-expandir-grafico-ofertas:hover,
+.botao-expandir-grafico-ofertas:focus-visible {
+  border-color: var(--roxo-tema);
+  color: var(--roxo-tema);
+  outline-offset: 3px;
+}
+
+@media (max-width: 760px) {
+  .grafico-interativo .grafico-area {
+    height: clamp(220px, 66vw, 285px);
+    min-height: 0;
+  }
+
+  .grafico-interativo .ofertas-grafico {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    min-height: 0;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  .grafico-interativo .grafico-area {
+    height: 225px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .botao-expandir-grafico-ofertas {
+    transition: none;
+  }
+}

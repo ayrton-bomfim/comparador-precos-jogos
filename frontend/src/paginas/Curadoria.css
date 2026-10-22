@@ -915,3 +915,301 @@
 .curadoria-feedback-acoes button:disabled { opacity:.5; cursor:wait; }
 .curadoria-feedback-origem { font-size:12px; opacity:.65; overflow-wrap:anywhere; }
 @media (max-width:600px) { .curadoria-feedback-topo { align-items:stretch; flex-direction:column; } .curadoria-feedback-filtro { width:100%; } .curadoria-feedback-card { grid-template-columns:minmax(0,1fr); gap:10px; padding:13px; } .curadoria-feedback-card-topo { flex-direction:column; } }
+
+
+/* Guia da curadoria: lista expansível para reduzir a altura no mobile. */
+.curadoria-orientacao-lista {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.curadoria-orientacao-item {
+  padding: 0;
+  overflow: hidden;
+}
+.curadoria-orientacao-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 44px;
+  padding: 12px 15px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.curadoria-orientacao-item summary::-webkit-details-marker {
+  display: none;
+}
+.curadoria-orientacao-seta {
+  flex: 0 0 9px;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  opacity: .65;
+  transition: transform .18s ease;
+}
+.curadoria-orientacao-item[open] .curadoria-orientacao-seta {
+  transform: rotate(225deg) translate(-2px, -1px);
+}
+.curadoria-orientacao-item p {
+  margin: 0;
+  padding: 0 15px 14px;
+  font-size: 12px;
+  line-height: 1.55;
+  opacity: .75;
+}
+.curadoria-orientacao-item summary:focus-visible {
+  outline: 2px solid var(--roxo-tema, #8b5cf6);
+  outline-offset: -3px;
+}
+@media (max-width: 560px) {
+  .curadoria-orientacao {
+    padding: 16px;
+  }
+  .curadoria-orientacao-topo {
+    margin-bottom: 12px;
+  }
+  .curadoria-orientacao-lista {
+    gap: 7px;
+  }
+  .curadoria-orientacao-item summary {
+    min-height: 42px;
+    padding: 11px 12px;
+  }
+  .curadoria-orientacao-item p {
+    padding: 0 12px 12px;
+  }
+}
+
+
+/* O painel "Como funciona" também é expansível e contém as seis áreas. */
+.curadoria-orientacao {
+  padding: 0;
+  overflow: hidden;
+}
+.curadoria-orientacao-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px;
+  cursor: pointer;
+  list-style: none;
+}
+.curadoria-orientacao-cabecalho::-webkit-details-marker {
+  display: none;
+}
+.curadoria-orientacao-cabecalho-texto {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.curadoria-orientacao-cabecalho-texto strong {
+  font-size: 19px;
+  line-height: 1.35;
+}
+.curadoria-orientacao-cabecalho-texto > span {
+  font-size: 16px;
+  line-height: 1.5;
+  opacity: .7;
+}
+.curadoria-orientacao-seta-principal {
+  flex: 0 0 11px;
+  width: 11px;
+  height: 11px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-3px);
+  opacity: .65;
+  transition: transform .18s ease;
+}
+.curadoria-orientacao[open] > .curadoria-orientacao-cabecalho .curadoria-orientacao-seta-principal {
+  transform: rotate(225deg) translate(-2px, -1px);
+}
+.curadoria-orientacao-conteudo {
+  padding: 0 22px 22px;
+}
+.curadoria-orientacao-conteudo .curadoria-orientacao-topo {
+  display: none;
+}
+@media (max-width: 560px) {
+  .curadoria-orientacao-cabecalho {
+    padding: 16px;
+  }
+  .curadoria-orientacao-cabecalho-texto strong {
+    font-size: 18px;
+  }
+  .curadoria-orientacao-cabecalho-texto > span {
+    font-size: 14px;
+  }
+  .curadoria-orientacao-conteudo {
+    padding: 0 16px 16px;
+  }
+}
+
+
+/* Abas da curadoria no mobile: faixa horizontal com gesto de deslizar pelo toque. */
+@media (max-width: 760px) {
+  .curadoria-abas {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 18px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    padding: 0 2px;
+  }
+
+  .curadoria-abas::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .curadoria-abas button {
+    flex: 0 0 auto;
+    min-width: max-content;
+    white-space: nowrap;
+    scroll-snap-align: start;
+    padding: 13px 12px;
+    touch-action: manipulation;
+  }
+
+  .curadoria-abas button span {
+    margin-left: 5px;
+  }
+}
+
+
+/* Busca independente em cada lista da curadoria */
+.curadoria-busca-lista { display:flex; flex-direction:column; gap:7px; min-width:min(100%, 360px); }
+.curadoria-busca-lista > label { font-size:13px; font-weight:800; opacity:.72; }
+.curadoria-busca-lista-controles { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+.curadoria-busca-lista-controles input { min-width:220px; width:min(28vw, 330px); max-width:100%; padding:12px 13px; border:1px solid rgba(127,127,127,.3); border-radius:10px; background:transparent; color:inherit; font:inherit; }
+.curadoria-busca-lista-controles button { padding:11px 13px; border:1px solid rgba(127,127,127,.25); border-radius:10px; background:rgba(100,140,255,.14); color:inherit; font-weight:700; cursor:pointer; }
+.curadoria-busca-lista-controles .curadoria-busca-limpar { background:rgba(127,127,127,.1); }
+.curadoria-filtro-motivo-grupo { display:flex; flex-direction:column; gap:7px; }
+@media (max-width:720px) {
+  .curadoria-busca-lista, .curadoria-busca-lista-controles, .curadoria-busca-lista-controles input { width:100%; min-width:0; }
+  .curadoria-busca-lista-controles button { flex:1; }
+}
+
+
+/* Busca da Vitrine: controles integrados ao tema da Curadoria. */
+.curadoria-vitrine-busca {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 2px 0 0;
+}
+
+.curadoria-vitrine-busca label {
+  flex: 0 0 auto;
+  margin-right: 2px;
+  font-size: 13px;
+  font-weight: 750;
+  opacity: .78;
+}
+
+.curadoria-vitrine-busca input {
+  box-sizing: border-box;
+  flex: 0 1 360px;
+  width: min(100%, 360px);
+  min-width: 220px;
+  min-height: 42px;
+  padding: 10px 13px;
+  border: 1px solid rgba(127, 127, 127, .3);
+  border-radius: 10px;
+  background: rgba(127, 127, 127, .055);
+  color: inherit;
+  font: inherit;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.curadoria-vitrine-busca input::placeholder {
+  color: currentColor;
+  opacity: .48;
+}
+
+.curadoria-vitrine-busca input:hover {
+  border-color: rgba(127, 127, 127, .48);
+}
+
+.curadoria-vitrine-busca input:focus-visible {
+  outline: none;
+  border-color: rgba(100, 140, 255, .85);
+  background: rgba(100, 140, 255, .055);
+  box-shadow: 0 0 0 3px rgba(100, 140, 255, .16);
+}
+
+.curadoria-vitrine-busca button {
+  min-height: 42px;
+  padding: 10px 15px;
+  border: 1px solid rgba(100, 140, 255, .28);
+  border-radius: 10px;
+  background: rgba(100, 140, 255, .14);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+.curadoria-vitrine-busca button:hover {
+  background: rgba(100, 140, 255, .22);
+  border-color: rgba(100, 140, 255, .42);
+}
+
+.curadoria-vitrine-busca button:active {
+  transform: translateY(1px);
+}
+
+.curadoria-vitrine-busca button:focus-visible {
+  outline: 2px solid rgba(100, 140, 255, .9);
+  outline-offset: 2px;
+}
+
+.curadoria-vitrine-busca button:last-child:not(:first-child) {
+  border-color: rgba(127, 127, 127, .25);
+  background: rgba(127, 127, 127, .1);
+}
+
+.curadoria-vitrine-busca button:last-child:not(:first-child):hover {
+  background: rgba(127, 127, 127, .17);
+}
+
+@media (max-width: 700px) {
+  .curadoria-vitrine-busca {
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .curadoria-vitrine-busca label {
+    flex-basis: 100%;
+  }
+
+  .curadoria-vitrine-busca input {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .curadoria-vitrine-busca button {
+    flex: 1 1 0;
+  }
+}

@@ -1,0 +1,1750 @@
+/* ============================================================
+   DESCTRL — AJUSTES DE TOQUE (MOBILE)
+   Arquivo separado, importado DEPOIS do App.css (ver App.jsx).
+   Não altera nenhuma regra do desktop.
+   ============================================================ */
+
+/* --- Todos os dispositivos de toque --- */
+@media (pointer: coarse) {
+  /* Remove o atraso de ~300 ms e o flash cinza ao tocar */
+  a,
+  button,
+  input,
+  label,
+  [role='button'] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Vitrine "Brasil em jogo": rolagem vertical continua normal,
+     o gesto horizontal é tratado pelo swipe do Inicio.jsx */
+  .app .vitrine-brasil-deslizavel {
+    touch-action: pan-y;
+  }
+
+  .app .vitrine-brasil-deslizavel img {
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Carrossel dos cards: mesma regra (vale para o CarrosselJogos
+     quando ele receber o swipe) */
+  .app .viewport-carrossel {
+    touch-action: pan-y;
+  }
+
+  .app .viewport-carrossel img {
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Áreas de toque mínimas (~44px) */
+  .app .vitrine-brasil-navegacao > button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .app .vitrine-brasil-indicadores {
+    gap: 4px;
+  }
+
+  /* Indicadores continuam pequenos, mas com área de toque maior */
+  .app .vitrine-brasil-indicadores button {
+    position: relative;
+  }
+
+  .app .vitrine-brasil-indicadores button::after {
+    content: '';
+    position: absolute;
+    inset: -13px -5px;
+  }
+
+  .app .botao-favorito-card {
+    width: 44px;
+    height: 44px;
+  }
+
+  .app .link-secao {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+
+/* --- Sem hover de verdade (celular/tablet): evita efeito "grudado" --- */
+@media (hover: none) {
+  .app .card-jogo:hover,
+  .app .hero-card:hover,
+  .app .vitrine-brasil-principal:hover .vitrine-brasil-imagem,
+  .app .vitrine-brasil-secundario:hover .vitrine-brasil-imagem,
+  .app .vitrine-brasil-principal:hover .vitrine-brasil-acao {
+    transform: none;
+    filter: none;
+  }
+
+  .app .card-jogo:hover .imagem-jogo img {
+    transform: none;
+  }
+
+  /* Feedback de toque no lugar do hover */
+  .app .card-jogo:active,
+  .app .vitrine-brasil-principal:active,
+  .app .vitrine-brasil-secundario:active {
+    transform: scale(0.985);
+    transition: transform 0.12s ease;
+  }
+}
+
+/* --- Telas pequenas --- */
+@media (max-width: 760px) {
+  /* iOS dá zoom automático em campos com fonte < 16px */
+  .app .hero .barra-pesquisa > input,
+  .app .comparador-busca input {
+    font-size: 16px;
+  }
+
+  /* Botões do comparador com altura confortável */
+  .app .comparador-busca > button,
+  .app .comparador-detalhes,
+  .app .comparador-previsao,
+  .app .comparador-trocar {
+    min-height: 44px;
+  }
+
+  /* Sugestões de busca: itens maiores e fáceis de tocar */
+  .app .sugestao-jogo,
+  .app .comparador-sugestao {
+    min-height: 52px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app .card-jogo:active,
+  .app .vitrine-brasil-principal:active,
+  .app .vitrine-brasil-secundario:active {
+    transform: none;
+  }
+}
+
+
+/* ============================================================
+   NAVEGAÇÃO MOBILE — identidade DESCTRL
+   As alterações de layout ficam restritas a telas pequenas.
+   ============================================================ */
+.botao-menu-mobile { display: none; }
+
+@media (max-width: 620px) {
+  .app .cabecalho {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .app .cabecalho > .navegacao { display: none; }
+
+  .app .acoes-cabecalho {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+  }
+
+  .app .perfil-menu { display: none; }
+
+  .app .botao-menu-mobile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--borda-tema);
+    border-radius: 12px;
+    background: var(--fundo-card);
+    color: var(--texto);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .app .menu-mobile-icone {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 20px;
+  }
+
+  .app .menu-mobile-icone i {
+    display: block;
+    width: 20px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    transition: transform .18s ease, opacity .18s ease;
+  }
+
+  .app .menu-mobile-icone.aberto i:first-child { transform: translateY(7px) rotate(45deg); }
+  .app .menu-mobile-icone.aberto i:nth-child(2) { opacity: 0; }
+  .app .menu-mobile-icone.aberto i:last-child { transform: translateY(-7px) rotate(-45deg); }
+
+  .app .menu-mobile-camada {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    justify-content: flex-end;
+    background: rgba(7, 6, 12, .72);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    animation: menu-mobile-fundo .18s ease-out;
+  }
+
+  .app .menu-mobile-painel {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: min(420px, 90vw);
+    height: 100%;
+    height: 100dvh;
+    min-height: 0;
+    box-sizing: border-box;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background:
+      radial-gradient(ellipse at 100% 0%, rgba(126, 83, 205, .12), transparent 42%),
+      var(--fundo-card, #17161d);
+    color: var(--texto, #f5f2fa);
+    border-left: 1px solid color-mix(in srgb, var(--roxo-tema, #9a75ed) 30%, var(--borda-tema, #34313f));
+    box-shadow: -18px 0 55px rgba(0, 0, 0, .38);
+    animation: menu-mobile-entrada .22s ease-out;
+  }
+
+  .app .menu-mobile-topo {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 2px 0 14px;
+    border-bottom: 1px solid var(--borda-tema, #34313f);
+  }
+
+  .app .menu-mobile-identidade {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .app .menu-mobile-identidade > .menu-mobile-marca {
+    display: inline-flex;
+    position: relative;
+    width: fit-content;
+    max-width: 100%;
+    transform: scale(.84);
+    transform-origin: left top;
+    margin: 0 0 -5px;
+  }
+
+  .app .menu-mobile-fechar {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--borda-tema, #34313f);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .015);
+    color: var(--texto, #f5f2fa);
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .app .menu-mobile-links {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 18px 0 20px;
+  }
+
+  .app .menu-mobile-links a {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 64px;
+    box-sizing: border-box;
+    padding: 13px 15px;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    color: var(--texto, #f5f2fa);
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: 700;
+    touch-action: manipulation;
+  }
+
+  .app .menu-mobile-links a svg {
+    display: block;
+    flex: 0 0 29px;
+    width: 29px;
+    height: 29px;
+    fill: none;
+    stroke: var(--roxo-tema, #a98aff);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .app .menu-mobile-links a span { flex: 1; min-width: 0; }
+
+  .app .menu-mobile-links a.ativo,
+  .app .menu-mobile-links a[aria-current='page'],
+  .app .menu-mobile-links a:focus-visible {
+    border-color: color-mix(in srgb, var(--roxo-tema, #9a75ed) 32%, transparent);
+    background: color-mix(in srgb, var(--roxo-tema, #9a75ed) 16%, transparent);
+    color: var(--roxo-tema, #b99cff);
+    outline: none;
+  }
+
+  .app .menu-mobile-links a.ativo,
+  .app .menu-mobile-links a[aria-current='page'] {
+    box-shadow: inset 3px 0 0 var(--roxo-tema, #9a75ed);
+  }
+
+  .app .menu-mobile-links a:active {
+    background: color-mix(in srgb, var(--roxo-tema, #9a75ed) 12%, transparent);
+  }
+
+  @media (hover: hover) {
+    .app .menu-mobile-links a:hover {
+      border-color: color-mix(in srgb, var(--roxo-tema, #9a75ed) 32%, transparent);
+      background: color-mix(in srgb, var(--roxo-tema, #9a75ed) 16%, transparent);
+      color: var(--roxo-tema, #b99cff);
+    }
+  }
+
+  .app .menu-mobile-links a small {
+    flex: 0 0 auto;
+    padding: 4px 7px;
+    border: 1px solid color-mix(in srgb, var(--roxo-tema, #9a75ed) 45%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--roxo-tema, #9a75ed) 18%, transparent);
+    color: var(--roxo-tema, #b99cff);
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: .4px;
+  }
+
+  .app .menu-mobile-separador {
+    height: 1px;
+    margin: 10px 2px;
+    background: var(--borda-tema, #34313f);
+  }
+
+  .app .menu-mobile-conta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 15px;
+    border-top: 1px solid var(--borda-tema, #34313f);
+  }
+
+  .app .menu-mobile-entrar,
+  .app .menu-mobile-cadastrar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 54px;
+    box-sizing: border-box;
+    padding: 12px 17px;
+    border: 1px solid var(--borda-tema, #34313f);
+    border-radius: 12px;
+    color: var(--texto, #f5f2fa);
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 800;
+    touch-action: manipulation;
+  }
+
+  .app .menu-mobile-entrar span,
+  .app .menu-mobile-cadastrar span { font-size: 24px; line-height: 1; opacity: .8; }
+
+  .app .menu-mobile-cadastrar {
+    border-color: transparent;
+    background: var(--roxo-tema, #8763e8);
+    color: #fff;
+  }
+
+  .app .menu-mobile-cartao-usuario {
+    padding: 13px;
+    border: 1px solid var(--borda-tema, #34313f);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--roxo-tema, #9a75ed) 4%, var(--fundo-card, #17161d));
+  }
+
+  .app .menu-mobile-resumo-usuario {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 13px;
+  }
+
+  .app .menu-mobile-avatar {
+    display: grid;
+    place-items: center;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border: 1px solid color-mix(in srgb, var(--roxo-tema, #9a75ed) 35%, var(--borda-tema, #34313f));
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--roxo-tema, #9a75ed) 15%, transparent);
+    color: var(--roxo-tema, #b99cff);
+    font-size: 28px;
+  }
+
+  .app .menu-mobile-resumo-usuario strong { overflow-wrap: anywhere; color: var(--texto, #f5f2fa); font-size: 16px; }
+  .app .menu-mobile-resumo-usuario small { color: var(--texto-suave, #b5afc0); font-size: 12px; }
+
+  .app .menu-mobile-sair {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 2px 0;
+    border: 0;
+    border-top: 1px solid var(--borda-tema, #34313f);
+    border-radius: 0;
+    background: transparent;
+    color: var(--texto, #f5f2fa);
+    text-align: left;
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .app .menu-mobile-sair svg {
+    width: 21px;
+    height: 21px;
+    fill: none;
+    stroke: var(--roxo-tema, #a98aff);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+}
+
+@keyframes menu-mobile-fundo { from { opacity: 0; } to { opacity: 1; } }
+@keyframes menu-mobile-entrada { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .app .menu-mobile-camada,
+  .app .menu-mobile-painel,
+  .app .menu-mobile-icone i { animation: none; transition: none; }
+}
+
+
+/* ============================================================
+   NAVEGAÇÃO MOBILE — ajustes v2
+   (textos maiores, tema no menu, cartão clicável, swipe p/ fechar)
+   ============================================================ */
+@media (max-width: 620px) {
+  /* Rolagem vertical do menu continua; o gesto horizontal fecha o menu */
+  .app .menu-mobile-painel { touch-action: pan-y; }
+
+  /* Selo ADMIN mais legível */
+  .app .menu-mobile-links a small {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  /* Botões Entrar / Criar conta com peso parecido com os itens do menu */
+  .app .menu-mobile-entrar,
+  .app .menu-mobile-cadastrar {
+    min-height: 56px;
+    font-size: 17px;
+  }
+
+  .app .menu-mobile-entrar span,
+  .app .menu-mobile-cadastrar span { font-size: 26px; }
+
+  /* Interruptor de tema */
+  .app .menu-mobile-tema {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-height: 56px;
+    box-sizing: border-box;
+    padding: 12px 17px;
+    border: 1px solid var(--borda-tema, #34313f);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--texto, #f5f2fa);
+    font: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .app .menu-mobile-tema svg {
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: var(--roxo-tema, #a98aff);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .app .menu-mobile-tema-texto { flex: 1; min-width: 0; }
+
+  .app .menu-mobile-tema-chave {
+    position: relative;
+    flex: 0 0 46px;
+    width: 46px;
+    height: 26px;
+    border-radius: 13px;
+    background: color-mix(in srgb, var(--texto, #f5f2fa) 20%, transparent);
+    transition: background-color .18s ease;
+  }
+
+  .app .menu-mobile-tema-chave i {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+    transition: transform .18s ease;
+  }
+
+  .app .menu-mobile-tema[aria-checked='true'] .menu-mobile-tema-chave {
+    background: var(--roxo-tema, #8763e8);
+  }
+
+  .app .menu-mobile-tema[aria-checked='true'] .menu-mobile-tema-chave i {
+    transform: translateX(20px);
+  }
+
+  /* Cartão do usuário: agora leva ao perfil */
+  .app .menu-mobile-resumo-usuario {
+    min-height: 56px;
+    box-sizing: border-box;
+    color: inherit;
+    text-decoration: none;
+    touch-action: manipulation;
+  }
+
+  .app .menu-mobile-resumo-textos {
+    display: grid;
+    flex: 1;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .app .menu-mobile-resumo-usuario strong { font-size: 17px; }
+  .app .menu-mobile-resumo-usuario small { font-size: 13px; }
+
+  .app .menu-mobile-seta {
+    flex: 0 0 auto;
+    color: var(--texto-suave, #b5afc0);
+    font-size: 26px;
+    line-height: 1;
+    opacity: .8;
+  }
+
+  /* Sair: texto maior e área de toque confortável */
+  .app .menu-mobile-sair {
+    min-height: 52px;
+    padding: 0 4px;
+    font-size: 16px;
+  }
+
+  .app .menu-mobile-sair svg {
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app .menu-mobile-tema-chave,
+  .app .menu-mobile-tema-chave i { transition: none; }
+}
+
+/* ============================================================
+   VITRINE BRASIL EM JOGO — refinamento mobile
+   Mantém o destaque principal e os dois jogos menores abaixo.
+   Estas regras ficam no CSS mobile, sem alterar o desktop.
+   ============================================================ */
+@media (max-width: 760px) {
+  .app .vitrine-brasil {
+    width: calc(100% - 24px);
+    margin: 22px auto;
+    padding: 18px 14px 14px;
+    box-sizing: border-box;
+  }
+
+  .app .vitrine-brasil-cabecalho {
+    margin-bottom: 16px;
+  }
+
+  .app .vitrine-brasil-painel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .app .vitrine-brasil-principal {
+    min-height: clamp(230px, 62vw, 300px);
+  }
+
+  .app .vitrine-brasil-conteudo {
+    padding: 18px;
+  }
+
+  .app .vitrine-brasil-conteudo strong {
+    font-size: clamp(23px, 6vw, 30px);
+    overflow-wrap: anywhere;
+  }
+
+  /* Os dois jogos secundários permanecem lado a lado, inclusive em celulares estreitos. */
+  .app .vitrine-brasil-secundarios {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto;
+    gap: 10px;
+    min-height: 0;
+  }
+
+  .app .vitrine-brasil-secundario {
+    min-width: 0;
+    min-height: 154px;
+    padding: 12px;
+    box-sizing: border-box;
+  }
+
+  .app .vitrine-brasil-secundario .vitrine-brasil-selo {
+    top: 8px;
+    left: 8px;
+    max-width: calc(100% - 16px);
+    padding: 4px 6px;
+    font-size: 8px;
+    letter-spacing: .25px;
+    white-space: normal;
+  }
+
+  .app .vitrine-brasil-secundario strong {
+    max-width: 100%;
+    font-size: clamp(13px, 3.7vw, 17px);
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .app .vitrine-brasil-link {
+    margin-top: 5px;
+    font-size: 11px;
+  }
+
+  .app .vitrine-brasil-rodape {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .app .vitrine-brasil-ver-todos {
+    min-height: 44px;
+    max-width: 100%;
+    padding: 10px 12px;
+    box-sizing: border-box;
+    font-size: 12px;
+  }
+
+  .app .vitrine-brasil-navegacao {
+    align-self: auto;
+    gap: 7px;
+  }
+
+  .app .vitrine-brasil-navegacao > button {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+  }
+
+  .app .vitrine-brasil-indicadores {
+    gap: 5px;
+  }
+}
+
+@media (max-width: 380px) {
+  .app .vitrine-brasil {
+    width: calc(100% - 20px);
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .app .vitrine-brasil-secundarios {
+    gap: 8px;
+  }
+
+  .app .vitrine-brasil-secundario {
+    min-height: 146px;
+    padding: 10px;
+  }
+
+  .app .vitrine-brasil-secundario strong {
+    font-size: 13px;
+  }
+
+  .app .vitrine-brasil-rodape {
+    align-items: stretch;
+  }
+
+  .app .vitrine-brasil-ver-todos {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .app .vitrine-brasil-navegacao {
+    align-self: flex-end;
+    margin-left: auto;
+  }
+}
+
+/* ============================================================
+   INÍCIO MOBILE — espaçamento mais equilibrado antes da vitrine
+   Sobrescreve apenas a apresentação da seção hero em telas pequenas.
+   ============================================================ */
+@media (max-width: 620px) {
+  .app .hero {
+    min-height: 0;
+    align-items: flex-start;
+  }
+
+  .app .hero-conteudo {
+    width: calc(100% - 32px);
+    padding: 28px 0 24px;
+  }
+
+  .app .hero-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .app .hero-texto {
+    width: 100%;
+    max-width: none;
+  }
+
+  .app .hero-tag {
+    margin-bottom: 10px;
+    font-size: 10px;
+    line-height: 1.35;
+    letter-spacing: 1.35px;
+  }
+
+  .app .hero h1 {
+    max-width: 100%;
+    margin: 0;
+    font-size: clamp(31px, 8.2vw, 38px);
+    line-height: 1.08;
+    letter-spacing: -1.15px;
+  }
+
+  .app .hero p {
+    max-width: 100%;
+    margin: 12px 0 16px;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  .app .hero .barra-pesquisa {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    grid-template-rows: 42px 42px;
+    align-items: center;
+    gap: 6px 2px;
+    width: 100%;
+    height: auto;
+    box-sizing: border-box;
+    padding: 7px;
+    border-radius: 12px;
+  }
+
+  .app .hero .barra-pesquisa > .icone-pesquisa {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 23px;
+    line-height: 1;
+  }
+
+  .app .hero .barra-pesquisa > input {
+    width: 100%;
+    min-width: 0;
+    height: 42px;
+    box-sizing: border-box;
+    padding: 0 8px;
+    font-size: 15px;
+  }
+
+  .app .hero .barra-pesquisa > button {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 42px;
+    height: 42px;
+    padding: 0 12px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+
+  .app .hero .sugestoes-pesquisa {
+    grid-column: 1 / -1;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .app .hero-beneficios {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    margin-top: 14px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .app .hero-beneficio {
+    min-height: 22px;
+    gap: 9px;
+  }
+
+  /* A arte decorativa do hero não deve reservar espaço no celular. */
+  .app .hero-arte {
+    display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .app .hero-conteudo {
+    width: calc(100% - 28px);
+    padding-top: 24px;
+    padding-bottom: 20px;
+  }
+
+  .app .hero h1 {
+    font-size: clamp(29px, 8.1vw, 32px);
+    letter-spacing: -0.9px;
+  }
+
+  .app .hero p {
+    font-size: 14px;
+  }
+
+  .app .hero .barra-pesquisa > input {
+    font-size: 14px;
+  }
+}
+
+
+/* ============================================================
+   CARDS DOS CARROSSÉIS — MOBILE
+   Arte em destaque + preços Steam/Epic; desktop preservado.
+   ============================================================ */
+@media (max-width: 620px) {
+  .app .carrossel .lista-carrossel {
+    gap: 12px;
+  }
+
+  .app .carrossel .item-carrossel {
+    flex: 0 0 calc((100% - 12px) / 2);
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .app .carrossel .card-jogo {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Arte mais alta para ganhar destaque em cards compactos. */
+  .app .carrossel .imagem-jogo {
+    aspect-ratio: 4 / 3;
+  }
+
+  .app .carrossel .imagem-jogo > img {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    object-fit: cover;
+  }
+
+  .app .carrossel .conteudo-card {
+    min-width: 0;
+    padding: 10px;
+  }
+
+  .app .carrossel .conteudo-card h3 {
+    min-height: 0;
+    margin: 0 0 7px;
+    font-size: 13px;
+    line-height: 1.2;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow-wrap: anywhere;
+  }
+
+  /* Steam e Epic em colunas paralelas para reduzir a altura do card. */
+  .app .carrossel .precos {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+  }
+
+  .app .carrossel .precos > div {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .app .carrossel .rotulo-plataforma {
+    font-size: 10px;
+    line-height: 1.2;
+  }
+
+  .app .carrossel .precos strong {
+    font-size: 11px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .app .carrossel .menor-preco {
+    display: block;
+    margin-top: 7px;
+    padding-top: 6px;
+    font-size: 10px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+}
+
+
+/* ============================================================
+   COMPARADOR DE PREÇOS: layout compacto para mobile
+   Desktop e lógica de busca/comparação permanecem inalterados.
+   ============================================================ */
+@media (max-width: 620px) {
+  .app .secao-comparacao {
+    padding-top: 28px;
+    padding-bottom: 20px;
+  }
+
+  .app .secao-comparacao .secao-cabecalho {
+    margin-bottom: 14px;
+  }
+
+  .app .secao-comparacao .bloco-explicativo {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px;
+    border-radius: 12px;
+    box-sizing: border-box;
+  }
+
+  .app .secao-comparacao .explicacao {
+    min-width: 0;
+  }
+
+  .app .secao-comparacao .explicacao h3 {
+    margin-bottom: 8px;
+    font-size: 19px;
+    line-height: 1.25;
+  }
+
+  .app .secao-comparacao .explicacao p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .app .secao-comparacao .comparador-busca {
+    margin-top: 14px;
+    min-height: 46px;
+  }
+
+  .app .secao-comparacao .comparador-busca-icone {
+    margin-left: 11px;
+    font-size: 20px;
+  }
+
+  .app .secao-comparacao .comparador-busca input {
+    padding: 10px 8px;
+    font-size: 16px;
+  }
+
+  .app .secao-comparacao .comparador-busca > button {
+    min-height: 38px;
+    padding: 8px 11px;
+  }
+
+  /* Estado vazio: não reservar uma grande área sem conteúdo. */
+  .app .secao-comparacao .comparador-vazio {
+    min-height: 0;
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 8px 0 2px;
+  }
+
+  .app .secao-comparacao .comparador-vazio strong {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  /* Com jogo escolhido, arte e comparação ficam lado a lado. */
+  .app .secao-comparacao .bloco-explicativo.com-imagem-jogo {
+    display: grid;
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1fr);
+    align-items: start;
+    column-gap: 14px;
+    row-gap: 0;
+    padding: 14px;
+  }
+
+  .app .secao-comparacao .bloco-explicativo.com-imagem-jogo .explicacao {
+    display: contents;
+  }
+
+  .app .secao-comparacao .bloco-explicativo.com-imagem-jogo .explicacao h3,
+  .app .secao-comparacao .bloco-explicativo.com-imagem-jogo .explicacao p {
+    display: none;
+  }
+
+  .app .secao-comparacao .bloco-explicativo.com-imagem-jogo .comparador-imagem-jogo {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+    margin: 0;
+    border-radius: 9px;
+    align-self: start;
+  }
+
+  .app .secao-comparacao .bloco-explicativo.com-imagem-jogo .comparador-imagem-jogo img {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+  }
+
+  .app .secao-comparacao .bloco-explicativo.com-imagem-jogo .mini-comparacao {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+  }
+
+  .app .secao-comparacao .comparador-jogo-selecionado {
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .app .secao-comparacao .comparador-jogo-selecionado span {
+    font-size: 9px;
+    letter-spacing: 0.05em;
+  }
+
+  .app .secao-comparacao .comparador-jogo-selecionado strong {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: 15px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .app .secao-comparacao .linha-preco {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+    padding: 7px 0;
+  }
+
+  .app .secao-comparacao .linha-preco.melhor-preco {
+    padding: 7px;
+  }
+
+  .app .secao-comparacao .comparador-loja {
+    flex-wrap: wrap;
+    gap: 4px 6px;
+  }
+
+  .app .secao-comparacao .comparador-loja .plataforma {
+    white-space: normal;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .app .secao-comparacao .comparador-loja small {
+    padding: 2px 4px;
+    font-size: 9px;
+  }
+
+  .app .secao-comparacao .linha-preco strong {
+    font-size: 15px;
+    line-height: 1.25;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .app .secao-comparacao .comparador-melhor-preco {
+    margin-top: 7px;
+    font-size: 10px;
+    line-height: 1.3;
+  }
+
+  .app .secao-comparacao .comparador-detalhes,
+  .app .secao-comparacao .comparador-previsao {
+    min-height: 42px;
+    margin-top: 8px;
+    padding: 9px 7px;
+    font-size: 12px;
+    line-height: 1.25;
+  }
+
+  .app .secao-comparacao .comparador-trocar {
+    min-height: 36px;
+    margin-top: 5px;
+    padding: 5px 2px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 380px) {
+  .app .secao-comparacao .bloco-explicativo.com-imagem-jogo {
+    grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
+    column-gap: 10px;
+    padding: 11px;
+  }
+
+  .app .secao-comparacao .comparador-jogo-selecionado strong {
+    font-size: 14px;
+  }
+
+  .app .secao-comparacao .linha-preco strong {
+    font-size: 14px;
+  }
+}
+
+/* ============================================================
+   CATÁLOGO — MOBILE COMPACTO
+   Busca e filtros mais enxutos; dois cards por linha.
+   Escopo restrito à página de catálogo em telas pequenas.
+   ============================================================ */
+@media (max-width: 620px) {
+  .app .pagina-jogos {
+    width: calc(100% - 24px);
+    padding-top: 28px;
+    padding-bottom: 48px;
+    box-sizing: border-box;
+  }
+
+  .app .cabecalho-jogos {
+    margin-bottom: 20px;
+  }
+
+  .app .cabecalho-jogos h1 {
+    margin-bottom: 8px;
+    font-size: clamp(32px, 9vw, 42px);
+  }
+
+  .app .cabecalho-jogos p {
+    margin-top: 0;
+    line-height: 1.5;
+  }
+
+  .app .controles-jogos {
+    margin-bottom: 22px;
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .app .pesquisa-jogos {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0;
+    min-width: 0;
+    height: 46px;
+    padding: 0;
+  }
+
+  .app .pesquisa-jogos .icone-pesquisa {
+    flex: 0 0 auto;
+    padding-left: 10px;
+  }
+
+  .app .pesquisa-jogos input {
+    flex: 1 1 auto;
+    width: 0;
+    min-width: 0;
+    height: 44px;
+    padding: 0 8px;
+    font-size: 13px;
+  }
+
+  .app .pesquisa-jogos button {
+    flex: 0 0 auto;
+    width: auto;
+    height: 100%;
+    padding: 0 12px;
+    border-radius: 0 8px 8px 0;
+    font-size: 12px;
+  }
+
+  .app .filtros-jogos {
+    align-items: stretch;
+    gap: 12px;
+    margin-top: 13px;
+  }
+
+  .app .grupo-filtros {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .app .grupo-filtros > span {
+    flex: 0 0 100%;
+    margin: 0 0 2px;
+    font-size: 11px;
+  }
+
+  .app .grupo-filtros button {
+    padding: 7px 9px;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .app .ordenacao-jogos {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .app .ordenacao-jogos > span {
+    flex: 0 0 auto;
+    font-size: 11px;
+  }
+
+  .app .ordenacao-jogos select {
+    flex: 1 1 auto;
+    width: 0;
+    min-width: 0;
+    margin-left: 0;
+    padding: 9px 28px 9px 10px;
+    font-size: 12px;
+  }
+
+  .app .resultado-cabecalho {
+    margin-bottom: 12px;
+    font-size: 12px;
+  }
+
+  .app .pagina-jogos .grade-jogos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .app .pagina-jogos .card-jogo {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    box-sizing: border-box;
+    border-radius: 9px;
+  }
+
+  .app .pagina-jogos .imagem-jogo {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+  }
+
+  .app .pagina-jogos .imagem-jogo img {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    object-fit: cover;
+  }
+
+  .app .pagina-jogos .conteudo-card {
+    min-width: 0;
+    padding: 10px;
+  }
+
+  .app .pagina-jogos .conteudo-card h3 {
+    display: -webkit-box;
+    min-width: 0;
+    min-height: 0;
+    margin: 0 0 10px;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    font-size: 13px;
+    line-height: 1.3;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .app .pagina-jogos .precos {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .app .pagina-jogos .precos > div {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .app .pagina-jogos .rotulo-plataforma {
+    min-width: 0;
+    font-size: 10px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  .app .pagina-jogos .precos strong {
+    min-width: 0;
+    font-size: 10px;
+    line-height: 1.35;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .app .pagina-jogos .preco-indisponivel {
+    font-size: 9px;
+  }
+
+  .app .pagina-jogos .menor-preco {
+    display: block;
+    margin-top: 9px;
+    padding-top: 8px;
+    font-size: 10px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .app .pagina-jogos .selo-desconto {
+    top: 6px;
+    left: 6px;
+    padding: 4px 5px;
+    border-radius: 5px;
+    font-size: 9px;
+  }
+
+  .app .pagina-jogos .botao-favorito-card {
+    width: 36px;
+    height: 36px;
+  }
+
+  .app .pagina-jogos .paginacao-jogos {
+    justify-content: center;
+    gap: 4px;
+    margin-top: 20px;
+  }
+}
+
+@media (max-width: 380px) {
+  .app .pagina-jogos {
+    width: calc(100% - 20px);
+  }
+
+  .app .controles-jogos {
+    padding: 10px;
+  }
+
+  .app .pagina-jogos .grade-jogos {
+    gap: 9px;
+  }
+
+  .app .pagina-jogos .conteudo-card {
+    padding: 8px;
+  }
+
+  .app .pagina-jogos .conteudo-card h3 {
+    font-size: 12px;
+  }
+
+  .app .pagina-jogos .precos strong {
+    font-size: 9px;
+  }
+}
+
+
+/* ============================================================
+   CATÁLOGO: painel de filtros e ordenação (desktop e mobile)
+   ============================================================ */
+.app .atalho-filtros-jogos {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 14px;
+}
+.app .resumo-filtros-ativos {
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 13px 15px 12px;
+  border: 1px solid color-mix(in srgb, var(--roxo-tema) 38%, var(--borda-tema));
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--roxo-tema) 8%, var(--fundo-card));
+  color: var(--texto);
+}
+.app .titulo-resumo-filtros {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 9px;
+  font-size: 13px;
+  letter-spacing: .01em;
+}
+.app .icone-resumo-filtros {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--roxo-tema) 20%, transparent);
+  color: var(--roxo-tema);
+  font-size: 17px;
+}
+.app .etiquetas-resumo-filtros {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.app .etiqueta-filtro-ativo,
+.app .etiqueta-ordenacao-ativa {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 27px;
+  box-sizing: border-box;
+  padding: 4px 9px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+.app .etiqueta-filtro-ativo {
+  border: 1px solid color-mix(in srgb, var(--roxo-tema) 58%, transparent);
+  background: color-mix(in srgb, var(--roxo-tema) 19%, var(--fundo-card));
+  color: var(--texto);
+}
+.app .etiqueta-filtro-ativo > span {
+  color: var(--roxo-tema);
+  font-weight: 800;
+}
+.app .etiqueta-ordenacao-ativa {
+  border: 1px solid var(--borda-tema);
+  background: var(--fundo-card);
+  color: var(--texto-suave);
+}
+.app .texto-sem-restricao {
+  color: var(--texto-suave);
+  font-size: 12px;
+}
+.app .descricao-resumo-filtros {
+  margin: 8px 0 0;
+  color: var(--texto-suave);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.app .botao-abrir-filtros,
+.app .aplicar-filtros-jogos {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--roxo-tema);
+  border-radius: 10px;
+  background: var(--roxo-tema);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.app .camada-filtros-jogos {
+  position: fixed;
+  inset: 0;
+  z-index: 11000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  background: rgba(7, 6, 12, .62);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: camada-filtros-aparecer .18s ease-out;
+}
+.app .painel-filtros-jogos {
+  width: min(560px, 100%);
+  max-height: min(760px, calc(100dvh - 40px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--roxo-tema) 42%, var(--borda-tema));
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(126, 83, 205, .13), transparent 44%),
+    var(--fundo-card);
+  color: var(--texto);
+  box-shadow: 0 24px 90px rgba(0, 0, 0, .5);
+  animation: painel-filtros-entrada .2s ease-out;
+}
+.app .topo-filtros-jogos {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--borda-tema);
+}
+.app .topo-filtros-jogos h2 {
+  margin: 6px 0 0;
+  color: var(--texto);
+  font-size: clamp(20px, 3vw, 25px);
+}
+.app .fechar-filtros-jogos {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--borda-tema);
+  border-radius: 10px;
+  background: var(--fundo);
+  color: var(--texto);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+.app .conteudo-filtros-jogos {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  padding: 22px 24px;
+  overflow-y: auto;
+}
+.app .grupo-filtros-modal {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.app .grupo-filtros-modal > span {
+  flex: 0 0 100%;
+  margin: 0 0 3px;
+  color: var(--texto);
+  font-size: 14px;
+}
+.app .grupo-filtros-modal button {
+  min-height: 40px;
+}
+.app .ordenacao-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 9px;
+  white-space: normal;
+}
+.app .ordenacao-modal > span {
+  color: var(--texto);
+  font-size: 14px;
+  font-weight: 700;
+}
+.app .ordenacao-modal select {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+.app .rodape-filtros-jogos {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 24px 22px;
+  border-top: 1px solid var(--borda-tema);
+}
+.app .limpar-filtros-jogos {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--borda-forte);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--texto);
+  font-weight: 650;
+  cursor: pointer;
+}
+@keyframes camada-filtros-aparecer {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes painel-filtros-entrada {
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (max-width: 620px) {
+  .app .atalho-filtros-jogos {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .app .resumo-filtros-ativos { padding: 12px; }
+  .app .botao-abrir-filtros { width: 100%; }
+  .app .camada-filtros-jogos {
+    align-items: flex-end;
+    padding: 10px;
+  }
+  .app .painel-filtros-jogos {
+    width: 100%;
+    max-height: calc(100dvh - 20px);
+    border-radius: 18px;
+  }
+  .app .topo-filtros-jogos { padding: 18px 18px 15px; }
+  .app .conteudo-filtros-jogos { padding: 18px; gap: 22px; }
+  .app .rodape-filtros-jogos { padding: 14px 18px 18px; }
+  .app .grupo-filtros-modal button {
+    flex: 1 1 calc(50% - 10px);
+    min-width: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app .camada-filtros-jogos,
+  .app .painel-filtros-jogos {
+    animation: none;
+  }
+}
+
+
+/* Detalhes do jogo: gestos de galeria e controles confortáveis */
+@media (pointer: coarse) {
+  .app .miniaturas-galeria-detalhes {
+    touch-action: pan-x pan-y;
+    overscroll-behavior-x: contain;
+  }
+
+  .app .miniaturas-galeria-detalhes > button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .app .botao-expandir-grafico {
+    min-height: 44px;
+  }
+}
+
+
+/* ============================================================
+   GRÁFICO HISTÓRICO — proporção natural em telas de toque
+   Sem largura mínima artificial no modo compacto.
+   ============================================================ */
+@media (max-width: 760px) {
+  .app .grafico-container:not(.grafico-expandido) .grafico-area {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    height: clamp(220px, 66vw, 285px);
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+
+  .app .grafico-container:not(.grafico-expandido) .grafico-svg {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .app .grafico-container:not(.grafico-expandido) {
+    padding: 12px 10px 10px;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 380px) {
+  .app .grafico-container:not(.grafico-expandido) .grafico-area {
+    height: 225px;
+  }
+}
+
+
+/* Modo de análise em tela cheia do histórico, exclusivo para mobile. */
+@media (max-width: 760px) {
+  .app .historico-detalhes.grafico-tela-cheia {
+    touch-action: pan-y;
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia .grafico-area {
+    touch-action: manipulation;
+  }
+}
+
+
+/* Ajustes finais do modo de análise em tela cheia. */
+@media (max-width: 760px) {
+  .app .historico-detalhes.grafico-tela-cheia {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia .grafico-container {
+    flex: 1 1 0%;
+    min-height: 0;
+  }
+}

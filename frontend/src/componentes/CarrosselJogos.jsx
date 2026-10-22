@@ -10,7 +10,7 @@ function CarrosselJogos({ jogos, mostrarDesconto = false }) {
   useEffect(() => {
     const atualizarItensVisiveis = () => {
       if (window.innerWidth <= 620) {
-        setItensVisiveis(1)
+        setItensVisiveis(2)
       } else if (window.innerWidth <= 900) {
         setItensVisiveis(2)
       } else {

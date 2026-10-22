@@ -51,10 +51,10 @@ function Perfil() {
       const salvas = JSON.parse(localStorage.getItem('desctrl-preferencias-notificacao') || '{}')
       return {
         email: Boolean(salvas.email),
-        site: Boolean(salvas.site),
+        site: Object.prototype.hasOwnProperty.call(salvas, 'site') ? Boolean(salvas.site) : true,
       }
     } catch {
-      return { email: false, site: false }
+      return { email: false, site: true }
     }
   })
   const [preferenciasNotificacaoCarregadas, setPreferenciasNotificacaoCarregadas] = useState(false)
@@ -315,11 +315,14 @@ function Perfil() {
 
         if (!dados.configuradas) {
           // Migra uma única vez as preferências antigas deste navegador para a conta.
-          let antigas = { email: false, site: false }
+          let antigas = { email: false, site: true }
           try {
             const salvas = JSON.parse(localStorage.getItem('desctrl-preferencias-notificacao') || '{}')
-            antigas = { email: Boolean(salvas.email), site: Boolean(salvas.site) }
-          } catch { /* Mantém os valores padrão. */ }
+            antigas = {
+              email: Boolean(salvas.email),
+              site: Object.prototype.hasOwnProperty.call(salvas, 'site') ? Boolean(salvas.site) : true,
+            }
+          } catch { /* Mantém os valores padrão, com notificações no site ativas. */ }
           const migracao = await fetch(`${API_BASE}/api/alertas-preco/preferencias`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -834,11 +837,6 @@ function Perfil() {
             </section>
           ) : abaAtiva === 'configuracoes' ? (
             <section className="perfil-configuracoes-pagina">
-              <div className="perfil-configuracoes-intro">
-                <span className="perfil-configuracoes-intro-icone" aria-hidden="true">⚙</span>
-                <div><h2>Preferências da conta</h2><p>As opções abaixo já podem ser ajustadas. Algumas funcionalidades, como o envio de alertas por e-mail, serão conectadas ao backend em uma próxima etapa.</p></div>
-              </div>
-
               <section className="perfil-configuracao-secao">
                 <div className="perfil-configuracao-secao-titulo"><span aria-hidden="true">◐</span><div><h3>Aparência</h3><p>Escolha como você prefere visualizar o site. Essa será a aparência padrão ao entrar, mas você pode mudar de tema sempre que quiser.</p></div></div>
                 <div className="perfil-tema-opcoes" role="group" aria-label="Escolher tema">
@@ -859,7 +857,7 @@ function Perfil() {
                   <PreferenciaToggle titulo="Notificações no site" descricao="Preferência da conta para avisos dentro do DESCTRL." checked={preferenciasNotificacao.site} disabled={!preferenciasNotificacaoCarregadas} onChange={valor => alterarNotificacao('site', valor)} />
                 </div>
                   {erroPreferenciasNotificacao && <p className="perfil-aviso-local" role="alert"><span aria-hidden="true">ⓘ</span> {erroPreferenciasNotificacao}</p>}
-                  <p className="perfil-aviso-local"><span aria-hidden="true">ⓘ</span> As preferências ficam salvas na sua conta. Use o sininho em cada jogo para definir as condições de preço. Os avisos do site ficam disponíveis no histórico da aba Notificações; os e-mails são avaliados após as coletas diárias.</p>
+                  <p className="perfil-aviso-local"><span aria-hidden="true">ⓘ</span> Suas preferências ficam salvas na conta. Toque no sininho de um jogo Favorito para definir o preço que você quer pagar. Os avisos também ficam guardados no histórico da aba Notificações.</p>
               </section>
 
               <section className="perfil-configuracao-secao">
@@ -868,7 +866,7 @@ function Perfil() {
                   <article className="perfil-dado-conta-card">
                     <div className="perfil-dado-conta-icone" aria-hidden="true">@</div>
                     <div className="perfil-dado-conta-conteudo"><span>Nome de usuário</span><strong>{nomeUsuario}</strong><small>Seu identificador público no DESCTRL.</small></div>
-                    <button type="button" className="perfil-dado-conta-acao" onClick={() => { setNovoUsername(nomeUsuario); setEditandoUsername(valor => !valor); setUsernameMensagem(null); setUsernameStatus({ tipo: '', mensagem: '' }) }} aria-label="Editar nome de usuário" title="Editar nome de usuário">✎</button>
+                    <button type="button" className="perfil-dado-conta-acao-texto" onClick={() => { setNovoUsername(nomeUsuario); setEditandoUsername(valor => !valor); setUsernameMensagem(null); setUsernameStatus({ tipo: '', mensagem: '' }) }} aria-label="Alterar nome de usuário">{editandoUsername ? 'Cancelar' : 'Alterar'}</button>
                   </article>
                   <article className="perfil-dado-conta-card" id="perfil-conta-email">
                     <div className="perfil-dado-conta-icone" aria-hidden="true">✉</div>
@@ -906,7 +904,7 @@ function Perfil() {
                   <div className="perfil-nomes-recuperaveis-cabecalho"><div><h4>Nomes anteriores</h4><p>Você pode recuperar um nome reservado enquanto o prazo de 14 dias estiver ativo.</p></div><button type="button" onClick={carregarNomesRecuperaveis} disabled={carregandoNomes}>{carregandoNomes ? 'Atualizando...' : 'Atualizar'}</button></div>
                   {carregandoNomes ? <p className="perfil-nomes-vazio">Consultando reservas...</p> : nomesRecuperaveis.length ? <div className="perfil-lista-nomes">{nomesRecuperaveis.map(nome => <article className="perfil-nome-recuperavel" key={nome.id}><div><strong>{nome.username_anterior}</strong><small>Reservado até {new Date(nome.reservado_ate).toLocaleString('pt-BR')}</small></div><button type="button" onClick={() => recuperarUsername(nome.id)} disabled={recuperandoId !== null}>{recuperandoId === nome.id ? 'Recuperando...' : 'Recuperar nome'}</button></article>)}</div> : <p className="perfil-nomes-vazio">Nenhum nome anterior disponível para recuperação no momento.</p>}
                 </div>
-                <p className="perfil-aviso-local"><span aria-hidden="true">ⓘ</span> A alteração do nome é registrada pelo backend. A interface de alteração de e-mail e senha está preparada, mas precisa ser conectada aos endpoints de segurança antes de efetivar mudanças.</p>
+                <p className="perfil-aviso-local"><span aria-hidden="true">ⓘ</span> Trocar de skin é de boa, mas dados da conta tem limite. Muitas alterações seguidas podem travar novas mudanças por segurança.</p>
               </section>
               <section className="perfil-configuracao-secao">
                 <div className="perfil-configuracao-secao-titulo"><span aria-hidden="true">⌘</span><div><h3>Contas vinculadas</h3><p>Gerencie formas adicionais de entrar no DESCTRL.</p></div></div>
@@ -1386,10 +1384,24 @@ function prepararGraficoPerfil(historicoCompleto, periodo = '3m', loja = 'ambas'
       .filter(registro => registro.instante > ultimoInstanteIncluido)
       .map(registro => ({ ...registro, sintetico: false })))
 
+    const observacoesReais = pontosCaminho
+      .map((registro, indice) => ({ registro, indice }))
+      .filter(({ registro }) => !registro.sintetico && registro.instante >= inicio && registro.instante <= fim)
+
+    // Exibe marcadores apenas nos pontos em que o preço muda em relação
+    // à observação real anterior ou seguinte. O caminho mantém todas as
+    // observações para preservar a forma correta da linha em escada.
+    const observacoesComMudanca = observacoesReais.filter(({ registro, indice }) => {
+      const anterior = pontosCaminho[indice - 1]
+      const seguinte = pontosCaminho[indice + 1]
+      const mudouEmRelacaoAoAnterior = anterior && Math.abs(Number(anterior.precoNumerico) - Number(registro.precoNumerico)) > 0.000001
+      const mudouEmRelacaoAoSeguinte = seguinte && Math.abs(Number(seguinte.precoNumerico) - Number(registro.precoNumerico)) > 0.000001
+      return Boolean(mudouEmRelacaoAoAnterior || mudouEmRelacaoAoSeguinte)
+    }).map(({ registro }) => registro)
+
     seriesBrutas[plataforma] = {
       caminho: pontosCaminho,
-      // Marcadores aparecem somente para observações reais dentro do período.
-      observacoes: pontosCaminho.filter(registro => !registro.sintetico && registro.instante >= inicio && registro.instante <= fim),
+      observacoes: observacoesComMudanca,
     }
   }
 
@@ -1509,6 +1521,12 @@ function ConquistasPanel({ dados, carregando, erro, dicasVisiveis, alternarDicas
   const grupoBloqueado = !grupoAnteriorConcluido
   const desbloqueadasNoGrupo = conquistasGrupo.filter(item => item.desbloqueada).length
 
+  // Se o progresso mudar e o grupo selecionado deixar de estar liberado,
+  // volta para o primeiro grupo, sem manter conteúdo bloqueado visível.
+  useEffect(() => {
+    if (grupoBloqueado) setGrupoSelecionadoId(1)
+  }, [grupoBloqueado])
+
   return (
     <section className="conquistas-pagina" aria-label="Conquistas e recompensas">
       <div className="conquistas-resumo">
@@ -1541,7 +1559,7 @@ function ConquistasPanel({ dados, carregando, erro, dicasVisiveis, alternarDicas
           const selecionado = grupo.id === grupoSelecionadoId
           const totalGrupo = grupo.codigos.filter(codigo => Boolean(porCodigo[codigo]?.desbloqueada)).length
           return (
-            <button type="button" key={grupo.id} className={`conquistas-trilha-etapa ${selecionado ? 'selecionada' : ''} ${bloqueado ? 'bloqueada' : ''}`} onClick={() => setGrupoSelecionadoId(grupo.id)} aria-current={selecionado ? 'step' : undefined} aria-label={`Ver ${bloqueado ? 'prévia do ' : ''}grupo ${grupo.id}: ${grupo.titulo}${bloqueado ? ', bloqueado' : ''}`}>
+            <button type="button" key={grupo.id} className={`conquistas-trilha-etapa ${selecionado ? 'selecionada' : ''} ${bloqueado ? 'bloqueada' : ''}`} onClick={() => { if (!bloqueado) setGrupoSelecionadoId(grupo.id) }} disabled={bloqueado} aria-disabled={bloqueado} aria-current={selecionado ? 'step' : undefined} aria-label={bloqueado ? `Grupo ${grupo.id} bloqueado: ${grupo.titulo}` : `Ver grupo ${grupo.id}: ${grupo.titulo}`}>
               <span className="conquistas-trilha-marco" aria-hidden="true">{bloqueado ? '🔒' : grupo.id}</span>
               <span className="conquistas-trilha-nome">{grupo.titulo}</span>
               <span className="conquistas-trilha-contagem">{totalGrupo}/3</span>
@@ -1550,12 +1568,11 @@ function ConquistasPanel({ dados, carregando, erro, dicasVisiveis, alternarDicas
         })}
       </nav>
 
-      <section className={`conquistas-grupo-detalhe ${grupoBloqueado ? 'bloqueado' : ''}`} aria-labelledby="conquistas-grupo-atual-titulo">
+      <section className="conquistas-grupo-detalhe" aria-labelledby="conquistas-grupo-atual-titulo">
         <header className="conquistas-grupo-detalhe-cabecalho">
-          <div><span>GRUPO {grupoSelecionado.id}{grupoBloqueado ? ' · PRÉVIA' : ''}</span><h3 id="conquistas-grupo-atual-titulo">{grupoSelecionado.titulo}</h3><p>{grupoSelecionado.descricao}</p></div>
+          <div><span>GRUPO {grupoSelecionado.id}</span><h3 id="conquistas-grupo-atual-titulo">{grupoSelecionado.titulo}</h3><p>{grupoSelecionado.descricao}</p></div>
           <strong>{desbloqueadasNoGrupo}/3</strong>
         </header>
-        {grupoBloqueado && <p className="conquistas-grupo-aviso">Conclua o grupo anterior para liberar esta etapa. Você pode consultar as conquistas e recompensas previstas.</p>}
         <div className="conquistas-timeline">
           {conquistasGrupo.map((conquista, posicao) => {
             const desbloqueada = Boolean(conquista.desbloqueada)
@@ -1585,7 +1602,7 @@ function ConquistasPanel({ dados, carregando, erro, dicasVisiveis, alternarDicas
           {!carregando && !erro && dados && conquistasGrupo.length === 0 && <p>As conquistas deste grupo ainda não estão disponíveis no catálogo.</p>}
         </div>
       </section>
-      <p className="conquistas-aviso-integracao"><span aria-hidden="true">ⓘ</span> Seu progresso é carregado do backend. As recompensas são permanentes e os desbloqueios são confirmados pelo sistema.</p>
+      <p className="conquistas-aviso-integracao"><span aria-hidden="true">ⓘ</span> O sistema de conquistas ainda está em desenvolvimento. Alguns progressos, desbloqueios e recompensas podem sofrer ajustes ou apresentar inconsistências.</p>
     </section>
   )
 }

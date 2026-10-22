@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import Cabecalho from '../componentes/Cabecalho'
 import CarrosselJogos from '../componentes/CarrosselJogos'
@@ -10,34 +10,9 @@ function Inicio() {
   const { tema } = useTema()
 
   const [secoesVitrine, setSecoesVitrine] = useState({ brasileiros: [], comunidade: [], em_alta: [], oportunidades: [] })
-  const [jogosBusca, setJogosBusca] = useState([])
   const [jogosBuscaComparacao, setJogosBuscaComparacao] = useState([])
-  const [busca, setBusca] = useState('')
   const [buscaComparacao, setBuscaComparacao] = useState('')
   const [jogoComparacao, setJogoComparacao] = useState(null)
-
-  const sugestoesBusca = useMemo(() => {
-    const termo = busca.trim().toLowerCase()
-
-    if (!termo) return []
-
-    return [...jogosBusca]
-      .filter((jogo) => jogo.nome.toLowerCase().includes(termo))
-      .sort((a, b) => {
-        const nomeA = a.nome.toLowerCase()
-        const nomeB = b.nome.toLowerCase()
-
-        const comecaA = nomeA.startsWith(termo)
-        const comecaB = nomeB.startsWith(termo)
-
-        if (comecaA !== comecaB) {
-          return comecaA ? -1 : 1
-        }
-
-        return nomeA.localeCompare(nomeB, 'pt-BR')
-      })
-      .slice(0, 6)
-  }, [busca, jogosBusca])
 
   const sugestoesComparacao = useMemo(() => {
     const termo = buscaComparacao.trim().toLowerCase()
@@ -140,26 +115,6 @@ function Inicio() {
         : 'epic'
       : null
 
-  const pesquisar = (evento) => {
-    evento.preventDefault()
-
-    const termo = busca.trim()
-
-    if (!termo) {
-      navigate('/jogos')
-      return
-    }
-
-    navigate(`/jogos?busca=${encodeURIComponent(termo)}`)
-  }
-
-  const abrirJogo = (id) => {
-    navigate(`/jogos/${id}`)
-  }
-
-
-
-
   useEffect(() => {
     let ativo = true
 
@@ -182,54 +137,6 @@ function Inicio() {
     carregarVitrine()
     return () => { ativo = false }
   }, [])
-
-  useEffect(() => {
-    async function carregarJogosBusca(termo, setResultado) {
-      const texto = termo.trim()
-
-      if (!texto) {
-        setResultado([])
-        return
-      }
-
-      try {
-        const resposta = await fetch(
-          `${API_JOGOS_URL}/?pagina=1&por_pagina=20&busca=${encodeURIComponent(texto)}&ordenacao=nome`
-        )
-
-        if (!resposta.ok) {
-          throw new Error('Não foi possível carregar os jogos para a pesquisa.')
-        }
-
-        const dados = await resposta.json()
-        const lista = Array.isArray(dados) ? dados : dados.jogos || []
-
-        setResultado(
-          lista.map((jogo) => ({
-            id: jogo.id,
-            nome: jogo.nome,
-            imagem:
-              jogo.url_imagem_steam ||
-              jogo.url_imagem_epic ||
-              (jogo.steam_id
-                ? `https://cdn.akamai.steamstatic.com/steam/apps/${jogo.steam_id}/header.jpg`
-                : ''),
-            preco_atual_steam: jogo.preco_atual_steam,
-            preco_atual_epic: jogo.preco_atual_epic,
-            preco_base_steam: jogo.preco_base_steam,
-            preco_base_epic: jogo.preco_base_epic,
-            desconto_steam: jogo.desconto_steam,
-            desconto_epic: jogo.desconto_epic,
-          }))
-        )
-      } catch (erro) {
-        console.error('Erro ao carregar jogos para a pesquisa:', erro)
-        setResultado([])
-      }
-    }
-
-    carregarJogosBusca(busca, setJogosBusca)
-  }, [busca])
 
   useEffect(() => {
     async function carregarJogosBuscaComparacao() {
@@ -284,114 +191,6 @@ function Inicio() {
       <Cabecalho />
 
       <main>
-        <section className="hero">
-          <div className="hero-conteudo">
-            <div className="hero-layout">
-              <div className="hero-texto">
-                <span className="hero-tag">DESCUBRA SEU PRÓXIMO JOGO</span>
-
-                <h1>
-                  Jogos incríveis.{' '}
-                  <span className="hero-destaque">Preços inteligentes.</span>
-                </h1>
-
-                <p>
-                  Encontre seus próximos jogos, compare lojas e descubra o melhor momento para comprar.
-                </p>
-
-                <form
-                  className="barra-pesquisa"
-                  onSubmit={pesquisar}
-                  autoComplete="off"
-                >
-                  <span className="icone-pesquisa">⌕</span>
-
-                  <input
-                    type="text"
-                    value={busca}
-                    onChange={(evento) => setBusca(evento.target.value)}
-                    placeholder="Pesquise por nome do jogo..."
-                    aria-label="Pesquisar jogo"
-                    aria-autocomplete="list"
-                    aria-controls="sugestoes-pesquisa"
-                  />
-
-                  <button type="submit">Pesquisar</button>
-
-                  {busca.trim() && (
-                    <div
-                      id="sugestoes-pesquisa"
-                      className="sugestoes-pesquisa"
-                    >
-                      {sugestoesBusca.length > 0 ? (
-                        sugestoesBusca.map((jogo) => (
-                          <button
-                            key={jogo.id}
-                            type="button"
-                            className="sugestao-jogo"
-                            onClick={() => abrirJogo(jogo.id)}
-                          >
-                            {jogo.imagem ? (
-                              <img
-                                src={jogo.imagem}
-                                alt=""
-                                className="sugestao-jogo-imagem"
-                              />
-                            ) : (
-                              <div className="sugestao-jogo-imagem sugestao-jogo-imagem-vazia" />
-                            )}
-
-                            <span className="sugestao-jogo-nome">
-                              {jogo.nome}
-                            </span>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="sugestao-sem-resultados">
-                          Nenhum jogo encontrado.
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </form>
-
-                <div className="hero-beneficios" aria-label="Recursos do DESCTRL">
-                  <span className="hero-beneficio">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M4 19V9" />
-                      <path d="M10 19V5" />
-                      <path d="M16 19v-7" />
-                      <path d="M22 19V3" />
-                    </svg>
-                    <span>Histórico de preços</span>
-                  </span>
-
-                  <span className="hero-beneficio">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="m20.5 13.5-7 7a2 2 0 0 1-2.8 0l-7.2-7.2a2 2 0 0 1-.6-1.4V5a2 2 0 0 1 2-2h6.9a2 2 0 0 1 1.4.6l7.3 7.1a2 2 0 0 1 0 2.8Z" />
-                      <circle cx="7.5" cy="7.5" r="1.5" />
-                    </svg>
-                    <span>Acompanhe promoções</span>
-                  </span>
-
-                  <span className="hero-beneficio">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <rect x="3" y="5" width="18" height="14" rx="2" />
-                      <path d="M3 10h18" />
-                      <path d="M8 15h3" />
-                      <path d="M14 15h3" />
-                    </svg>
-                    <span>Compare as lojas</span>
-                  </span>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </section>
-
-
-
         <VitrineBrasileira
           jogos={secoesVitrine.brasileiros}
           destino="/jogos"
@@ -427,7 +226,7 @@ function Inicio() {
             </div>
           </div>
 
-          <div className="bloco-explicativo">
+          <div className={`bloco-explicativo ${jogoComparacao ? 'com-jogo-selecionado' : ''} ${jogoComparacao?.imagem ? 'com-imagem-jogo' : ''}`}>
             <div className="explicacao">
               <h3>Steam × Epic Games Store</h3>
               <p>
@@ -583,6 +382,54 @@ function Inicio() {
   )
 }
 
+/*
+  Gesto de deslizar (swipe) para toque e caneta.
+  - Mouse continua usando apenas as setas/indicadores.
+  - touch-action: pan-y (no CSS) mantém a rolagem vertical da página.
+  - Depois de um swipe, o clique "fantasma" no link é bloqueado.
+*/
+function useDeslizar({ aoDeslizarEsquerda, aoDeslizarDireita, limite = 45 }) {
+  const inicio = useRef(null)
+  const deslizou = useRef(false)
+
+  const aoPressionar = (evento) => {
+    if (evento.pointerType === 'mouse') return
+    inicio.current = { x: evento.clientX, y: evento.clientY }
+    deslizou.current = false
+  }
+
+  const aoSoltar = (evento) => {
+    const ponto = inicio.current
+    inicio.current = null
+    if (!ponto || evento.pointerType === 'mouse') return
+
+    const dx = evento.clientX - ponto.x
+    const dy = evento.clientY - ponto.y
+
+    if (Math.abs(dx) < limite || Math.abs(dx) < Math.abs(dy) * 1.2) return
+
+    deslizou.current = true
+    if (dx < 0) aoDeslizarEsquerda?.()
+    else aoDeslizarDireita?.()
+  }
+
+  const aoCancelar = () => { inicio.current = null }
+
+  const aoClicarCaptura = (evento) => {
+    if (!deslizou.current) return
+    evento.preventDefault()
+    evento.stopPropagation()
+    deslizou.current = false
+  }
+
+  return {
+    onPointerDown: aoPressionar,
+    onPointerUp: aoSoltar,
+    onPointerCancel: aoCancelar,
+    onClickCapture: aoClicarCaptura,
+  }
+}
+
 function VitrineBrasileira({ jogos = [], destino = '/jogos' }) {
   const [indicePrincipal, setIndicePrincipal] = useState(0)
   const lista = Array.isArray(jogos) ? jogos : []
@@ -593,6 +440,10 @@ function VitrineBrasileira({ jogos = [], destino = '/jogos' }) {
   const avancar = (direcao) => {
     if (total > 1) setIndicePrincipal((atual) => (atual + direcao + total) % total)
   }
+  const gestos = useDeslizar({
+    aoDeslizarEsquerda: () => avancar(1),
+    aoDeslizarDireita: () => avancar(-1),
+  })
 
   return (
     <section className="vitrine-brasil" aria-labelledby="titulo-vitrine-brasil">
@@ -607,7 +458,7 @@ function VitrineBrasileira({ jogos = [], destino = '/jogos' }) {
 
       {principal ? (
         <>
-          <div className="vitrine-brasil-painel">
+          <div className="vitrine-brasil-painel vitrine-brasil-deslizavel" {...gestos}>
             <NavLink to={`/jogos/${principal.id}`} className="vitrine-brasil-principal" aria-label={`Conhecer ${principal.nome}`}>
               {principal.imagem && <img className="vitrine-brasil-imagem" src={principal.imagem} alt="" loading="lazy" decoding="async" />}
               <span className="vitrine-brasil-selo">BRASIL EM JOGO</span>

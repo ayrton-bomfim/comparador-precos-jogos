@@ -8507,3 +8507,1135 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .manutencao-status-ponto, .manutencao-icone-robo { animation: none; }
 }
+
+/* ============================================================
+   RESPONSIVIDADE MOBILE — AJUSTE CONSOLIDADO DESCTRL
+   Sobrescreve somente os pontos que causam cortes/transbordamento
+   em telas estreitas. As regras de desktop permanecem intactas.
+   ============================================================ */
+
+@media (max-width: 760px) {
+  .app .hero {
+    min-width: 0;
+    overflow: clip;
+  }
+
+  .app .hero-conteudo,
+  .app .hero-layout,
+  .app .hero-texto {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .app .hero-conteudo {
+    width: calc(100% - 32px);
+    padding: 28px 0 30px;
+  }
+
+  .app .hero-layout {
+    display: block;
+  }
+
+  .app .hero h1 {
+    width: 100%;
+    max-width: 100%;
+    font-size: clamp(27px, 7.2vw, 36px);
+    line-height: 1.12;
+    letter-spacing: -0.8px;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+  }
+
+  .app .hero h1 .hero-destaque {
+    overflow-wrap: anywhere;
+  }
+
+  .app .hero p {
+    width: 100%;
+    max-width: 100%;
+    font-size: 14px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+
+  .app .hero .barra-pesquisa {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 0;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    height: auto;
+    padding: 7px;
+    box-sizing: border-box;
+  }
+
+  .app .hero .barra-pesquisa > .icone-pesquisa {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 21px;
+  }
+
+  .app .hero .barra-pesquisa > input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    padding: 0 8px;
+    box-sizing: border-box;
+    font-size: 14px;
+  }
+
+  .app .hero .barra-pesquisa > button {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    margin-top: 5px;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border-radius: 7px;
+    white-space: normal;
+  }
+
+  .app .hero-beneficios {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    font-size: 11px;
+  }
+
+  .app .hero-beneficio {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .app .secao {
+    width: calc(100% - 32px);
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding-top: 38px;
+    padding-bottom: 38px;
+  }
+
+  .app .secao-cabecalho {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .app .secao-cabecalho h2 {
+    min-width: 0;
+    max-width: 100%;
+    font-size: clamp(22px, 6vw, 28px);
+    overflow-wrap: anywhere;
+  }
+
+  .app .link-secao {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .app .viewport-carrossel {
+    width: 100%;
+    margin: -16px 0 -22px;
+    padding: 20px 4px 28px;
+    box-sizing: border-box;
+  }
+
+  .app .lista-carrossel {
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .app .item-carrossel {
+    flex: 0 0 min(88%, 340px);
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .app .card-jogo {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .app .conteudo-card {
+    min-width: 0;
+    padding: 14px;
+    box-sizing: border-box;
+  }
+
+  .app .conteudo-card h3 {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .app .precos > div {
+    min-width: 0;
+    flex-wrap: wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .app .vitrine-brasil {
+    width: calc(100% - 32px);
+    max-width: 100%;
+    min-width: 0;
+    margin: 22px auto;
+    padding: 18px 14px 15px;
+    box-sizing: border-box;
+  }
+
+  .app .vitrine-brasil-cabecalho,
+  .app .vitrine-brasil-identidade,
+  .app .vitrine-brasil-painel,
+  .app .vitrine-brasil-rodape {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .app .vitrine-brasil-identidade {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .app .vitrine-brasil-eyebrow {
+    min-width: 0;
+    letter-spacing: 0.8px;
+    overflow-wrap: anywhere;
+  }
+
+  .app .vitrine-brasil-cabecalho h2 {
+    font-size: clamp(24px, 6.5vw, 30px);
+    letter-spacing: -0.7px;
+    overflow-wrap: anywhere;
+  }
+
+  .app .vitrine-brasil-cabecalho p {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .app .vitrine-brasil-painel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .app .vitrine-brasil-principal {
+    min-height: 245px;
+  }
+
+  .app .vitrine-brasil-conteudo {
+    min-width: 0;
+    padding: 18px;
+    box-sizing: border-box;
+  }
+
+  .app .vitrine-brasil-conteudo strong {
+    max-width: 100%;
+    font-size: clamp(23px, 6vw, 30px);
+    letter-spacing: -0.5px;
+    overflow-wrap: anywhere;
+  }
+
+  .app .vitrine-brasil-secundarios {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    min-height: 0;
+  }
+
+  .app .vitrine-brasil-secundario {
+    min-width: 0;
+    min-height: 128px;
+    padding: 14px;
+    box-sizing: border-box;
+  }
+
+  .app .vitrine-brasil-secundario strong {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .app .vitrine-brasil-selo {
+    max-width: calc(100% - 28px);
+    box-sizing: border-box;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .app .vitrine-brasil-rodape {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .app .vitrine-brasil-ver-todos {
+    max-width: 100%;
+    box-sizing: border-box;
+    white-space: normal;
+  }
+
+  .app .vitrine-brasil-navegacao {
+    align-self: flex-end;
+  }
+}
+
+@media (max-width: 420px) {
+  .app .hero-conteudo {
+    width: calc(100% - 28px);
+  }
+
+  .app .hero h1 {
+    font-size: clamp(26px, 7.5vw, 31px);
+    letter-spacing: -0.65px;
+  }
+
+  .app .hero-tag {
+    max-width: 100%;
+    font-size: 9px;
+    letter-spacing: 0.8px;
+    overflow-wrap: anywhere;
+  }
+
+  .app .vitrine-brasil {
+    width: calc(100% - 24px);
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .app .vitrine-brasil-principal {
+    min-height: 225px;
+  }
+
+  .app .vitrine-brasil-conteudo {
+    padding: 15px;
+  }
+
+  .app .vitrine-brasil-acao {
+    max-width: 100%;
+    flex-wrap: wrap;
+    box-sizing: border-box;
+  }
+
+  .app .item-carrossel {
+    flex-basis: 92%;
+  }
+}
+
+/* ============================================================
+   DESCTRL — REORGANIZAÇÃO DO RODAPÉ
+   Acrescentar ao final de App.css.
+   Usa a estrutura existente de Rodape.jsx; não altera a lógica.
+   ============================================================ */
+
+.app .footer-conteudo {
+  grid-template-columns:
+    minmax(240px, 1.55fr)
+    minmax(105px, 0.62fr)
+    minmax(130px, 0.82fr)
+    minmax(120px, 0.72fr)
+    minmax(190px, 1.05fr);
+  gap: 34px;
+  align-items: start;
+  padding: 42px 0 36px;
+}
+
+.app .footer-marca {
+  max-width: 360px;
+  min-width: 0;
+}
+
+.app .footer-logo {
+  margin-bottom: 2px;
+}
+
+.app .footer-slogan {
+  margin-top: 14px;
+  margin-bottom: 7px;
+}
+
+.app .footer-descricao {
+  max-width: 340px;
+  line-height: 1.6;
+}
+
+.app .footer-coluna {
+  min-width: 0;
+  gap: 10px;
+}
+
+.app .footer-coluna h3 {
+  margin-bottom: 5px;
+}
+
+.app .footer-lojas {
+  gap: 9px;
+}
+
+.app .footer-loja {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  gap: 10px;
+  padding: 0 10px;
+}
+
+.app .footer-loja > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.app .footer-base {
+  padding: 17px 0 20px;
+}
+
+@media (max-width: 1100px) {
+  .app .footer-conteudo {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 30px 24px;
+    padding: 38px 0 32px;
+  }
+
+  .app .footer-marca {
+    grid-column: 1 / -1;
+    max-width: 500px;
+  }
+
+  .app .footer-lojas {
+    grid-column: auto;
+  }
+
+  .app .footer-loja {
+    gap: 8px;
+    padding: 0 8px;
+  }
+
+  .app .footer-loja-icone,
+  .app .footer-loja-icone-epic {
+    flex-basis: 38px;
+    width: 38px;
+    height: 38px;
+  }
+}
+
+@media (max-width: 680px) {
+  .app .site-footer {
+    padding-right: 6vw;
+    padding-left: 6vw;
+  }
+
+  .app .footer-conteudo {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 27px 22px;
+    padding: 32px 0 27px;
+  }
+
+  .app .footer-marca {
+    grid-column: 1 / -1;
+    max-width: 440px;
+  }
+
+  .app .footer-slogan {
+    margin-top: 12px;
+    font-size: 14px;
+  }
+
+  .app .footer-descricao {
+    max-width: 420px;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .app .footer-coluna {
+    gap: 9px;
+  }
+}
+
+/* ============================================================
+   DETALHES DO JOGO — refinamento responsivo
+   ============================================================ */
+
+/* A capa continua protagonista; as informações ganham uma
+   hierarquia mais clara sem reduzir a área da arte. */
+.app .hero-detalhes {
+  min-height: 450px;
+  padding-top: 48px;
+  padding-bottom: 38px;
+}
+
+.app .informacoes-principais {
+  max-width: 760px;
+}
+
+.app .informacoes-principais h1 {
+  max-width: 900px;
+  margin-top: 9px;
+  margin-bottom: 10px;
+  font-size: clamp(36px, 4.6vw, 56px);
+}
+
+.app .metadados-detalhes {
+  margin-top: 18px;
+  gap: 8px 20px;
+}
+
+.app .menor-preco-detalhes {
+  margin-top: 20px;
+}
+
+.app .ofertas-link-detalhes {
+  padding: 11px 15px !important;
+  border: 1px solid color-mix(in srgb, var(--roxo-tema) 45%, transparent) !important;
+  border-radius: 10px;
+  background: color-mix(in srgb, #111116 72%, transparent) !important;
+  color: #c4b5fd;
+  font-weight: 750;
+  backdrop-filter: blur(8px);
+  transition: background .18s ease, transform .18s ease, border-color .18s ease;
+}
+
+.app .ofertas-link-detalhes:hover {
+  background: color-mix(in srgb, var(--roxo-tema) 22%, #111116) !important;
+  border-color: var(--roxo-tema) !important;
+  transform: translateY(-1px);
+}
+
+/* Duas lojas lado a lado em desktop e celular. */
+.app .cards-precos {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.app .card-preco {
+  min-height: 185px;
+  padding: 20px;
+}
+
+.app .card-preco-topo {
+  margin-bottom: 14px;
+}
+
+.app .preco-atual {
+  font-size: clamp(22px, 2.2vw, 29px);
+  overflow-wrap: anywhere;
+}
+
+.app .etiquetas-preco {
+  max-width: calc(100% - 20px);
+}
+
+/* Controles mais compactos e ação para ampliar a área de leitura. */
+.app .historico-detalhes > .titulo-secao-detalhes {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.app .botao-expandir-grafico {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--borda-tema);
+  border-radius: 9px;
+  background: var(--fundo-card);
+  color: var(--texto);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease, color .18s ease;
+}
+
+.app .botao-expandir-grafico:hover,
+.app .botao-expandir-grafico:focus-visible {
+  border-color: var(--roxo-tema);
+  color: var(--roxo-tema);
+  outline-offset: 3px;
+}
+
+.app .controles-historico {
+  gap: 12px 20px;
+  padding: 13px 15px;
+}
+
+.app .grafico-container {
+  min-width: 0;
+  padding: 18px 18px 12px;
+}
+
+.app .grafico-area {
+  min-height: 420px;
+}
+
+.app .grafico-svg {
+  height: 420px;
+}
+
+.app .grafico-container.grafico-expandido {
+  position: relative;
+  min-height: 76vh;
+  padding: 20px;
+  overflow: visible;
+  background: var(--fundo-card);
+  box-shadow: 0 12px 36px var(--sombra-tema);
+}
+
+.app .grafico-expandido .grafico-area {
+  flex: 1;
+  min-height: min(70vh, 760px);
+  overflow-x: auto;
+}
+
+.app .grafico-expandido .grafico-svg {
+  height: min(70vh, 760px);
+  min-height: 440px;
+}
+
+.app .grafico-expandido .grafico-tooltip {
+  z-index: 5;
+}
+
+/* Galeria preservada, com indicação explícita do gesto horizontal. */
+.app .dica-galeria-detalhes {
+  margin: 7px 0 0;
+  color: var(--texto-secundario);
+  font-size: 12px;
+}
+
+.app .miniaturas-galeria-detalhes {
+  max-width: 100%;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--borda-forte) transparent;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+}
+
+.app .miniaturas-galeria-detalhes > button {
+  flex-shrink: 0;
+}
+
+.app .miniaturas-galeria-detalhes img {
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Descrição com ritmo de leitura mais confortável. */
+.app .card-descricao {
+  min-width: 0;
+}
+
+.app .descricao-conteudo {
+  font-size: 15px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.app .descricao-conteudo p {
+  margin: 0 0 1em;
+  line-height: inherit;
+}
+
+.app .descricao-conteudo p:last-child {
+  margin-bottom: 0;
+}
+
+.app .descricao-conteudo h1,
+.app .descricao-conteudo h2,
+.app .descricao-conteudo h3 {
+  margin: 1.2em 0 .55em;
+  line-height: 1.3;
+}
+
+.app .descricao-conteudo ul,
+.app .descricao-conteudo ol {
+  padding-left: 1.4em;
+  margin: .7em 0 1em;
+}
+
+.app .descricao-conteudo li + li {
+  margin-top: .35em;
+}
+
+.app .descricao-conteudo img,
+.app .descricao-conteudo video {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
+@media (max-width: 800px) {
+  .app .hero-detalhes {
+    min-height: 470px;
+  }
+
+  .app .cards-precos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .app .card-preco {
+    min-height: 176px;
+    padding: 17px 14px;
+  }
+
+  .app .nome-plataforma {
+    font-size: 13px;
+  }
+
+  .app .preco-atual {
+    font-size: clamp(18px, 3.4vw, 25px);
+  }
+
+  .app .botao-loja {
+    padding: 10px 11px;
+    font-size: 12px;
+  }
+
+  .app .grafico-area {
+    min-height: 400px;
+  }
+
+  .app .grafico-svg {
+    height: 400px;
+  }
+}
+
+@media (max-width: 520px) {
+  .app .conteudo-detalhes {
+    width: calc(100% - 24px);
+    padding-top: 16px;
+    padding-bottom: 44px;
+  }
+
+  .app .hero-detalhes {
+    min-height: 500px;
+    padding: 28px 20px 92px;
+  }
+
+  .app .informacoes-principais h1 {
+    font-size: clamp(29px, 8vw, 36px);
+    line-height: 1.06;
+    letter-spacing: -1px;
+  }
+
+  .app .desenvolvedor-detalhes {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .app .metadados-detalhes {
+    gap: 7px;
+    margin-top: 14px;
+  }
+
+  .app .metadados-detalhes span {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .app .menor-preco-detalhes {
+    margin-top: 15px;
+    padding: 11px 13px;
+  }
+
+  .app .ofertas-link-detalhes {
+    right: 16px !important;
+    bottom: 16px !important;
+    min-height: 42px;
+    box-sizing: border-box;
+    font-size: 13px !important;
+  }
+
+  .app .precos-detalhes,
+  .app .historico-detalhes,
+  .app .descricoes-detalhes {
+    margin-top: 34px;
+  }
+
+  .app .titulo-secao-detalhes h2 {
+    font-size: 23px;
+  }
+
+  .app .cards-precos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .app .card-preco {
+    min-height: 166px;
+    padding: 16px 11px 12px;
+    border-radius: 12px;
+  }
+
+  .app .card-preco-topo {
+    min-height: 34px;
+    margin-bottom: 10px;
+    align-items: flex-start;
+  }
+
+  .app .nome-plataforma {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .app .preco-atual {
+    margin-bottom: 8px;
+    font-size: clamp(16px, 4.6vw, 22px);
+    letter-spacing: -.4px;
+  }
+
+  .app .preco-sem-desconto {
+    margin-bottom: 10px;
+    font-size: 12px;
+  }
+
+  .app .botao-loja {
+    width: 100%;
+    min-height: 38px;
+    box-sizing: border-box;
+    padding: 8px 5px;
+    font-size: 10px;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .app .etiquetas-preco {
+    top: -11px;
+    left: 5px;
+    gap: 3px;
+  }
+
+  .app .marcador-menor-preco,
+  .app .marcador-desconto {
+    min-height: 22px;
+    padding: 4px 6px;
+    font-size: 8px;
+  }
+
+  .app .historico-detalhes > .titulo-secao-detalhes {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .app .botao-expandir-grafico {
+    min-height: 42px;
+  }
+
+  .app .controles-historico {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .app .grupo-controle {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+    width: 100%;
+  }
+
+  .app .botoes-filtro {
+    gap: 5px;
+    width: 100%;
+  }
+
+  .app .botoes-filtro button {
+    min-height: 38px;
+    padding: 7px 9px;
+    font-size: 11px;
+  }
+
+  .app .grafico-container {
+    padding: 13px 10px 10px;
+  }
+
+  .app .grafico-area {
+    min-height: 360px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app .grafico-svg {
+    width: 100%;
+    min-width: 620px;
+    height: 360px;
+  }
+
+  .app .grafico-expandido {
+    min-height: 68vh;
+    padding: 12px !important;
+  }
+
+  .app .grafico-expandido .grafico-area {
+    min-height: 65vh;
+  }
+
+  .app .grafico-expandido .grafico-svg {
+    min-width: 760px;
+    height: 65vh;
+    min-height: 440px;
+  }
+
+  .app .grafico-expandido .grafico-tooltip {
+    display: block;
+    max-width: 180px;
+  }
+
+  .app .miniaturas-galeria-detalhes {
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    margin-top: 12px !important;
+    padding: 4px 2px 10px !important;
+    scroll-snap-type: x proximity;
+  }
+
+  .app .miniaturas-galeria-detalhes > button {
+    scroll-snap-align: start;
+  }
+
+  .app .dica-galeria-detalhes {
+    font-size: 11px;
+  }
+
+  .app .card-descricao {
+    padding: 17px !important;
+  }
+
+  .app .descricao-conteudo {
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
+  .app .grafico-expandido .grafico-legenda {
+    flex: 0 0 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app .ofertas-link-detalhes,
+  .app .botao-expandir-grafico,
+  .app .card-preco,
+  .app .card-preco-wrapper {
+    transition: none;
+  }
+}
+
+
+/* ============================================================
+   HISTÓRICO RESPONSIVO — proporção adaptativa no celular
+   A visualização compacta usa a largura disponível sem forçar
+   uma largura mínima que provoque rolagem horizontal.
+   ============================================================ */
+@media (max-width: 760px) {
+  .app .grafico-container:not(.grafico-expandido) .grafico-area {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    height: clamp(220px, 66vw, 285px);
+    overflow: hidden;
+  }
+
+  .app .grafico-container:not(.grafico-expandido) .grafico-svg {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .app .grafico-container:not(.grafico-expandido) {
+    padding: 12px 10px 10px;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 380px) {
+  .app .grafico-container:not(.grafico-expandido) .grafico-area {
+    height: 225px;
+  }
+}
+
+
+/* ============================================================
+   HISTÓRICO MOBILE — visualização em tela cheia
+   A camada inclui título, filtros e gráfico. A orientação
+   horizontal é solicitada pelo JavaScript quando suportada.
+   ============================================================ */
+@media (min-width: 761px) {
+  .app .botao-expandir-grafico {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .app .historico-detalhes.grafico-tela-cheia {
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+    box-sizing: border-box;
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    margin: 0;
+    padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+    overscroll-behavior: contain;
+    background: var(--fundo, #101014);
+    color: var(--texto, #f7f5fc);
+    border: 0;
+    border-radius: 0;
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia > .titulo-secao-detalhes {
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding-right: 48px;
+    min-height: 42px;
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia > .titulo-secao-detalhes h2 {
+    margin: 0;
+    font-size: clamp(17px, 3.2vw, 22px);
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia > .titulo-secao-detalhes p {
+    display: none;
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia .botao-expandir-grafico {
+    position: absolute;
+    top: max(10px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    min-height: 42px;
+    padding: 0;
+    border-radius: 12px;
+    background: var(--fundo-card, #191820);
+    box-shadow: 0 3px 14px rgba(0, 0, 0, .22);
+    font-size: 0;
+    white-space: nowrap;
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia .botao-expandir-grafico span {
+    display: block;
+    font-size: 30px;
+    font-weight: 400;
+    line-height: 1;
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia .controles-historico {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px 14px;
+    margin: 0;
+    padding: 8px 10px;
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia .grupo-controle {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    width: auto;
+    gap: 6px;
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia .grupo-controle > span {
+    font-size: 11px;
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia .botoes-filtro {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    width: auto;
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia .botoes-filtro button {
+    min-height: 32px;
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia .grafico-container {
+    flex: 1 1 0%;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    height: auto;
+    padding: 8px 10px;
+    overflow: hidden;
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia .grafico-legenda {
+    flex: 0 0 auto;
+    padding-bottom: 4px;
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia .grafico-area {
+    flex: 1 1 auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia .grafico-svg {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia .grafico-tooltip {
+    z-index: 10;
+  }
+}
+
+@media (max-width: 760px) and (orientation: landscape) {
+  .app .historico-detalhes.grafico-tela-cheia {
+    gap: 6px;
+    padding: max(6px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  }
+
+  .app .historico-detalhes.grafico-tela-cheia .controles-historico {
+    padding: 5px 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app .historico-detalhes.grafico-tela-cheia {
+    scroll-behavior: auto;
+  }
+}

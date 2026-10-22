@@ -23,6 +23,8 @@ const MOTIVOS_AUDITORIA = [
 
 const ITENS_POR_PAGINA_SENSIVEL = 50
 const ITENS_POR_PAGINA_LISTAS = 50
+const ITENS_POR_PAGINA_VITRINE = 50
+const ITENS_POR_PAGINA_FEEDBACK = 50
 
 function extrairPrioridade(observacao) {
   const texto = String(observacao || '')
@@ -235,6 +237,12 @@ function Curadoria() {
   const [totalPendentes, setTotalPendentes] = useState(0)
   const [totalPendentesFiltrados, setTotalPendentesFiltrados] = useState(0)
   const [paginaPendentes, setPaginaPendentes] = useState(1)
+  const [buscaPendentesTexto, setBuscaPendentesTexto] = useState('')
+  const [buscaPendentes, setBuscaPendentes] = useState('')
+  const [buscaAprovadosTexto, setBuscaAprovadosTexto] = useState('')
+  const [buscaAprovados, setBuscaAprovados] = useState('')
+  const [buscaExcluidosTexto, setBuscaExcluidosTexto] = useState('')
+  const [buscaExcluidos, setBuscaExcluidos] = useState('')
   const [totalItensStatus, setTotalItensStatus] = useState(0)
   const [totalAprovados, setTotalAprovados] = useState(0)
   const [totalExcluidos, setTotalExcluidos] = useState(0)
@@ -255,11 +263,15 @@ function Curadoria() {
   const [aba, setAba] = useState('pendentes')
   const [feedbackItens, setFeedbackItens] = useState([])
   const [feedbackTotal, setFeedbackTotal] = useState(0)
+  const [paginaFeedback, setPaginaFeedback] = useState(1)
   const [feedbackStatus, setFeedbackStatus] = useState('pendente')
   const [feedbackCarregando, setFeedbackCarregando] = useState(false)
   const [feedbackErro, setFeedbackErro] = useState('')
   const [feedbackAcaoId, setFeedbackAcaoId] = useState(null)
   const [itensVitrine, setItensVitrine] = useState([])
+  const [paginaVitrine, setPaginaVitrine] = useState(1)
+  const [filtroVitrine, setFiltroVitrine] = useState('')
+  const [termoVitrine, setTermoVitrine] = useState('')
   const [carregandoVitrine, setCarregandoVitrine] = useState(false)
   const [erroVitrine, setErroVitrine] = useState('')
   const [carregandoLista, setCarregandoLista] = useState(false)
@@ -400,6 +412,7 @@ function Curadoria() {
         page_size: String(ITENS_POR_PAGINA_LISTAS),
       })
       if (motivoFiltro) parametros.set('motivo', motivoFiltro)
+      if (buscaPendentes) parametros.set('q', buscaPendentes)
 
       const resposta = await fetch(
         `${API_BASE}/api/admin/curadoria/pendentes?${parametros.toString()}`,
@@ -450,7 +463,7 @@ function Curadoria() {
     } finally {
       if (sequencia === sequenciaPendentes.current) setCarregandoLista(false)
     }
-  }, [getHeaders, paginaPendentes, motivoFiltro])
+  }, [getHeaders, paginaPendentes, motivoFiltro, buscaPendentes])
 
   const carregarStatus = useCallback(async (statusFiltro) => {
     const sequencia = ++sequenciaStatus.current
@@ -463,6 +476,8 @@ function Curadoria() {
         page_size: String(ITENS_POR_PAGINA_LISTAS),
       })
       if (motivoFiltro) parametros.set('motivo', motivoFiltro)
+      const termoBuscaStatus = statusFiltro === 'aprovado' ? buscaAprovados : buscaExcluidos
+      if (termoBuscaStatus) parametros.set('q', termoBuscaStatus)
 
       const resposta = await fetch(
         `${API_BASE}/api/admin/curadoria/status/${statusFiltro}?${parametros.toString()}`,
@@ -504,7 +519,7 @@ function Curadoria() {
     } finally {
       if (sequencia === sequenciaStatus.current) setCarregandoStatus(false)
     }
-  }, [getHeaders, paginaStatus, motivoFiltro])
+  }, [getHeaders, paginaStatus, motivoFiltro, buscaAprovados, buscaExcluidos])
 
   const carregarConteudosSensiveis = useCallback(async () => {
     const sequencia = ++sequenciaConteudoSensivel.current
@@ -603,7 +618,7 @@ function Curadoria() {
     setFeedbackCarregando(true)
     setFeedbackErro('')
     try {
-      const parametros = new URLSearchParams({ status: feedbackStatus, page: '1', page_size: '100' })
+      const parametros = new URLSearchParams({ status: feedbackStatus, page: String(paginaFeedback), page_size: String(ITENS_POR_PAGINA_FEEDBACK) })
       const resposta = await fetch(`${API_BASE}/api/admin/feedback?${parametros.toString()}`, { headers: getHeaders() })
       const dados = await resposta.json().catch(() => ({}))
       if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível carregar os feedbacks.')
@@ -616,7 +631,7 @@ function Curadoria() {
     } finally {
       setFeedbackCarregando(false)
     }
-  }, [getHeaders, isAdmin, token, feedbackStatus])
+  }, [getHeaders, isAdmin, token, feedbackStatus, paginaFeedback])
 
   const atualizarStatusFeedback = async (item) => {
     setFeedbackAcaoId(item.id)
@@ -676,16 +691,22 @@ function Curadoria() {
     setCarregandoVitrine(true)
     setErroVitrine('')
     try {
-      const resposta = await fetch(`${API_BASE}/api/admin/curadoria/vitrine`, { headers: getHeaders() })
-      const dados = await resposta.json().catch(() => [])
+      const parametros = new URLSearchParams({ page: String(paginaVitrine), page_size: String(ITENS_POR_PAGINA_VITRINE) })
+      if (termoVitrine) parametros.set('q', termoVitrine)
+      const resposta = await fetch(`${API_BASE}/api/admin/curadoria/vitrine?${parametros.toString()}`, { headers: getHeaders() })
+      const dados = await resposta.json().catch(() => ({}))
       if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível carregar a vitrine.')
-      setItensVitrine(Array.isArray(dados) ? dados.filter(item => ['jogo_brasileiro', 'oportunidade'].includes(item.tipo)) : [])
+      const itens = Array.isArray(dados) ? dados.filter(item => ['jogo_brasileiro', 'oportunidade'].includes(item.tipo)) : (Array.isArray(dados.items) ? dados.items : [])
+      setItensVitrine(itens)
+      setTotalVitrine(Number(dados.total ?? itens.length))
+      const ultimaPagina = Math.max(1, Math.ceil(Number(dados.total ?? itens.length) / ITENS_POR_PAGINA_VITRINE))
+      if (paginaVitrine > ultimaPagina) setPaginaVitrine(ultimaPagina)
     } catch (error) {
       setErroVitrine(error.message || 'Falha ao carregar a vitrine.')
     } finally {
       setCarregandoVitrine(false)
     }
-  }, [getHeaders, isAdmin, token])
+  }, [getHeaders, isAdmin, token, paginaVitrine, termoVitrine])
 
   useEffect(() => {
     if (aba === 'vitrine' && isAdmin && token) carregarVitrine()
@@ -1261,38 +1282,61 @@ function Curadoria() {
           </div>
         </header>
 
-        <section className="curadoria-orientacao" aria-labelledby="curadoria-orientacao-titulo">
-          <div className="curadoria-orientacao-topo">
-            <h2 id="curadoria-orientacao-titulo">Como funciona a curadoria?</h2>
-            <p>Use as abas para revisar o catálogo, registrar decisões e escolher o que aparece na página inicial.</p>
-          </div>
+        <details className="curadoria-orientacao" aria-labelledby="curadoria-orientacao-titulo">
+          <summary className="curadoria-orientacao-cabecalho">
+            <span className="curadoria-orientacao-cabecalho-texto">
+              <strong id="curadoria-orientacao-titulo">Como funciona a curadoria?</strong>
+              <span>Use as abas para revisar o catálogo, registrar decisões e escolher o que aparece na página inicial.</span>
+            </span>
+            <span className="curadoria-orientacao-seta-principal" aria-hidden="true" />
+          </summary>
+          <div className="curadoria-orientacao-conteudo">
           <div className="curadoria-orientacao-lista">
-            <article className="curadoria-orientacao-item">
-              <h3>Aguardando análise</h3>
+            <details className="curadoria-orientacao-item">
+              <summary>
+                <span>Aguardando análise</span>
+                <span className="curadoria-orientacao-seta" aria-hidden="true" />
+              </summary>
               <p>Reúne jogos pendentes de avaliação. É possível revisar informações, aprovar ou excluir registros, individualmente ou em lote.</p>
-            </article>
-            <article className="curadoria-orientacao-item">
-              <h3>Conteúdo sensível</h3>
+            </details>
+            <details className="curadoria-orientacao-item">
+              <summary>
+                <span>Conteúdo sensível</span>
+                <span className="curadoria-orientacao-seta" aria-hidden="true" />
+              </summary>
               <p>Centraliza jogos sinalizados para uma análise específica de conteúdo sensível, ajudando a manter o catálogo adequado ao escopo do projeto.</p>
-            </article>
-            <article className="curadoria-orientacao-item">
-              <h3>Aprovados</h3>
+            </details>
+            <details className="curadoria-orientacao-item">
+              <summary>
+                <span>Aprovados</span>
+                <span className="curadoria-orientacao-seta" aria-hidden="true" />
+              </summary>
               <p>Permite consultar os jogos aprovados e acompanhar as decisões registradas durante a curadoria.</p>
-            </article>
-            <article className="curadoria-orientacao-item">
-              <h3>Excluídos</h3>
+            </details>
+            <details className="curadoria-orientacao-item">
+              <summary>
+                <span>Excluídos</span>
+                <span className="curadoria-orientacao-seta" aria-hidden="true" />
+              </summary>
               <p>Guarda os registros retirados do catálogo, com seus motivos, e permite consultar o histórico ou reabrir uma análise quando disponível.</p>
-            </article>
-            <article className="curadoria-orientacao-item">
-              <h3>Vitrine</h3>
+            </details>
+            <details className="curadoria-orientacao-item">
+              <summary>
+                <span>Vitrine</span>
+                <span className="curadoria-orientacao-seta" aria-hidden="true" />
+              </summary>
               <p>Define quais jogos aparecem nas seções “Brasil em jogo” e “Oportunidades de preço” da página inicial. Cada seção possui critérios próprios.</p>
-            </article>
-            <article className="curadoria-orientacao-item">
-              <h3>Feedback</h3>
+            </details>
+            <details className="curadoria-orientacao-item">
+              <summary>
+                <span>Feedback</span>
+                <span className="curadoria-orientacao-seta" aria-hidden="true" />
+              </summary>
               <p>Reúne sugestões enviadas pela comunidade. Abra a página de origem e marque como feito quando a melhoria for concluída; os registros ficam no histórico.</p>
-            </article>
+            </details>
           </div>
-        </section>
+          </div>
+        </details>
 
         {aba !== 'feedback' && <section className="curadoria-busca">
           <h2>{aba === 'feedback' ? 'Feedback da comunidade' : aba === 'vitrine' ? 'Pesquisar jogos para a Vitrine' : aba === 'sensivel' ? 'Adicionar conteúdo sensível' : 'Adicionar jogo para análise'}</h2>
@@ -1523,7 +1567,7 @@ function Curadoria() {
               </div>
               <label className="curadoria-feedback-filtro">
                 <span>Status</span>
-                <select value={feedbackStatus} onChange={(event) => setFeedbackStatus(event.target.value)}>
+                <select value={feedbackStatus} onChange={(event) => { setFeedbackStatus(event.target.value); setPaginaFeedback(1) }}>
                   <option value="pendente">Pendentes</option>
                   <option value="concluido">Concluídos</option>
                   <option value="todos">Todos</option>
@@ -1567,6 +1611,13 @@ function Curadoria() {
                     )
                   })}
                 </div>
+                <PaginacaoCuradoria
+                  total={feedbackTotal}
+                  pagina={paginaFeedback}
+                  tamanhoPagina={ITENS_POR_PAGINA_FEEDBACK}
+                  onMudarPagina={setPaginaFeedback}
+                  rotulo="Paginação dos feedbacks"
+                />
               </>
             )}
           </section>
@@ -1580,6 +1631,21 @@ function Curadoria() {
               <button type="button" onClick={carregarVitrine} disabled={carregandoVitrine}>
                 {carregandoVitrine ? 'Atualizando...' : 'Atualizar lista'}
               </button>
+            </div>
+            <div className="curadoria-vitrine-busca">
+              <label htmlFor="busca-vitrine-curadoria">Buscar na vitrine</label>
+              <input
+                id="busca-vitrine-curadoria"
+                type="search"
+                value={filtroVitrine}
+                placeholder="Nome do jogo ou desenvolvedor"
+                onChange={(event) => setFiltroVitrine(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') { setPaginaVitrine(1); setTermoVitrine(filtroVitrine.trim()) }
+                }}
+              />
+              <button type="button" onClick={() => { setPaginaVitrine(1); setTermoVitrine(filtroVitrine.trim()) }}>Buscar</button>
+              {termoVitrine && <button type="button" onClick={() => { setFiltroVitrine(''); setTermoVitrine(''); setPaginaVitrine(1) }}>Limpar</button>}
             </div>
             {erroVitrine && <div className="curadoria-erro" role="alert">{erroVitrine}</div>}
             {mensagem && <div className="curadoria-mensagem" role="status">{mensagem}</div>}
@@ -1624,6 +1690,15 @@ function Curadoria() {
                 ))}
               </div>
             )}
+            {!carregandoVitrine && itensVitrine.length > 0 && (
+              <PaginacaoCuradoria
+                total={totalVitrine}
+                pagina={paginaVitrine}
+                tamanhoPagina={ITENS_POR_PAGINA_VITRINE}
+                onMudarPagina={setPaginaVitrine}
+                rotulo="Paginação da vitrine"
+              />
+            )}
           </section>
         ) : (
         <>
@@ -1655,6 +1730,36 @@ function Curadoria() {
           </div>
         ) : (
           <div className={`curadoria-filtro-aba ${aba === 'excluidos' ? 'curadoria-filtro-excluidos' : ''}`}>
+            {aba === 'pendentes' && (
+              <form className="curadoria-busca-lista" onSubmit={(event) => { event.preventDefault(); setPaginaPendentes(1); setItensSelecionados(new Set()); setBuscaPendentes(buscaPendentesTexto.trim()) }}>
+                <label htmlFor="curadoria-busca-pendentes">Pesquisar na fila</label>
+                <div className="curadoria-busca-lista-controles">
+                  <input id="curadoria-busca-pendentes" value={buscaPendentesTexto} onChange={(event) => setBuscaPendentesTexto(event.target.value)} placeholder="Nome, ID da loja, estúdio..." maxLength={255} />
+                  <button type="submit">Pesquisar</button>
+                  {(buscaPendentes || buscaPendentesTexto) && <button type="button" className="curadoria-busca-limpar" onClick={() => { setBuscaPendentesTexto(''); setBuscaPendentes(''); setPaginaPendentes(1); setItensSelecionados(new Set()) }}>Limpar</button>}
+                </div>
+              </form>
+            )}
+            {aba === 'aprovados' && (
+              <form className="curadoria-busca-lista" onSubmit={(event) => { event.preventDefault(); setPaginaStatus(1); setBuscaAprovados(buscaAprovadosTexto.trim()) }}>
+                <label htmlFor="curadoria-busca-aprovados">Pesquisar aprovados</label>
+                <div className="curadoria-busca-lista-controles">
+                  <input id="curadoria-busca-aprovados" value={buscaAprovadosTexto} onChange={(event) => setBuscaAprovadosTexto(event.target.value)} placeholder="Nome, ID da loja, estúdio..." maxLength={255} />
+                  <button type="submit">Pesquisar</button>
+                  {(buscaAprovados || buscaAprovadosTexto) && <button type="button" className="curadoria-busca-limpar" onClick={() => { setBuscaAprovadosTexto(''); setBuscaAprovados(''); setPaginaStatus(1) }}>Limpar</button>}
+                </div>
+              </form>
+            )}
+            {aba === 'excluidos' && (
+              <form className="curadoria-busca-lista" onSubmit={(event) => { event.preventDefault(); setPaginaStatus(1); setBuscaExcluidos(buscaExcluidosTexto.trim()) }}>
+                <label htmlFor="curadoria-busca-excluidos">Pesquisar excluídos</label>
+                <div className="curadoria-busca-lista-controles">
+                  <input id="curadoria-busca-excluidos" value={buscaExcluidosTexto} onChange={(event) => setBuscaExcluidosTexto(event.target.value)} placeholder="Nome, ID da loja, estúdio..." maxLength={255} />
+                  <button type="submit">Pesquisar</button>
+                  {(buscaExcluidos || buscaExcluidosTexto) && <button type="button" className="curadoria-busca-limpar" onClick={() => { setBuscaExcluidosTexto(''); setBuscaExcluidos(''); setPaginaStatus(1) }}>Limpar</button>}
+                </div>
+              </form>
+            )}
             <div className="curadoria-filtro-motivo-grupo">
               <label htmlFor="curadoria-filtro-motivo">Filtrar por motivo</label>
               <select
@@ -1745,8 +1850,8 @@ function Curadoria() {
             ) : itensPendentesFiltrados.length === 0 ? (
               <div className="curadoria-vazio">
                 <span>✓</span>
-                <strong>{motivoFiltro ? 'Nenhum jogo encontrado com este motivo' : 'Nenhum jogo aguardando análise'}</strong>
-                <p>{motivoFiltro ? 'Tente selecionar outro motivo no filtro.' : 'A fila está limpa por enquanto.'}</p>
+                <strong>{(motivoFiltro || buscaPendentes) ? 'Nenhum jogo encontrado com os filtros atuais' : 'Nenhum jogo aguardando análise'}</strong>
+                <p>{(motivoFiltro || buscaPendentes) ? 'Ajuste a pesquisa ou selecione outro motivo.' : 'A fila está limpa por enquanto.'}</p>
               </div>
             ) : (
               <>
@@ -2065,8 +2170,8 @@ function Curadoria() {
             ) : itensStatusFiltrados.length === 0 ? (
               <div className="curadoria-vazio">
                 <span>✓</span>
-                <strong>{motivoFiltro ? 'Nenhum jogo encontrado com este motivo' : 'Nenhum jogo nesta lista'}</strong>
-                <p>{motivoFiltro ? 'Tente selecionar outro motivo no filtro.' : `Não há registros com status "${aba}" no momento.`}</p>
+                <strong>{(motivoFiltro || (aba === 'aprovados' ? buscaAprovados : buscaExcluidos)) ? 'Nenhum jogo encontrado com os filtros atuais' : 'Nenhum jogo nesta lista'}</strong>
+                <p>{(motivoFiltro || (aba === 'aprovados' ? buscaAprovados : buscaExcluidos)) ? 'Ajuste a pesquisa ou selecione outro motivo.' : `Não há registros com status "${aba}" no momento.`}</p>
               </div>
             ) : (
               <>

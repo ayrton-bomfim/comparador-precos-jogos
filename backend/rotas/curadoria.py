@@ -698,8 +698,9 @@ def listar_pendentes(
     page: int | None = Query(default=None, ge=1),
     page_size: int | None = Query(default=None, ge=1, le=100),
     motivo: str | None = Query(default=None, max_length=255),
+    q: str | None = Query(default=None, max_length=255),
 ):
-    """Lista jogos aguardando decisão; pagina no banco quando page/page_size são enviados."""
+    """Lista jogos aguardando decisão, com busca e paginação executadas no banco."""
     consulta = (
         db.query(AuditoriaConteudo)
         .join(Jogo)
@@ -711,12 +712,22 @@ def listar_pendentes(
             ),
         )
     )
-    total_consulta = consulta
-    total_geral = total_consulta.order_by(None).with_entities(func.count(AuditoriaConteudo.id)).scalar() or 0
+    total_geral = consulta.order_by(None).with_entities(func.count(AuditoriaConteudo.id)).scalar() or 0
     if motivo:
         consulta = consulta.filter(AuditoriaConteudo.motivo == motivo)
+    termo = (q or "").strip()
+    if termo:
+        termo_like = f"%{termo}%"
+        consulta = consulta.filter(or_(
+            Jogo.nome.ilike(termo_like),
+            Jogo.epic_id.ilike(termo_like),
+            cast(Jogo.steam_id, String).ilike(termo_like),
+            Jogo.desenvolvedor.ilike(termo_like),
+            Jogo.publicadora.ilike(termo_like),
+            AuditoriaConteudo.observacao.ilike(termo_like),
+        ))
 
-    paginacao_solicitada = page is not None or page_size is not None or bool(motivo)
+    paginacao_solicitada = page is not None or page_size is not None or bool(motivo) or bool(termo)
     if not paginacao_solicitada:
         registros = consulta.order_by(AuditoriaConteudo.criado_em.asc()).all()
         return [_serializar(item) for item in registros]
@@ -748,8 +759,9 @@ def listar_por_status(
     page: int | None = Query(default=None, ge=1),
     page_size: int | None = Query(default=None, ge=1, le=100),
     motivo: str | None = Query(default=None, max_length=255),
+    q: str | None = Query(default=None, max_length=255),
 ):
-    """Lista auditorias decididas; pagina e filtra por motivo no banco quando solicitado."""
+    """Lista auditorias decididas, com busca e paginação executadas no banco."""
     if status_filtro not in {"aprovado", "excluido"}:
         raise HTTPException(
             status_code=400,
@@ -763,8 +775,19 @@ def listar_por_status(
     )
     if motivo:
         consulta = consulta.filter(AuditoriaConteudo.motivo == motivo)
+    termo = (q or "").strip()
+    if termo:
+        termo_like = f"%{termo}%"
+        consulta = consulta.filter(or_(
+            Jogo.nome.ilike(termo_like),
+            Jogo.epic_id.ilike(termo_like),
+            cast(Jogo.steam_id, String).ilike(termo_like),
+            Jogo.desenvolvedor.ilike(termo_like),
+            Jogo.publicadora.ilike(termo_like),
+            AuditoriaConteudo.observacao.ilike(termo_like),
+        ))
 
-    paginacao_solicitada = page is not None or page_size is not None or bool(motivo)
+    paginacao_solicitada = page is not None or page_size is not None or bool(motivo) or bool(termo)
     ordenacao = (AuditoriaConteudo.decidido_em.desc(), AuditoriaConteudo.id.desc())
     if not paginacao_solicitada:
         registros = consulta.order_by(*ordenacao).all()
@@ -1235,18 +1258,43 @@ def _vitrine_item_dict(row):
 def listar_itens_vitrine(
     _: AdminDep,
     db: Session = Depends(get_db),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=100),
+    q: str | None = Query(default=None, max_length=200),
 ):
-    """Lista itens cadastrados para gerenciamento da vitrine."""
+    """Lista itens da vitrine com busca e paginação aplicadas no banco."""
     try:
-        rows = db.execute(text("""
+        filtros = "WHERE vi.tipo IN ('jogo_brasileiro', 'oportunidade')"
+        parametros: dict[str, object] = {}
+        termo = (q or '').strip()
+        if termo:
+            filtros += " AND (vi.nome ILIKE :termo OR j.nome ILIKE :termo OR j.desenvolvedor ILIKE :termo)"
+            parametros['termo'] = f"%{termo}%"
+
+        total = db.execute(text(f"""
+            SELECT COUNT(*)
+            FROM vitrine_itens vi
+            LEFT JOIN jogos j ON j.id = vi.jogo_id
+            {filtros}
+        """), parametros).scalar() or 0
+
+        consulta_parametros = {**parametros, 'limite': page_size, 'offset': (page - 1) * page_size}
+        rows = db.execute(text(f"""
             SELECT vi.id, vi.tipo, vi.nome, vi.jogo_id, j.nome AS jogo_nome,
                    j.desenvolvedor, COALESCE(j.url_imagem_epic, j.url_imagem_steam) AS imagem,
                    vi.prioridade, vi.ativo, vi.inicio_em, vi.fim_em, vi.criado_em
             FROM vitrine_itens vi
             LEFT JOIN jogos j ON j.id = vi.jogo_id
+            {filtros}
             ORDER BY vi.tipo ASC, vi.prioridade DESC, vi.id DESC
-        """)).mappings().all()
-        return [_vitrine_item_dict(row) for row in rows]
+            LIMIT :limite OFFSET :offset
+        """), consulta_parametros).mappings().all()
+        return {
+            'items': [_vitrine_item_dict(row) for row in rows],
+            'total': int(total),
+            'page': page,
+            'page_size': page_size,
+        }
     except Exception as exc:
         db.rollback()
         raise HTTPException(status_code=503, detail="Não foi possível consultar a tabela vitrine_itens.") from exc

@@ -307,7 +307,7 @@ function obterPeriodoEmDias(periodo) {
   return periodos[periodo]
 }
 
-function GraficoHistorico({ historico, plataforma, periodo }) {
+function GraficoHistorico({ historico, plataforma, periodo, expandido = false }) {
   const [pontoSelecionado, setPontoSelecionado] = useState(null)
   const [posicaoTooltip, setPosicaoTooltip] = useState(null)
   const [pontoFixado, setPontoFixado] = useState(null)
@@ -823,7 +823,7 @@ function GraficoHistorico({ historico, plataforma, periodo }) {
   }
 
   return (
-    <div className="grafico-container">
+    <div className={`grafico-container${expandido ? " grafico-expandido" : ""}`}>
       <div className="grafico-legenda">
         {(plataforma === 'ambas' ||
           plataforma === 'Steam') && (
@@ -1105,6 +1105,113 @@ function DetalhesJogo() {
 
   const [periodo, setPeriodo] =
     useState('3m')
+  const [graficoExpandido, setGraficoExpandido] = useState(false)
+  const graficoSecaoRef = useRef(null)
+
+  const alternarGraficoExpandido = async () => {
+    const secao = graficoSecaoRef.current
+    const estaExpandido = graficoExpandido
+
+    const liberarOrientacao = () => {
+      try {
+        if (typeof screen !== 'undefined' && screen.orientation?.unlock) {
+          screen.orientation.unlock()
+        }
+      } catch {
+        // A liberação é opcional e não deve impedir o fechamento do gráfico.
+      }
+    }
+
+    if (estaExpandido) {
+      // Fecha primeiro a camada visual para que o botão X sempre responda.
+      setGraficoExpandido(false)
+
+      if (document.fullscreenElement === secao) {
+        try {
+          await document.exitFullscreen()
+        } catch {
+          // A camada CSS também permite fechar quando fullscreen não está disponível.
+        }
+      }
+
+      liberarOrientacao()
+      return
+    }
+
+    // A visualização expandida funciona mesmo sem suporte a fullscreen/orientação.
+    setGraficoExpandido(true)
+
+    if (!window.matchMedia('(max-width: 760px)').matches || !secao) {
+      return
+    }
+
+    let fullscreenAtivado = false
+
+    try {
+      if (typeof secao.requestFullscreen === 'function') {
+        await secao.requestFullscreen()
+        fullscreenAtivado = document.fullscreenElement === secao
+      }
+    } catch {
+      // Alguns navegadores recusam fullscreen. Mantemos o modo expandido em CSS.
+    }
+
+    // Só tenta bloquear a orientação depois que fullscreen foi confirmado.
+    // Muitos navegadores desktop/emulados expõem lock(), mas não o suportam.
+    // Nesse caso, a exceção é opcional e não afeta o gráfico.
+    if (fullscreenAtivado) {
+      try {
+        if (
+          typeof screen !== 'undefined' &&
+          screen.orientation &&
+          typeof screen.orientation.lock === 'function'
+        ) {
+          await screen.orientation.lock('landscape')
+        }
+      } catch (erroOrientacao) {
+        // NotSupportedError e SecurityError são resultados esperados em alguns
+        // navegadores. Não relançar: o modo expandido continua utilizável.
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (!graficoExpandido) return undefined
+
+    const sincronizarFullscreen = () => {
+      if (document.fullscreenElement !== graficoSecaoRef.current) {
+        // Se o usuário sair do fullscreen pelo controle do navegador,
+        // recolhe também a camada alternativa.
+        setGraficoExpandido(false)
+        try {
+          if (screen.orientation?.unlock) screen.orientation.unlock()
+        } catch {
+          // Compatibilidade com navegadores sem Orientation API.
+        }
+      }
+    }
+
+    const fecharComEscape = (evento) => {
+      if (evento.key === 'Escape' && !document.fullscreenElement) {
+        setGraficoExpandido(false)
+        try {
+          if (typeof screen !== 'undefined' && screen.orientation?.unlock) {
+            screen.orientation.unlock()
+          }
+        } catch {
+          // O fechamento não depende do suporte à Orientation API.
+        }
+      }
+    }
+
+    document.addEventListener('fullscreenchange', sincronizarFullscreen)
+    document.addEventListener('keydown', fecharComEscape)
+
+    return () => {
+      document.removeEventListener('fullscreenchange', sincronizarFullscreen)
+      document.removeEventListener('keydown', fecharComEscape)
+    }
+  }, [graficoExpandido])
 
   useEffect(() => {
     const imagensGaleria = [
@@ -1674,7 +1781,7 @@ function DetalhesJogo() {
             </div>
           )}
 
-          <section className="historico-detalhes">
+          <section ref={graficoSecaoRef} className={`historico-detalhes${graficoExpandido ? " grafico-tela-cheia" : ""}`} aria-label="Histórico de preços">
             <div className="titulo-secao-detalhes">
               <div>
                 <span className="eyebrow">
@@ -1688,6 +1795,15 @@ function DetalhesJogo() {
                   mudou ao longo do tempo.
                 </p>
               </div>
+              <button
+                type="button"
+                className="botao-expandir-grafico"
+                onClick={alternarGraficoExpandido}
+                aria-expanded={graficoExpandido}
+                aria-label={graficoExpandido ? 'Fechar visualização ampliada' : 'Abrir gráfico em tela cheia'}
+              >
+                {graficoExpandido ? <span aria-hidden="true">×</span> : '⛶ Tela cheia'}
+              </button>
             </div>
 
             <div className="controles-historico">
@@ -1812,6 +1928,7 @@ function DetalhesJogo() {
               historico={historico}
               plataforma={plataforma}
               periodo={periodo}
+              expandido={graficoExpandido}
             />
           </section>
 
@@ -1844,6 +1961,7 @@ function DetalhesJogo() {
                   <div className="galeria-steam-detalhes">
                     <div className="titulo-secao-detalhes">
                       <h2>Imagens do jogo</h2>
+                      <p className="dica-galeria-detalhes">Deslize as miniaturas para explorar as imagens.</p>
                     </div>
 
                     <button
@@ -1880,6 +1998,8 @@ function DetalhesJogo() {
                     </button>
 
                     <div
+                      className="miniaturas-galeria-detalhes"
+                      aria-label="Galeria de imagens, deslize horizontalmente para ver mais"
                       style={{
                         display: 'flex',
                         justifyContent:
@@ -2018,7 +2138,7 @@ function DetalhesJogo() {
           )}
 
           {modalDenunciaAberto && (
-            <div role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setModalDenunciaAberto(false) }} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,.72)', display: 'grid', placeItems: 'center', padding: 16 }}>
+            <div role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setModalDenunciaAberto(false) }} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,.62)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'grid', placeItems: 'center', padding: 16 }}>
               <section role="dialog" aria-modal="true" aria-labelledby="titulo-denuncia-jogo" style={{ width: 'min(100%, 480px)', background: 'var(--fundo-card, #19191d)', color: 'var(--texto-principal, #f5f5f5)', border: '1px solid var(--borda, #38383e)', borderRadius: 16, padding: 24, boxShadow: '0 20px 70px #0008' }}>
                 <button type="button" onClick={() => setModalDenunciaAberto(false)} aria-label="Fechar" style={{ float: 'right', background: 'transparent', color: 'inherit', border: 0, fontSize: 22, cursor: 'pointer' }}>×</button>
                 <h2 id="titulo-denuncia-jogo" style={{ marginTop: 0 }}>Reportar jogo</h2>

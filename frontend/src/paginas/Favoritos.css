@@ -333,7 +333,42 @@
 .pagina-favoritos .favoritos-erro button { color:var(--fav-roxo-texto); }
 .app.tema-claro.pagina-favoritos .favorito-remover { background:rgba(255,255,255,.92); border-color:rgba(40,30,60,.12); color:#e75480; }
 .app.tema-escuro.pagina-favoritos .favorito-remover { background:linear-gradient(145deg,rgba(68,48,76,.97),rgba(36,29,45,.94)); color:#ff8fae; }
-@media(max-width:700px) { .pagina-favoritos .favoritos-resumo { grid-template-columns:1fr; gap:9px; } .pagina-favoritos .favoritos-resumo-card { padding:13px 15px; } .pagina-favoritos .favoritos-paginacao { align-items:flex-start; flex-direction:column; } .pagina-favoritos .favoritos-paginacao-controles { flex-wrap:wrap; } }
+@media(max-width:700px) {
+  .pagina-favoritos .favoritos-resumo {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .pagina-favoritos .favoritos-resumo-card {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 8px;
+    min-width: 0;
+    padding: 11px 9px;
+  }
+  .pagina-favoritos .favoritos-resumo-icone {
+    flex-basis: 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    font-size: 1.05rem;
+  }
+  .pagina-favoritos .favoritos-resumo-card strong {
+    font-size: 1.15rem;
+  }
+  .pagina-favoritos .favoritos-resumo-card div span {
+    font-size: .7rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+  .pagina-favoritos .favoritos-paginacao {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .pagina-favoritos .favoritos-paginacao-controles {
+    flex-wrap: wrap;
+  }
+}
 
 /* Restaura o tratamento de botões dos cards: detalhes neutro, Steam azul e Epic roxo. */
 .pagina-favoritos .favorito-acoes {
@@ -700,5 +735,348 @@
     max-height: 88vh;
     padding: 20px;
     overflow-y: auto;
+  }
+}
+
+
+/* Favoritos: barra de filtros inspirada no padrão do catálogo. */
+.pagina-favoritos .favoritos-ferramentas { display:flex; flex-direction:column; align-items:stretch; gap:12px; }
+.pagina-favoritos .favoritos-busca { flex:none; width:100%; box-sizing:border-box; }
+.pagina-favoritos .favoritos-atalho-filtros { display:flex; align-items:stretch; justify-content:space-between; gap:14px; }
+.pagina-favoritos .favoritos-resumo-filtros-ativos { flex:1; min-width:0; padding:14px 16px; border:1px solid var(--fav-borda); border-radius:12px; background:var(--fav-card); }
+.pagina-favoritos .favoritos-resumo-filtros-titulo { display:flex; align-items:center; gap:8px; margin-bottom:9px; color:var(--fav-texto); }
+.pagina-favoritos .favoritos-resumo-filtros-titulo > span { color:var(--fav-roxo-texto); font-size:1.1rem; }
+.pagina-favoritos .favoritos-etiquetas-filtros { display:flex; align-items:center; flex-wrap:wrap; gap:7px; }
+.pagina-favoritos .favoritos-etiqueta-filtro, .pagina-favoritos .favoritos-etiqueta-ordenacao { display:inline-flex; align-items:center; gap:6px; min-height:28px; padding:4px 9px; border:1px solid var(--fav-borda); border-radius:8px; background:var(--fav-card-sec); color:var(--fav-texto); font:inherit; font-size:.78rem; line-height:1.25; }
+.pagina-favoritos .favoritos-etiqueta-filtro { cursor:pointer; }
+.pagina-favoritos .favoritos-etiqueta-filtro:hover { border-color:var(--fav-roxo); }
+.pagina-favoritos .favoritos-etiqueta-filtro span { color:var(--fav-roxo-texto); font-size:1rem; }
+.pagina-favoritos .favoritos-etiqueta-ordenacao { color:var(--fav-roxo-texto); }
+.pagina-favoritos .favoritos-sem-restricao { color:var(--fav-secundario); font-size:.78rem; }
+.pagina-favoritos .favoritos-resumo-filtros-ativos > p { margin:9px 0 0; color:var(--fav-secundario); font-size:.8rem; line-height:1.45; }
+.pagina-favoritos .favoritos-botao-filtros { display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center; align-self:stretch; gap:8px; min-height:48px; padding:0 16px; border:1px solid var(--fav-borda); border-radius:10px; background:var(--fav-card); color:var(--fav-texto); font:inherit; font-weight:750; cursor:pointer; transition:border-color .18s ease, background-color .18s ease; }
+.pagina-favoritos .favoritos-botao-filtros:hover { border-color:var(--fav-roxo); background:var(--fav-roxo-claro); color:var(--fav-roxo-texto); }
+.pagina-favoritos .favoritos-controles-visualizacao { display:flex; align-items:center; justify-content:flex-end; gap:10px; }
+.pagina-favoritos .favoritos-controles-visualizacao > span { color:var(--fav-secundario); font-size:.8rem; }
+.pagina-favoritos .favoritos-camada-filtros { position:fixed; inset:0; z-index:10000; display:grid; place-items:center; padding:22px; overflow-y:auto; background:rgba(8,7,13,.68); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
+.pagina-favoritos .favoritos-painel-filtros { box-sizing:border-box; width:min(100%,560px); max-height:min(88vh,760px); overflow-y:auto; padding:24px; border:1px solid var(--fav-borda); border-radius:18px; background:var(--fav-card); color:var(--fav-texto); box-shadow:0 24px 80px rgba(0,0,0,.38); }
+.pagina-favoritos .favoritos-topo-filtros { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; padding-bottom:18px; border-bottom:1px solid var(--fav-borda); }
+.pagina-favoritos .favoritos-topo-filtros h2 { margin:6px 0; color:var(--fav-texto); font-size:1.4rem; }
+.pagina-favoritos .favoritos-topo-filtros p { margin:0; color:var(--fav-secundario); font-size:.9rem; line-height:1.5; }
+.pagina-favoritos .favoritos-topo-filtros > button { flex:0 0 38px; width:38px; height:38px; border:1px solid var(--fav-borda); border-radius:10px; background:var(--fav-card-sec); color:var(--fav-texto); font-size:1.5rem; cursor:pointer; }
+.pagina-favoritos .favoritos-conteudo-filtros { display:grid; gap:22px; padding:22px 0; }
+.pagina-favoritos .favoritos-grupo-filtros { display:flex; flex-wrap:wrap; gap:8px; min-width:0; margin:0; padding:0; border:0; }
+.pagina-favoritos .favoritos-grupo-filtros legend, .pagina-favoritos .favoritos-ordenacao-modal > span { display:block; width:100%; margin-bottom:10px; color:var(--fav-texto); font-weight:750; font-size:.9rem; }
+.pagina-favoritos .favoritos-grupo-filtros button { min-height:40px; padding:8px 12px; border:1px solid var(--fav-borda); border-radius:9px; background:var(--fav-card-sec); color:var(--fav-texto); font:inherit; font-size:.86rem; cursor:pointer; }
+.pagina-favoritos .favoritos-grupo-filtros button.selecionado { border-color:var(--fav-roxo); background:var(--fav-roxo-claro); color:var(--fav-roxo-texto); font-weight:750; }
+.pagina-favoritos .favoritos-ordenacao-modal { display:block; }
+.pagina-favoritos .favoritos-ordenacao-modal > span { margin-bottom:8px; }
+.pagina-favoritos .favoritos-ordenacao-modal select { box-sizing:border-box; width:100%; min-height:44px; padding:0 12px; border:1px solid var(--fav-borda); border-radius:9px; background:var(--fav-card-sec); color:var(--fav-texto); font:inherit; }
+.pagina-favoritos .favoritos-rodape-filtros { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:18px; border-top:1px solid var(--fav-borda); }
+.pagina-favoritos .favoritos-rodape-filtros button { min-height:42px; padding:0 15px; border:1px solid var(--fav-borda); border-radius:10px; font:inherit; font-size:.88rem; font-weight:750; cursor:pointer; }
+.pagina-favoritos .favoritos-limpar-filtros { background:var(--fav-card); color:var(--fav-texto); }
+.pagina-favoritos .favoritos-aplicar-filtros { border-color:var(--fav-roxo) !important; background:var(--fav-roxo); color:#fff; }
+@media (max-width:600px) {
+  .pagina-favoritos .favoritos-atalho-filtros { flex-direction:column; }
+  .pagina-favoritos .favoritos-botao-filtros { width:100%; min-height:46px; }
+  .pagina-favoritos .favoritos-controles-visualizacao { justify-content:space-between; }
+  .pagina-favoritos .favoritos-painel-filtros { padding:19px; }
+  .pagina-favoritos .favoritos-rodape-filtros { align-items:stretch; flex-direction:column-reverse; }
+  .pagina-favoritos .favoritos-rodape-filtros button { width:100%; }
+}
+
+
+
+
+/* Favoritos mobile (lista): capa na proporção real, card compacto e ações no topo, ao lado do coração.
+   Vale só até 600px: desktop e modo grade não são afetados. */
+@media (max-width: 600px) {
+  .pagina-favoritos .favoritos-resultados.modo-lista {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .pagina-favoritos .modo-lista .favorito-card {
+    --lista-capa: 124px;
+    display: grid;
+    grid-template-columns: var(--lista-capa) minmax(0, 1fr);
+    grid-template-areas:
+      "capa   acoes"
+      "capa   nome"
+      "capa   ident"
+      "precos precos";
+    column-gap: 10px;
+    row-gap: 6px;
+    align-items: start;
+    min-width: 0;
+    min-height: 0;
+    padding: 10px;
+  }
+
+  .pagina-favoritos .modo-lista .favorito-card:hover { transform: none; }
+
+  /* O wrapper deixa de existir no layout: nome, publicadora, preços e ações viram itens da grade do card. */
+  .pagina-favoritos .modo-lista .favorito-info { display: contents; }
+
+  /* Capa na proporção do header das lojas (460x215), sem letterbox. */
+  .pagina-favoritos .modo-lista .favorito-imagem {
+    grid-area: capa;
+    align-self: center;
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    margin: 0;
+    aspect-ratio: 460 / 215;
+    border-radius: 8px;
+  }
+
+  .pagina-favoritos .modo-lista .favorito-imagem img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Coração menor, no canto superior direito. */
+  .pagina-favoritos .modo-lista .favorito-remover {
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: .95rem;
+    line-height: 1;
+  }
+
+  /* Ações no topo, alinhadas à direita e ao lado do coração (padding-right reserva o espaço dele). */
+  .pagina-favoritos .modo-lista .favorito-acoes {
+    grid-area: acoes;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    min-width: 0;
+    min-height: 28px;
+    margin: 0;
+    padding-right: 34px;
+  }
+
+  /* Só o ícone aparece; o texto continua no DOM (leitores de tela) com font-size 0. */
+  .pagina-favoritos .modo-lista .favorito-acoes > * {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 28px;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    min-height: 28px;
+    padding: 0;
+    overflow: visible;
+    border-radius: 8px;
+    font-size: 0;
+    line-height: 1;
+  }
+
+  .pagina-favoritos .modo-lista .favorito-acoes .favorito-acao-icone { font-size: .9rem; }
+
+  /* Sem o texto "Alerta ativo", um pontinho indica que o sininho está ligado. */
+  .pagina-favoritos .modo-lista .favorito-acoes .favorito-acao-alerta.alerta-ativo::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--fav-roxo);
+    box-shadow: 0 0 0 2px var(--fav-card);
+  }
+
+  /* Nome: antes era escondido pela regra de "ícone" que pegava todo link do card. */
+  .pagina-favoritos .modo-lista .favorito-nome {
+    grid-area: nome;
+    display: -webkit-box;
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: .92rem;
+    line-height: 1.25;
+  }
+
+  .pagina-favoritos .modo-lista .favorito-identificacao {
+    grid-area: ident;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .pagina-favoritos .modo-lista .favorito-meta {
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+    font-size: .74rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pagina-favoritos .modo-lista .favorito-menor-preco {
+    gap: 4px;
+    margin-top: 4px;
+    font-size: .62rem;
+  }
+
+  .pagina-favoritos .modo-lista .favorito-menor-preco strong { font-size: .62rem; }
+
+  /* Preços em linha (loja + valor), largura total abaixo da capa e do título. */
+  .pagina-favoritos .modo-lista .favorito-precos {
+    grid-area: precos;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+
+  .pagina-favoritos .modo-lista .favorito-precos > div {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2px 6px;
+    min-width: 0;
+    padding: 5px 8px;
+  }
+
+  .pagina-favoritos .modo-lista .favorito-precos span { font-size: .66rem; line-height: 1.2; }
+  .pagina-favoritos .modo-lista .favorito-precos strong { font-size: .8rem; line-height: 1.2; }
+  .pagina-favoritos .modo-lista .favorito-precos small { font-size: .66rem; }
+}
+
+@media (max-width: 380px) {
+  .pagina-favoritos .modo-lista .favorito-card {
+    --lista-capa: 100px;
+    column-gap: 8px;
+    padding: 8px;
+  }
+
+  .pagina-favoritos .modo-lista .favorito-remover { top: 8px; right: 8px; }
+  .pagina-favoritos .modo-lista .favorito-nome { font-size: .86rem; }
+}
+
+
+/* Ícones padronizados das ações na lista mobile. */
+.pagina-favoritos .favorito-acao-icone {
+  display: inline-flex;
+  flex: 0 0 17px;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  font-size: 17px;
+  line-height: 1;
+}
+.pagina-favoritos .favorito-acao-icone svg { display:block; width:100%; height:100%; }
+.pagina-favoritos .favorito-acoes .favorito-acao-alerta,
+.pagina-favoritos .favorito-acoes .favorito-acao-detalhes,
+.pagina-favoritos .favorito-acoes .favorito-acao-loja {
+  cursor: pointer;
+}
+.pagina-favoritos .favorito-acoes .favorito-acao-steam .favorito-acao-logo-steam { color:#8ab4f8; }
+.pagina-favoritos .favorito-acoes .favorito-acao-epic .favorito-acao-logo-epic { color:var(--fav-texto); }
+
+@media (max-width: 600px) {
+  .pagina-favoritos .modo-lista .favorito-acoes .favorito-acao-icone {
+    display: inline-flex;
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+  }
+  .pagina-favoritos .modo-lista .favorito-acoes .favorito-acao-alerta,
+  .pagina-favoritos .modo-lista .favorito-acoes .favorito-acao-detalhes {
+    color:var(--fav-texto);
+  }
+  .pagina-favoritos .modo-lista .favorito-acoes .favorito-acao-steam {
+    color:#8ab4f8 !important;
+    border-color:color-mix(in srgb,#3b82f6 55%,var(--fav-borda)) !important;
+  }
+  .pagina-favoritos .modo-lista .favorito-acoes .favorito-acao-epic {
+    color:var(--fav-texto) !important;
+    border-color:color-mix(in srgb,#8b5cf6 55%,var(--fav-borda)) !important;
+  }
+}
+
+
+/* Ajuste fino: centralização dos ícones dentro dos botões compactos. */
+.pagina-favoritos .favorito-acoes .favorito-acao-alerta,
+.pagina-favoritos .favorito-acoes .favorito-acao-detalhes,
+.pagina-favoritos .favorito-acoes .favorito-acao-loja {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  text-align: center;
+  box-sizing: border-box;
+}
+.pagina-favoritos .favorito-acoes .favorito-acao-icone {
+  display: block;
+  flex: 0 0 17px;
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  padding: 0;
+  align-self: center;
+}
+.pagina-favoritos .favorito-acoes .favorito-acao-logo-steam,
+.pagina-favoritos .favorito-acoes .favorito-acao-logo-epic {
+  overflow: visible;
+}
+
+/* Sino amarelo e animação discreta enquanto o alerta está ativo. */
+.pagina-favoritos .favorito-acao-alerta .favorito-acao-icone {
+  color: #f5b82e;
+  transform-origin: 50% 12%;
+}
+.pagina-favoritos .favorito-acao-alerta.alerta-ativo .favorito-acao-icone {
+  color: #facc15;
+  animation: favoritos-sino-ativo 2.8s ease-in-out infinite;
+}
+@keyframes favoritos-sino-ativo {
+  0%, 82%, 100% { transform: rotate(0deg); }
+  84% { transform: rotate(13deg); }
+  86% { transform: rotate(-13deg); }
+  88% { transform: rotate(9deg); }
+  90% { transform: rotate(-7deg); }
+  92% { transform: rotate(0deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pagina-favoritos .favorito-acao-alerta.alerta-ativo .favorito-acao-icone {
+    animation: none;
+  }
+}
+
+/* Mantém os ícones centrados nos botões quadrados da lista mobile. */
+@media (max-width: 600px) {
+  .pagina-favoritos .modo-lista .favorito-acoes .favorito-acao-alerta,
+  .pagina-favoritos .modo-lista .favorito-acoes .favorito-acao-detalhes,
+  .pagina-favoritos .modo-lista .favorito-acoes .favorito-acao-loja {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+  }
+  .pagina-favoritos .modo-lista .favorito-acoes .favorito-acao-icone {
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+    margin: 0;
   }
 }

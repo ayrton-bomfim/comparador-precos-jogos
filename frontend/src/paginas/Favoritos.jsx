@@ -29,6 +29,7 @@ export default function Favoritos() {
   const [filtroPrecoHistorico, setFiltroPrecoHistorico] = useState('todos')
   const [ordenacao, setOrdenacao] = useState('recentes')
   const [visualizacao, setVisualizacao] = useState('grade')
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false)
   const [pagina, setPagina] = useState(1)
   const itensPorPagina = 12
   const [removendo, setRemovendo] = useState(null)
@@ -213,10 +214,83 @@ export default function Favoritos() {
         <div><strong>{totalMenorPrecoHistorico}</strong><span>No menor preço histórico</span></div>
       </article>
     </section>
-    <section className="favoritos-ferramentas" aria-label="Filtros dos favoritos"><label className="favoritos-busca"><span>⌕</span><input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar por jogo, desenvolvedora ou publicadora…" /></label><select aria-label="Filtrar por loja" value={loja} onChange={e => setLoja(e.target.value)}><option value="todas">Todas as lojas</option><option value="steam">Steam</option><option value="epic">Epic Games Store</option></select><select aria-label="Filtrar por condição de preço" value={filtroPrecoHistorico} onChange={e => setFiltroPrecoHistorico(e.target.value)}><option value="todos">Todos os favoritos</option><option value="menor-preco-historico">Menor preço histórico</option></select><select aria-label="Ordenar favoritos" value={ordenacao} onChange={e => setOrdenacao(e.target.value)}><option value="recentes">Adicionados recentemente</option><option value="nome">Nome: A a Z</option><option value="menor-preco">Menor preço disponível</option><option value="maior-desconto">Maior desconto</option></select><div className="favoritos-visualizacao"><button className={visualizacao === 'grade' ? 'ativo' : ''} onClick={() => setVisualizacao('grade')} aria-label="Visualização em grade" title="Grade">▦</button><button className={visualizacao === 'lista' ? 'ativo' : ''} onClick={() => setVisualizacao('lista')} aria-label="Visualização em lista" title="Lista">☷</button></div></section>
-    {erro && <div className="favoritos-erro" role="alert">{erro} <button onClick={carregar}>Tentar novamente</button></div>}
+    <section className="favoritos-ferramentas" aria-label="Busca e filtros dos favoritos">
+       <label className="favoritos-busca">
+         <span aria-hidden="true">⌕</span>
+         <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar por jogo, desenvolvedora ou publicadora…" aria-label="Buscar nos favoritos" />
+       </label>
+       <div className="favoritos-atalho-filtros">
+         <div className="favoritos-resumo-filtros-ativos" aria-live="polite">
+           <div className="favoritos-resumo-filtros-titulo"><span aria-hidden="true">☷</span><strong>Filtros ativos</strong></div>
+           <div className="favoritos-etiquetas-filtros">
+             {loja !== 'todas' && <button type="button" className="favoritos-etiqueta-filtro" onClick={() => setLoja('todas')} title="Remover filtro de loja">{loja === 'steam' ? 'Steam' : 'Epic Games Store'} <span aria-hidden="true">×</span></button>}
+             {filtroPrecoHistorico === 'menor-preco-historico' && <button type="button" className="favoritos-etiqueta-filtro" onClick={() => setFiltroPrecoHistorico('todos')} title="Remover filtro de preço">Menor preço histórico <span aria-hidden="true">×</span></button>}
+             <span className="favoritos-etiqueta-ordenacao"><span aria-hidden="true">↕</span>{ordenacao === 'recentes' ? 'Adicionados recentemente' : ordenacao === 'nome' ? 'Nome: A a Z' : ordenacao === 'menor-preco' ? 'Menor preço disponível' : 'Maior desconto'}</span>
+             {loja === 'todas' && filtroPrecoHistorico === 'todos' && <span className="favoritos-sem-restricao">Sem filtros adicionais</span>}
+           </div>
+           <p>{loja === 'steam' ? 'Exibindo favoritos disponíveis na Steam.' : loja === 'epic' ? 'Exibindo favoritos disponíveis na Epic Games Store.' : 'A busca considera seus jogos favoritos.'}{filtroPrecoHistorico === 'menor-preco-historico' ? ' Apenas jogos no menor preço histórico.' : ''}</p>
+         </div>
+         <button type="button" className="favoritos-botao-filtros" onClick={() => setFiltrosAbertos(true)} aria-haspopup="dialog" aria-expanded={filtrosAbertos}><span aria-hidden="true">⚙</span> Filtros e ordenação</button>
+       </div>
+       <div className="favoritos-controles-visualizacao" aria-label="Modo de visualização">
+         <span>Visualização</span>
+         <div className="favoritos-visualizacao">
+           <button type="button" className={visualizacao === 'grade' ? 'ativo' : ''} onClick={() => setVisualizacao('grade')} aria-label="Visualização em grade" aria-pressed={visualizacao === 'grade'} title="Grade">▦</button>
+           <button type="button" className={visualizacao === 'lista' ? 'ativo' : ''} onClick={() => setVisualizacao('lista')} aria-label="Visualização em lista" aria-pressed={visualizacao === 'lista'} title="Lista">☷</button>
+         </div>
+       </div>
+     </section>
+
+     {filtrosAbertos && (
+       <div className="favoritos-camada-filtros" onMouseDown={evento => { if (evento.target === evento.currentTarget) setFiltrosAbertos(false) }}>
+         <section className="favoritos-painel-filtros" role="dialog" aria-modal="true" aria-labelledby="favoritos-titulo-filtros">
+           <header className="favoritos-topo-filtros">
+             <div><span className="favoritos-eyebrow">PERSONALIZE SUA COLEÇÃO</span><h2 id="favoritos-titulo-filtros">Filtros e ordenação</h2><p>Escolha quais jogos deseja acompanhar e como organizá-los.</p></div>
+             <button type="button" onClick={() => setFiltrosAbertos(false)} aria-label="Fechar filtros">×</button>
+           </header>
+           <div className="favoritos-conteudo-filtros">
+             <fieldset className="favoritos-grupo-filtros">
+               <legend>Filtrar por loja</legend>
+               { [['todas', 'Todas as lojas'], ['steam', 'Steam'], ['epic', 'Epic Games Store']].map(([valor, texto]) => <button key={valor} type="button" className={loja === valor ? 'selecionado' : ''} aria-pressed={loja === valor} onClick={() => setLoja(valor)}>{texto}</button>)}
+             </fieldset>
+             <fieldset className="favoritos-grupo-filtros">
+               <legend>Condição de preço</legend>
+               { [['todos', 'Todos os favoritos'], ['menor-preco-historico', 'Menor preço histórico']].map(([valor, texto]) => <button key={valor} type="button" className={filtroPrecoHistorico === valor ? 'selecionado' : ''} aria-pressed={filtroPrecoHistorico === valor} onClick={() => setFiltroPrecoHistorico(valor)}>{texto}</button>)}
+             </fieldset>
+             <label className="favoritos-ordenacao-modal"><span>Ordenar por</span>
+               <select aria-label="Ordenar favoritos" value={ordenacao} onChange={e => setOrdenacao(e.target.value)}>
+                 <option value="recentes">Adicionados recentemente</option><option value="nome">Nome: A a Z</option><option value="menor-preco">Menor preço disponível</option><option value="maior-desconto">Maior desconto</option>
+               </select>
+             </label>
+           </div>
+           <footer className="favoritos-rodape-filtros">
+             <button type="button" className="favoritos-limpar-filtros" onClick={() => { setLoja('todas'); setFiltroPrecoHistorico('todos'); setOrdenacao('recentes') }}>Restaurar padrão</button>
+             <button type="button" className="favoritos-aplicar-filtros" onClick={() => setFiltrosAbertos(false)}>Ver resultados</button>
+           </footer>
+         </section>
+       </div>
+     )}
+
+     {erro && <div className="favoritos-erro" role="alert">{erro} <button onClick={carregar}>Tentar novamente</button></div>}
     {favoritos.length === 0 && !erro ? <section className="favoritos-vazio"><div className="favoritos-vazio-icone">♡</div><h2>Sua coleção começa aqui</h2><p>Encontre um jogo de que goste e toque no coração para guardá-lo aqui. Depois fica fácil comparar os preços das lojas.</p><Link to="/jogos" className="favoritos-botao-principal">Explorar catálogo</Link></section> : filtrados.length === 0 && !erro ? <section className="favoritos-vazio compacto"><h2>Nenhum jogo encontrado</h2><p>Tente mudar a busca ou os filtros.</p><button onClick={() => {setBusca('');setLoja('todas');setFiltroPrecoHistorico('todos')}}>Limpar filtros</button></section> : <>{renderPaginacao('topo')}<section className={`favoritos-resultados ${visualizacao === 'lista' ? 'modo-lista' : 'modo-grade'}`}>
-      {jogosDaPagina.map(j => <article className="favorito-card" key={j.id}><button className="favorito-remover" onClick={() => remover(j)} disabled={removendo !== null} aria-label={`Remover ${j.nome} dos favoritos`} title="Remover dos favoritos">{removendo === j.id ? '…' : '♥'}</button><Link className="favorito-imagem" to={`/jogos/${j.id}`}><img src={j.imagem || ''} alt={`Capa de ${j.nome}`} loading="lazy" onError={e => {e.currentTarget.style.visibility='hidden'}} /></Link><div className="favorito-info"><Link to={`/jogos/${j.id}`} className="favorito-nome">{j.nome}</Link><div className="favorito-identificacao"><p className="favorito-meta">{j.publicadora || j.desenvolvedor || 'Publicadora não informada'}</p>{(j.no_menor_preco_historico_steam || j.no_menor_preco_historico_epic) && <div className="favorito-menor-preco"><strong>Menor preço histórico</strong>{j.no_menor_preco_historico_steam && <span className="selo-menor-preco selo-steam">Steam</span>}{j.no_menor_preco_historico_epic && <span className="selo-menor-preco selo-epic">Epic</span>}</div>}</div><div className="favorito-precos"><div><span>Steam</span><strong>{j.steam_id ? dinheiro(j.preco_steam) : 'Indisponível'}</strong>{j.desconto_steam > 0 && <small>-{j.desconto_steam}%</small>}</div><div><span>Epic Games</span><strong>{j.epic_id && j.epic_id !== 'EXCLUSIVO_STEAM' ? dinheiro(j.preco_epic) : 'Indisponível'}</strong>{j.desconto_epic > 0 && <small>-{j.desconto_epic}%</small>}</div></div><div className="favorito-acoes"><button type="button" className={`favorito-acao-alerta ${alertasPreco[j.id]?.ativo ? "alerta-ativo" : ""}`} onClick={() => abrirConfiguracaoAlerta(j)} aria-label={`Configurar alerta de preço para ${j.nome}`} title="Configurar alerta de preço"><span className="favorito-acao-icone" aria-hidden="true">🔔</span>{alertasPreco[j.id]?.ativo ? "Alerta ativo" : "Alerta de preço"}</button><Link className="favorito-acao-detalhes" to={`/jogos/${j.id}`}><span className="favorito-acao-icone" aria-hidden="true">⌕</span>Ver detalhes</Link>{j.url_steam && <a className="favorito-acao-loja favorito-acao-steam" href={j.url_steam} target="_blank" rel="noreferrer"><span className="favorito-acao-icone" aria-hidden="true">↗</span>Steam</a>}{j.url_epic && <a className="favorito-acao-loja favorito-acao-epic" href={j.url_epic} target="_blank" rel="noreferrer"><span className="favorito-acao-icone" aria-hidden="true">↗</span>Epic</a>}</div></div></article>)}
+      {jogosDaPagina.map(j => <article className="favorito-card" key={j.id}><button className="favorito-remover" onClick={() => remover(j)} disabled={removendo !== null} aria-label={`Remover ${j.nome} dos favoritos`} title="Remover dos favoritos">{removendo === j.id ? '…' : '♥'}</button><Link className="favorito-imagem" to={`/jogos/${j.id}`}><img src={j.imagem || ''} alt={`Capa de ${j.nome}`} loading="lazy" onError={e => {e.currentTarget.style.visibility='hidden'}} /></Link><div className="favorito-info"><Link to={`/jogos/${j.id}`} className="favorito-nome">{j.nome}</Link><div className="favorito-identificacao"><p className="favorito-meta">{j.publicadora || j.desenvolvedor || 'Publicadora não informada'}</p>{(j.no_menor_preco_historico_steam || j.no_menor_preco_historico_epic) && <div className="favorito-menor-preco"><strong>Menor preço histórico</strong>{j.no_menor_preco_historico_steam && <span className="selo-menor-preco selo-steam">Steam</span>}{j.no_menor_preco_historico_epic && <span className="selo-menor-preco selo-epic">Epic</span>}</div>}</div><div className="favorito-precos"><div><span>Steam</span><strong>{j.steam_id ? dinheiro(j.preco_steam) : 'Indisponível'}</strong>{j.desconto_steam > 0 && <small>-{j.desconto_steam}%</small>}</div><div><span>Epic Games</span><strong>{j.epic_id && j.epic_id !== 'EXCLUSIVO_STEAM' ? dinheiro(j.preco_epic) : 'Indisponível'}</strong>{j.desconto_epic > 0 && <small>-{j.desconto_epic}%</small>}</div></div><div className="favorito-acoes">
+          <button type="button" className={`favorito-acao-alerta ${alertasPreco[j.id]?.ativo ? "alerta-ativo" : ""}`} onClick={() => abrirConfiguracaoAlerta(j)} aria-label={`Configurar alerta de preço para ${j.nome}`} title="Configurar alerta de preço">
+            <svg className="favorito-acao-icone" aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M10 21h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+            {alertasPreco[j.id]?.ativo ? "Alerta ativo" : "Alerta de preço"}
+          </button>
+          <Link className="favorito-acao-detalhes" to={`/jogos/${j.id}`} aria-label={`Ver detalhes de ${j.nome}`} title="Ver detalhes">
+            <svg className="favorito-acao-icone" aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M10.5 18a7.5 7.5 0 1 1 5.3-2.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><path d="m16 16 5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+            Ver detalhes
+          </Link>
+          {j.url_steam && <a className="favorito-acao-loja favorito-acao-steam" href={j.url_steam} target="_blank" rel="noreferrer" aria-label={`Abrir ${j.nome} na Steam`} title="Abrir na Steam">
+            <svg className="favorito-acao-icone favorito-acao-logo-steam" aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="15.7" cy="7.1" r="4.2" stroke="currentColor" strokeWidth="1.8"/><circle cx="7.1" cy="16.7" r="3.1" stroke="currentColor" strokeWidth="1.8"/><circle cx="15.7" cy="7.1" r="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="m9.8 15.1 3.3-2.2M9.3 18.4l3.5 1.4a4.2 4.2 0 0 0 5.4-2.6l1.1-3.1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Steam
+          </a>}
+          {j.url_epic && <a className="favorito-acao-loja favorito-acao-epic" href={j.url_epic} target="_blank" rel="noreferrer" aria-label={`Abrir ${j.nome} na Epic Games Store`} title="Abrir na Epic Games Store">
+            <svg className="favorito-acao-icone favorito-acao-logo-epic" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 3.5h14v17H5z" fill="currentColor"/><path d="M8 7h8v2H10v2h5.5v2H10v2h6v2H8z" fill="var(--fav-card)"/></svg>
+            Epic
+          </a>}
+        </div></div></article>)}
     </section>{renderPaginacao('baixo')}</>}
     <p className="favoritos-contagem">Mostrando {filtrados.length} de {favoritos.length} {favoritos.length === 1 ? 'jogo salvo' : 'jogos salvos'}</p>
     {jogoConfigurandoAlerta && rascunhoAlerta && (

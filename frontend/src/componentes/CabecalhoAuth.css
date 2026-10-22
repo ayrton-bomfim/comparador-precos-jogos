@@ -397,3 +397,293 @@
 @media (prefers-reduced-motion: reduce) {
   .desctrl-menu-visitante .desctrl-visitante-criar { transition: none; }
 }
+
+
+/* ============================================================
+   PESQUISA GLOBAL DO CABEÇALHO
+   Desktop: botão de lupa. A pesquisa abre em um painel flutuante.
+   Mobile: mantém a lupa compacta ao lado dos controles.
+   ============================================================ */
+.cabecalho {
+  position: relative;
+}
+
+.botao-busca-cabecalho {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--texto);
+  cursor: pointer;
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease;
+}
+
+.botao-busca-cabecalho svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.botao-busca-cabecalho:hover,
+.botao-busca-cabecalho:focus-visible,
+.botao-busca-cabecalho.ativo {
+  border-color: color-mix(in srgb, var(--roxo-tema) 38%, var(--borda-tema));
+  background: color-mix(in srgb, var(--roxo-tema) 13%, var(--fundo-card));
+  color: var(--roxo-tema);
+  outline: none;
+}
+
+/* Escurece e desfoca a página inteira atrás da pesquisa, em desktop e mobile. */
+.cabecalho-busca-camada {
+  position: fixed;
+  inset: 0;
+  z-index: 11990;
+  background: rgba(7, 6, 12, .58);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: cabecalho-busca-fundo .16s ease-out;
+}
+
+@keyframes cabecalho-busca-fundo {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.cabecalho-busca {
+  position: absolute;
+  z-index: 12000;
+  top: calc(100% + 10px);
+  right: 14px;
+  width: min(460px, calc(100vw - 28px));
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid var(--borda-tema);
+  border-radius: 16px;
+  background: var(--fundo-card);
+  color: var(--texto);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--sombra-tema) 82%, transparent);
+  animation: cabecalho-busca-entrada .16s ease-out;
+}
+
+@keyframes cabecalho-busca-entrada {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cabecalho-busca-formulario {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 5px 6px 5px 12px;
+  border: 1px solid color-mix(in srgb, var(--roxo-tema) 35%, var(--borda-tema));
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--fundo-card) 92%, var(--roxo-tema));
+}
+
+.cabecalho-busca-formulario > svg {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--roxo-tema);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cabecalho-busca-formulario input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  font-size: 15px;
+}
+
+.cabecalho-busca-formulario input::placeholder {
+  color: var(--texto-suave);
+  opacity: .9;
+}
+
+.cabecalho-busca-formulario input::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
+.cabecalho-busca-formulario > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--roxo-tema);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.cabecalho-busca-formulario > button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cabecalho-busca-sugestoes {
+  display: grid;
+  gap: 3px;
+  max-height: min(390px, 55vh);
+  overflow-y: auto;
+  margin-top: 8px;
+}
+
+.cabecalho-busca-sugestao {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-height: 58px;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--texto);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.cabecalho-busca-sugestao:hover,
+.cabecalho-busca-sugestao:focus-visible {
+  border-color: color-mix(in srgb, var(--roxo-tema) 25%, transparent);
+  background: color-mix(in srgb, var(--roxo-tema) 10%, var(--fundo-card));
+  outline: none;
+}
+
+.cabecalho-busca-sugestao img,
+.cabecalho-busca-imagem-vazia {
+  display: grid;
+  place-items: center;
+  flex: 0 0 76px;
+  width: 76px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--roxo-tema) 12%, var(--fundo-card));
+}
+
+.cabecalho-busca-imagem-vazia svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: var(--roxo-tema);
+  stroke-width: 1.5;
+}
+
+.cabecalho-busca-sugestao > span:not(.cabecalho-busca-imagem-vazia) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cabecalho-busca-seta {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--texto-suave);
+  stroke-width: 1.8;
+}
+
+.cabecalho-busca-sem-resultados {
+  padding: 16px 10px;
+  color: var(--texto-suave);
+  font-size: 13px;
+  text-align: center;
+}
+
+.cabecalho-busca-rodape {
+  padding: 9px 4px 1px;
+  color: var(--texto-suave);
+  font-size: 11px;
+  text-align: right;
+}
+
+@media (max-width: 620px) {
+  .app .acoes-cabecalho {
+    gap: 7px;
+  }
+
+  .app .botao-busca-cabecalho {
+    flex-basis: 40px;
+    width: 40px;
+    height: 40px;
+    border-color: var(--borda-tema);
+    background: var(--fundo-card);
+  }
+
+  .app .cabecalho-busca {
+    position: fixed;
+    top: calc(var(--altura-cabecalho, 72px) + env(safe-area-inset-top) + 8px);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+
+  .app .cabecalho-busca-formulario {
+    min-height: 50px;
+  }
+
+  .app .cabecalho-busca-formulario input {
+    font-size: 16px;
+  }
+
+  .app .cabecalho-busca-sugestao {
+    min-height: 60px;
+  }
+
+  .app .cabecalho-busca-rodape {
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cabecalho-busca,
+  .botao-busca-cabecalho {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cabecalho-busca-camada,
+  .cabecalho-busca { animation: none; }
+}

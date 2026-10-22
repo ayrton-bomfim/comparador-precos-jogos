@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import './App.css'
+import './mobile-touch.css'
 
 import Inicio from './paginas/Inicio'
 import Jogos from './paginas/Jogos'

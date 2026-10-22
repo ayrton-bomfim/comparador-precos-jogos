@@ -325,7 +325,11 @@
   .pagina-perfil .perfil-favorito-detalhes{ margin: 0 6px 6px; font-size: 10px; }
   .pagina-perfil .perfil-painel-grafico-cabecalho{ align-items: flex-start; flex-direction: column; }
   .pagina-perfil .perfil-grafico-status{ justify-items: start; text-align: left; }
-  .pagina-perfil .perfil-grafico-resumo{ grid-template-columns: 1fr; }
+  .pagina-perfil .perfil-grafico-resumo{ grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .pagina-perfil .perfil-grafico-resumo>div{ gap: 5px; padding: 9px 7px; min-width: 0; }
+  .pagina-perfil .perfil-grafico-resumo span, .pagina-perfil .perfil-grafico-resumo>div>span{ font-size: 9px; line-height: 1.3; overflow-wrap: anywhere; }
+  .pagina-perfil .perfil-grafico-resumo strong{ font-size: clamp(11px, 2.8vw, 15px); line-height: 1.25; overflow-wrap: anywhere; }
+  .pagina-perfil .perfil-grafico-resumo small{ font-size: 8px; line-height: 1.3; }
   .pagina-perfil .perfil-modal-overlay{ align-items: flex-start; padding: 12px; }
   .pagina-perfil .perfil-modal-personalizacao{ max-height: calc(100vh - 24px); }
   .pagina-perfil .perfil-modal-cabecalho, .pagina-perfil .perfil-modal-categorias{ padding-left: 16px; padding-right: 16px; }
@@ -747,4 +751,375 @@
 .pagina-perfil .perfil-recomendacao-vazio strong{font-size:14px;}
 .pagina-perfil .perfil-recomendacao-vazio p{margin:0 0 5px;color:var(--texto-secundario);font-size:12px;line-height:1.5;}
 .pagina-perfil .perfil-recomendacao-erro{margin:12px 0 0;padding:11px 13px;border:1px solid #d65b66;border-radius:9px;color:var(--texto);font-size:12px;line-height:1.5;overflow-wrap:anywhere;}
-@media(max-width:650px){.pagina-perfil .perfil-recomendacao-jogo{grid-template-columns:1fr;gap:15px;padding:12px}.pagina-perfil .perfil-recomendacao-capa{max-height:220px}.pagina-perfil .perfil-recomendacao-titulo-linha{align-items:flex-start;flex-direction:column}.pagina-perfil .perfil-recomendacao-acoes{align-items:stretch}.pagina-perfil .perfil-recomendacao-acoes>*{flex:1 1 auto}}
+@media(max-width:650px){.pagina-perfil .perfil-recomendacao-jogo{grid-template-columns:1fr;gap:15px;padding:12px}.pagina-perfil .perfil-recomendacao-capa{aspect-ratio:16/9;max-height:220px}.pagina-perfil .perfil-recomendacao-titulo-linha{align-items:flex-start;flex-direction:column}.pagina-perfil .perfil-recomendacao-acoes{align-items:stretch}.pagina-perfil .perfil-recomendacao-acoes>*{flex:1 1 auto}}
+
+
+/* Ajustes responsivos da visão geral do perfil em telas pequenas. */
+@media(max-width:760px){
+  .pagina-perfil .perfil-abas{
+    width:100%;
+    max-width:100%;
+    gap:4px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    scrollbar-width:thin;
+    -webkit-overflow-scrolling:touch;
+  }
+  .pagina-perfil .perfil-abas button{
+    flex:0 0 auto;
+    justify-content:center;
+    gap:6px;
+    padding:9px 10px;
+    font-size:12px;
+    white-space:nowrap;
+  }
+}
+@media(max-width:520px){
+  .pagina-perfil .perfil-estatisticas.perfil-estatisticas-overview{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:8px;
+    margin:14px 0;
+  }
+  .pagina-perfil .perfil-estatisticas-overview .perfil-stat{
+    min-width:0;
+    min-height:0;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:8px;
+    padding:11px 9px;
+    border-radius:13px;
+  }
+  .pagina-perfil .perfil-estatisticas-overview .perfil-stat-icone{
+    width:30px;
+    height:30px;
+    flex:0 0 30px;
+    border-radius:9px;
+    font-size:14px;
+  }
+  .pagina-perfil .perfil-estatisticas-overview .perfil-stat-conteudo>span{
+    font-size:10px;
+    line-height:1.25;
+    overflow-wrap:anywhere;
+  }
+  .pagina-perfil .perfil-estatisticas-overview .perfil-stat-conteudo strong{
+    margin-top:3px;
+    font-size:21px;
+    line-height:1.15;
+  }
+  .pagina-perfil .perfil-estatisticas-overview .perfil-stat-conteudo p{
+    margin-top:4px;
+    font-size:10px;
+    line-height:1.3;
+  }
+}
+@media(max-width:380px){
+  .pagina-perfil .perfil-abas{gap:3px;padding:4px}
+  .pagina-perfil .perfil-abas button{gap:4px;padding:8px 7px;font-size:11px}
+  .pagina-perfil .perfil-estatisticas.perfil-estatisticas-overview{gap:6px}
+  .pagina-perfil .perfil-estatisticas-overview .perfil-stat{padding:9px 7px}
+  .pagina-perfil .perfil-estatisticas-overview .perfil-stat-conteudo>span,
+  .pagina-perfil .perfil-estatisticas-overview .perfil-stat-conteudo p{font-size:9px}
+}
+
+/* Mantém os três indicadores lado a lado em celulares maiores também. */
+@media (max-width: 760px) {
+  .pagina-perfil .perfil-estatisticas.perfil-estatisticas-overview {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 14px 0;
+  }
+  .pagina-perfil .perfil-estatisticas-overview .perfil-stat {
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 11px 9px;
+    border-radius: 13px;
+  }
+  .pagina-perfil .perfil-estatisticas-overview .perfil-stat-icone {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    border-radius: 9px;
+    font-size: 14px;
+  }
+  .pagina-perfil .perfil-estatisticas-overview .perfil-stat-conteudo > span {
+    font-size: 10px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+  .pagina-perfil .perfil-estatisticas-overview .perfil-stat-conteudo strong {
+    margin-top: 3px;
+    font-size: 21px;
+    line-height: 1.15;
+  }
+  .pagina-perfil .perfil-estatisticas-overview .perfil-stat-conteudo p {
+    margin-top: 4px;
+    font-size: 10px;
+    line-height: 1.3;
+  }
+}
+
+/* Ajuste responsivo das abas: distribuição uniforme e centralizada. */
+.pagina-perfil .perfil-abas{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  align-items:stretch;
+  gap:6px;
+  width:100%;
+  max-width:100%;
+  box-sizing:border-box;
+}
+
+.pagina-perfil .perfil-abas button{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:0;
+  gap:6px;
+  padding:10px 5px;
+  text-align:center;
+  white-space:normal;
+  line-height:1.2;
+}
+
+@media(max-width:760px){
+  .pagina-perfil .perfil-abas{
+    gap:4px;
+    padding:5px;
+  }
+  .pagina-perfil .perfil-abas button{
+    gap:4px;
+    padding:9px 3px;
+    font-size:12px;
+  }
+}
+
+@media(max-width:420px){
+  .pagina-perfil .perfil-abas button{
+    gap:3px;
+    padding:8px 2px;
+    font-size:10px;
+  }
+}
+
+/* No mobile, as conquistas recentes aparecem depois do histórico de preços. */
+@media (max-width: 760px) {
+  .pagina-perfil .perfil-overview-grade,
+  .pagina-perfil .perfil-coluna-lateral {
+    display: contents;
+  }
+
+  .pagina-perfil .perfil-coluna-principal > * {
+    order: 0;
+  }
+
+  .pagina-perfil .perfil-identidade-destaque {
+    order: 1;
+  }
+
+  .pagina-perfil .perfil-estatisticas-overview {
+    order: 2;
+  }
+
+  .pagina-perfil .perfil-painel-favoritos {
+    order: 3;
+  }
+
+  .pagina-perfil .perfil-painel-grafico {
+    order: 4;
+  }
+
+  .pagina-perfil .perfil-painel-conquistas {
+    order: 5;
+  }
+
+  .pagina-perfil .perfil-minha-recomendacao {
+    order: 6;
+  }
+}
+
+
+/* No mobile, as conquistas ficam depois do gráfico sem alterar a ordem do desktop. */
+@media (max-width: 760px) {
+  .pagina-perfil .perfil-container:has(.perfil-overview-grade) {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+  }
+
+  .pagina-perfil .perfil-container:has(.perfil-overview-grade) > .perfil-cabecalho-pagina,
+  .pagina-perfil .perfil-container:has(.perfil-overview-grade) > .perfil-abas {
+    margin-bottom: 0;
+  }
+
+  .pagina-perfil .perfil-container:has(.perfil-overview-grade) > .perfil-overview-grade {
+    display: contents;
+  }
+
+  .pagina-perfil .perfil-container:has(.perfil-overview-grade) > .perfil-identidade-destaque {
+    order: 1;
+  }
+
+  .pagina-perfil .perfil-container:has(.perfil-overview-grade) > .perfil-estatisticas-overview {
+    order: 2;
+    margin: 0;
+  }
+
+  .pagina-perfil .perfil-container:has(.perfil-overview-grade) > .perfil-painel-favoritos {
+    order: 3;
+  }
+
+  .pagina-perfil .perfil-container:has(.perfil-overview-grade) > .perfil-painel-grafico {
+    order: 4;
+  }
+
+  .pagina-perfil .perfil-container:has(.perfil-overview-grade) > .perfil-painel-conquistas {
+    order: 5;
+  }
+
+  .pagina-perfil .perfil-container:has(.perfil-overview-grade) > .perfil-minha-recomendacao {
+    order: 6;
+  }
+}
+
+/* Ajuste final: manter os três indicadores do histórico lado a lado no mobile. */
+@media (max-width: 760px) {
+  .pagina-perfil .perfil-grafico-resumo {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    width: 100%;
+  }
+
+  .pagina-perfil .perfil-grafico-resumo > div {
+    min-width: 0 !important;
+    padding: 9px 7px !important;
+    overflow-wrap: anywhere;
+  }
+
+  .pagina-perfil .perfil-grafico-resumo > div > span {
+    font-size: 9px !important;
+    line-height: 1.3;
+  }
+
+  .pagina-perfil .perfil-grafico-resumo > div > strong {
+    font-size: clamp(11px, 2.8vw, 15px) !important;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .pagina-perfil .perfil-grafico-resumo > div > small {
+    font-size: 8px !important;
+    line-height: 1.3;
+  }
+}
+
+
+/* Ajuste responsivo: os jogos favoritos permanecem lado a lado em todas as larguras. */
+@media (max-width: 760px) {
+  .pagina-perfil .perfil-favoritos-destaque {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .pagina-perfil .perfil-favoritos-destaque.quantidade-1 {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .pagina-perfil .perfil-favoritos-destaque.quantidade-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .pagina-perfil .perfil-favorito-destaque {
+    display: block !important;
+    min-width: 0;
+  }
+
+  .pagina-perfil .perfil-favorito-selecionar {
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0;
+  }
+
+  .pagina-perfil .perfil-favorito-capa {
+    width: 100%;
+    aspect-ratio: 4 / 3 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+
+  .pagina-perfil .perfil-favorito-texto {
+    min-width: 0;
+    padding: 8px 7px 0 !important;
+  }
+
+  .pagina-perfil .perfil-favorito-texto strong {
+    font-size: 11px !important;
+    overflow-wrap: anywhere;
+  }
+
+  .pagina-perfil .perfil-favorito-estudio {
+    overflow-wrap: anywhere;
+  }
+
+  .pagina-perfil .perfil-favorito-preco {
+    padding: 8px 7px 0 !important;
+    font-size: 11px !important;
+  }
+
+  .pagina-perfil .perfil-favorito-estado {
+    width: calc(100% - 14px);
+    margin: 7px 7px 8px;
+    padding: 5px 3px;
+    font-size: 9px !important;
+    overflow-wrap: anywhere;
+  }
+
+  .pagina-perfil .perfil-favorito-detalhes {
+    margin: 0 6px 6px;
+    font-size: 10px !important;
+  }
+}
+
+
+/* Correção mobile: a imagem da recomendação ocupa toda a largura disponível. */
+@media (max-width: 650px) {
+  .pagina-perfil .perfil-minha-recomendacao,
+  .pagina-perfil .perfil-minha-recomendacao .perfil-recomendacao-jogo,
+  .pagina-perfil .perfil-minha-recomendacao .perfil-recomendacao-capa {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .pagina-perfil .perfil-minha-recomendacao .perfil-recomendacao-capa {
+    aspect-ratio: 16 / 9;
+    height: auto;
+    max-height: none;
+  }
+
+  .pagina-perfil .perfil-minha-recomendacao .perfil-recomendacao-capa img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+
+/* Conquistas: os grupos bloqueados ficam visualmente inativos. */
+.pagina-perfil .conquistas-trilha-etapa.bloqueada,
+.pagina-perfil .conquistas-trilha-etapa:disabled {
+  cursor: not-allowed;
+  opacity: .62;
+}
+
+.pagina-perfil .conquistas-trilha-etapa.bloqueada:hover,
+.pagina-perfil .conquistas-trilha-etapa:disabled:hover {
+  transform: none;
+}

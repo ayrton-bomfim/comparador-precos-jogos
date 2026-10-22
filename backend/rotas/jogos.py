@@ -96,7 +96,7 @@ def listar_jogos(
     por_pagina: int = 20,
     busca: str = "",
     filtro: str = "todos",
-    ordenacao: str = "nome",
+    ordenacao: str = "mais-vistos",
     legado: bool = False,
     db: Session = Depends(get_db),
 ):
@@ -114,7 +114,7 @@ def listar_jogos(
     por_pagina = min(max(1, por_pagina), 100)
     busca = (busca or "").strip()
     filtro = filtro if filtro in {"brasileiros", "todos", "steam", "epic", "desconto", "gratis"} else "todos"
-    ordenacao = ordenacao if ordenacao in {"nome", "menor-preco", "maior-preco", "desconto"} else "nome"
+    ordenacao = ordenacao if ordenacao in {"nome", "menor-preco", "maior-preco", "desconto", "mais-vistos"} else "mais-vistos"
 
     # Regra de visibilidade atual da curadoria Epic.
     query_base = (
@@ -318,10 +318,19 @@ def listar_jogos(
             query_base = query_base.order_by(
                 maior_preco.desc(), Jogo.nome.asc()
             )
+        elif ordenacao == "mais-vistos":
+            query_base = query_base.order_by(
+                Jogo.visualizacoes.desc(), Jogo.id.asc()
+            )
         else:
             query_base = query_base.order_by(Jogo.nome.asc())
     else:
-        query_base = query_base.order_by(Jogo.nome.asc())
+        if ordenacao == "mais-vistos":
+            query_base = query_base.order_by(
+                Jogo.visualizacoes.desc(), Jogo.id.asc()
+            )
+        else:
+            query_base = query_base.order_by(Jogo.nome.asc())
 
     total = query_base.count()
     total_paginas = max(1, (total + por_pagina - 1) // por_pagina)
@@ -1241,7 +1250,19 @@ def obter_minhas_recomendacoes(
     return {"recomendacao": {
         "jogo_id": jogo.id,
         "nome": jogo.nome,
-        "imagem": jogo.url_imagem_steam or jogo.url_imagem_epic,
+        # Segue o critério de imagem hero da página de detalhes.
+        "imagem": (
+            f"https://cdn.cloudflare.steamstatic.com/steam/apps/{jogo.steam_id}/library_hero.jpg"
+            if jogo.steam_id
+            else jogo.url_imagem_epic or jogo.url_imagem_steam or ""
+        ),
+        # Alternativa usada pelo frontend se a imagem principal falhar.
+        "imagem_fallback": (
+            jogo.url_imagem_steam or jogo.url_imagem_epic or (
+                f"https://cdn.akamai.steamstatic.com/steam/apps/{jogo.steam_id}/header.jpg"
+                if jogo.steam_id else ""
+            )
+        ),
         "total_recomendacoes": int(total),
         "promocao_status": estado,
         "link": f"/jogos/{jogo.id}",
