@@ -3,8 +3,10 @@ import CardJogo from './CardJogo'
 
 function CarrosselJogos({ jogos, mostrarDesconto = false }) {
   const listaRef = useRef(null)
-  const toqueInicialRef = useRef(null)
+  const viewportRef = useRef(null)
+  const gestoRef = useRef(null)
   const arrastouRef = useRef(false)
+  const deslocamentoRef = useRef(0)
   const [indiceAtual, setIndiceAtual] = useState(0)
   const [itensVisiveis, setItensVisiveis] = useState(4)
   const [passo, setPasso] = useState(0)
@@ -67,31 +69,105 @@ function CarrosselJogos({ jogos, mostrarDesconto = false }) {
   const podeVoltar = indiceExibicao > 0
   const podeAvancar = indiceExibicao < maximo
 
+  /*
+    Arraste que acompanha o dedo em tempo real.
+    Durante o gesto, a lista é movida direto no DOM (sem renderizar o React a cada
+    movimento, para ficar fluido) e a transição é desligada. Ao soltar, a transição
+    volta e a lista encaixa na página seguinte, na anterior, ou retorna ao lugar.
+  */
   const iniciarGesto = (evento) => {
     if (evento.pointerType === 'mouse') return
-    toqueInicialRef.current = { x: evento.clientX, y: evento.clientY }
+    gestoRef.current = {
+      id: evento.pointerId,
+      x: evento.clientX,
+      y: evento.clientY,
+      dx: 0,
+      ativo: false,
+      ultimoX: evento.clientX,
+      ultimoT: performance.now(),
+      velocidade: 0,
+    }
     arrastouRef.current = false
   }
 
-  const finalizarGesto = (evento) => {
-    const inicio = toqueInicialRef.current
-    toqueInicialRef.current = null
-    if (!inicio || evento.pointerType === 'mouse') return
+  const moverGesto = (evento) => {
+    const gesto = gestoRef.current
+    const lista = listaRef.current
+    if (!gesto || !lista || evento.pointerId !== gesto.id) return
 
-    const deltaX = evento.clientX - inicio.x
-    const deltaY = evento.clientY - inicio.y
-    const limiteDeslizamento = 40
+    const dx = evento.clientX - gesto.x
+    const dy = evento.clientY - gesto.y
 
-    // Só navega quando o gesto é predominantemente horizontal.
-    if (Math.abs(deltaX) > limiteDeslizamento && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
-      arrastouRef.current = true
-      rolar(deltaX < 0 ? 1 : -1)
+    if (!gesto.ativo) {
+      // Só assume o gesto quando ele é predominantemente horizontal.
+      const horizontal = Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.2
+      if (!horizontal) return
+
+      gesto.ativo = true
+      lista.style.transition = 'none'
+      try {
+        evento.currentTarget.setPointerCapture(evento.pointerId)
+      } catch {
+        // Sem captura, o gesto ainda funciona enquanto o dedo estiver sobre o carrossel.
+      }
     }
+
+    // Velocidade suavizada (px/ms) para reconhecer um "flick" rápido.
+    const agora = performance.now()
+    const intervalo = agora - gesto.ultimoT
+    if (intervalo > 0) {
+      const instantanea = (evento.clientX - gesto.ultimoX) / intervalo
+      gesto.velocidade = gesto.velocidade * 0.6 + instantanea * 0.4
+    }
+    gesto.ultimoX = evento.clientX
+    gesto.ultimoT = agora
+    gesto.dx = dx
+
+    // Nas pontas, o carrossel "estica" com resistência em vez de seguir o dedo por inteiro.
+    let movimento = dx
+    if ((!podeVoltar && dx > 0) || (!podeAvancar && dx < 0)) movimento = dx * 0.35
+
+    const limite = Math.max(passo * itensVisiveis, 1)
+    movimento = Math.max(-limite, Math.min(limite, movimento))
+
+    lista.style.transform = `translate3d(${deslocamentoRef.current + movimento}px, 0, 0)`
   }
 
-  const cancelarGesto = () => {
-    toqueInicialRef.current = null
+  const encerrarGesto = (permitirTroca) => {
+    const gesto = gestoRef.current
+    gestoRef.current = null
+    const lista = listaRef.current
+    if (!gesto?.ativo || !lista) return
+
+    try {
+      viewportRef.current?.releasePointerCapture(gesto.id)
+    } catch {
+      // A captura já pode ter sido liberada pelo navegador.
+    }
+
+    // Devolve a transição do CSS para o encaixe ser animado.
+    lista.style.transition = ''
+    arrastouRef.current = permitirTroca
+
+    const distancia = Math.abs(gesto.dx)
+    const longe = distancia > 60
+    const rapido = Math.abs(gesto.velocidade) > 0.5 && distancia > 20
+
+    if (permitirTroca && (longe || rapido)) {
+      const direcao = gesto.dx < 0 ? 1 : -1
+      const alvo = Math.max(0, Math.min(indiceAtual + direcao * itensVisiveis, maximo))
+      if (alvo !== indiceAtual) {
+        rolar(direcao)
+        return
+      }
+    }
+
+    // Gesto curto, cancelado ou já na ponta: volta para a posição atual.
+    lista.style.transform = `translate3d(${deslocamentoRef.current}px, 0, 0)`
   }
+
+  const finalizarGesto = () => encerrarGesto(true)
+  const cancelarGesto = () => encerrarGesto(false)
 
   const impedirCliqueAposArraste = (evento) => {
     if (arrastouRef.current) {
@@ -135,6 +211,10 @@ function CarrosselJogos({ jogos, mostrarDesconto = false }) {
     return -(indiceExibicao * passo) + espacoLateral
   })()
 
+  useEffect(() => {
+    deslocamentoRef.current = deslocamento
+  })
+
   return (
     <div className="carrossel">
       <button
@@ -152,7 +232,10 @@ function CarrosselJogos({ jogos, mostrarDesconto = false }) {
         className={`viewport-carrossel ${
           podeVoltar ? 'tem-esquerda' : ''
         } ${podeAvancar ? 'tem-direita' : ''}`}
+        ref={viewportRef}
+        style={{ touchAction: 'pan-y' }}
         onPointerDown={iniciarGesto}
+        onPointerMove={moverGesto}
         onPointerUp={finalizarGesto}
         onPointerCancel={cancelarGesto}
         onClickCapture={impedirCliqueAposArraste}
