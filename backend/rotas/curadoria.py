@@ -7,7 +7,7 @@ import requests
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import String, case, cast, func, or_, text
+from sqlalchemy import String, bindparam, case, cast, func, or_, text
 from sqlalchemy.orm import Session
 
 from ..banco_dados import get_db
@@ -50,6 +50,28 @@ MOTIVOS_APROVACAO = (
 
 CONTEUDO_SENSIVEL_MOTIVO = MOTIVOS_AUDITORIA[0]
 FORA_DO_CATALOGO_MOTIVO = MOTIVOS_AUDITORIA[1]
+
+
+def _aplicar_busca_textual_auditoria(consulta, termo: str):
+    """Aplica os mesmos campos de busca às filas pendentes e decididas.
+
+    Mantém a pesquisa parcial e sem distinção de maiúsculas/minúsculas,
+    incluindo nome, IDs das lojas, desenvolvedora, publicadora e observação.
+    A função recebe uma consulta SQLAlchemy já filtrada pelo status/motivo.
+    """
+    termo_normalizado = (termo or "").strip()
+    if not termo_normalizado:
+        return consulta
+
+    padrao = f"%{termo_normalizado}%"
+    return consulta.filter(or_(
+        Jogo.nome.ilike(padrao),
+        Jogo.epic_id.ilike(padrao),
+        cast(Jogo.steam_id, String).ilike(padrao),
+        Jogo.desenvolvedor.ilike(padrao),
+        Jogo.publicadora.ilike(padrao),
+        AuditoriaConteudo.observacao.ilike(padrao),
+    ))
 
 
 def validar_motivo_aprovacao(motivo: str | None) -> str | None:
@@ -346,14 +368,38 @@ def atualizar_midias(
     return _serializar(curadoria)
 
 
-def _vitrine_status_promocao(db: Session, jogo_id: int, agora=None) -> str:
-    """Retorna ativa/inativa/desconhecida sem tratar dados antigos como confirmação.
-
-    Um registro com promoção futura confirma atividade. Para registros sem data
-    final ou sem desconto, exige coleta recente; dados antigos ficam como
-    desconhecidos para evitar exclusões causadas por falhas temporárias.
-    """
+def _avaliar_status_promocao(registros, agora=None) -> str:
+    """Classifica os últimos dados por loja sem tratar dados antigos como confirmação."""
     agora = agora or datetime.now(timezone.utc)
+    if not registros:
+        return "desconhecida"
+
+    desconhecida = False
+    limite_recencia = agora - timedelta(hours=72)
+    for registro in registros:
+        coleta = registro["data_coleta"]
+        if coleta and coleta.tzinfo is None:
+            coleta = coleta.replace(tzinfo=timezone.utc)
+        fim = registro["promocao_fim"]
+        if fim and fim.tzinfo is None:
+            fim = fim.replace(tzinfo=timezone.utc)
+
+        if (registro["desconto"] or 0) > 0:
+            if fim is not None and fim > agora:
+                return "ativa"
+            if fim is not None and fim <= agora:
+                continue
+            if coleta and coleta >= limite_recencia:
+                return "ativa"
+            desconhecida = True
+        elif not coleta or coleta < limite_recencia:
+            desconhecida = True
+
+    return "desconhecida" if desconhecida else "inativa"
+
+
+def _vitrine_status_promocao(db: Session, jogo_id: int, agora=None) -> str:
+    """Retorna o estado de promoção de um jogo, preservando a regra dos 72 h."""
     try:
         registros = db.execute(text("""
             SELECT plataforma_norm, desconto, promocao_fim, data_coleta
@@ -381,33 +427,59 @@ def _vitrine_status_promocao(db: Session, jogo_id: int, agora=None) -> str:
     except Exception:
         return "desconhecida"
 
-    if not registros:
-        return "desconhecida"
+    return _avaliar_status_promocao(registros, agora)
 
-    desconhecida = False
-    limite_recencia = agora - timedelta(hours=72)
+
+def _vitrine_status_promocao_lote(db: Session, jogo_ids: list[int], agora=None) -> dict[int, str]:
+    """Calcula os estados de promoção de vários jogos em uma única consulta."""
+    ids = list(dict.fromkeys(jogo_ids))
+    if not ids:
+        return {}
+
+    agora = agora or datetime.now(timezone.utc)
+    try:
+        registros = db.execute(
+            text("""
+                SELECT jogo_id, plataforma_norm, desconto, promocao_fim, data_coleta
+                FROM (
+                    SELECT DISTINCT ON (
+                        jogo_id,
+                        CASE WHEN lower(trim(plataforma)) IN
+                            ('epic', 'epic games', 'epic games store') THEN 'epic'
+                            ELSE lower(trim(plataforma)) END
+                    )
+                        jogo_id,
+                        CASE WHEN lower(trim(plataforma)) IN
+                            ('epic', 'epic games', 'epic games store') THEN 'epic'
+                            ELSE lower(trim(plataforma)) END AS plataforma_norm,
+                        desconto, promocao_fim, data_coleta, id
+                    FROM historico_precos
+                    WHERE jogo_id IN :jogo_ids
+                      AND lower(trim(plataforma)) IN
+                        ('steam', 'epic', 'epic games', 'epic games store')
+                    ORDER BY
+                        jogo_id,
+                        CASE WHEN lower(trim(plataforma)) IN
+                            ('epic', 'epic games', 'epic games store') THEN 'epic'
+                            ELSE lower(trim(plataforma)) END,
+                        data_coleta DESC, id DESC
+                ) ultimos
+                ORDER BY jogo_id, plataforma_norm
+            """).bindparams(bindparam("jogo_ids", expanding=True)),
+            {"jogo_ids": ids},
+        ).mappings().all()
+    except Exception:
+        # A busca manual continua disponível se a consulta de promoções falhar.
+        return {jogo_id: "desconhecida" for jogo_id in ids}
+
+    por_jogo: dict[int, list] = {jogo_id: [] for jogo_id in ids}
     for registro in registros:
-        coleta = registro["data_coleta"]
-        if coleta and coleta.tzinfo is None:
-            coleta = coleta.replace(tzinfo=timezone.utc)
-        fim = registro["promocao_fim"]
-        if fim and fim.tzinfo is None:
-            fim = fim.replace(tzinfo=timezone.utc)
+        por_jogo.setdefault(registro["jogo_id"], []).append(registro)
 
-        if (registro["desconto"] or 0) > 0:
-            if fim is not None and fim > agora:
-                return "ativa"
-            if fim is not None and fim <= agora:
-                continue
-            if coleta and coleta >= limite_recencia:
-                return "ativa"
-            desconhecida = True
-        elif not coleta or coleta < limite_recencia:
-            desconhecida = True
-
-    if desconhecida:
-        return "desconhecida"
-    return "inativa"
+    return {
+        jogo_id: _avaliar_status_promocao(itens, agora)
+        for jogo_id, itens in por_jogo.items()
+    }
 
 
 @router.get("/buscar", response_model=list[dict])
@@ -436,6 +508,11 @@ def buscar_jogos_para_curadoria(
         .all()
     )
 
+    # Busca o estado de promoção em lote, evitando uma consulta por jogo.
+    estados_promocao = _vitrine_status_promocao_lote(
+        db, [jogo.id for jogo in jogos]
+    )
+
     resultados = []
     for jogo in jogos:
         resultados.append({
@@ -448,7 +525,7 @@ def buscar_jogos_para_curadoria(
             "desenvolvedor": jogo.desenvolvedor,
             "publicadora": jogo.publicadora,
             "eh_brasileiro": bool(getattr(jogo, "eh_brasileiro", False)),
-            "promocao_ativa": _vitrine_status_promocao(db, jogo.id) == "ativa",
+            "promocao_ativa": estados_promocao.get(jogo.id) == "ativa",
         })
     return resultados
 
@@ -716,16 +793,7 @@ def listar_pendentes(
     if motivo:
         consulta = consulta.filter(AuditoriaConteudo.motivo == motivo)
     termo = (q or "").strip()
-    if termo:
-        termo_like = f"%{termo}%"
-        consulta = consulta.filter(or_(
-            Jogo.nome.ilike(termo_like),
-            Jogo.epic_id.ilike(termo_like),
-            cast(Jogo.steam_id, String).ilike(termo_like),
-            Jogo.desenvolvedor.ilike(termo_like),
-            Jogo.publicadora.ilike(termo_like),
-            AuditoriaConteudo.observacao.ilike(termo_like),
-        ))
+    consulta = _aplicar_busca_textual_auditoria(consulta, termo)
 
     paginacao_solicitada = page is not None or page_size is not None or bool(motivo) or bool(termo)
     if not paginacao_solicitada:
@@ -776,16 +844,7 @@ def listar_por_status(
     if motivo:
         consulta = consulta.filter(AuditoriaConteudo.motivo == motivo)
     termo = (q or "").strip()
-    if termo:
-        termo_like = f"%{termo}%"
-        consulta = consulta.filter(or_(
-            Jogo.nome.ilike(termo_like),
-            Jogo.epic_id.ilike(termo_like),
-            cast(Jogo.steam_id, String).ilike(termo_like),
-            Jogo.desenvolvedor.ilike(termo_like),
-            Jogo.publicadora.ilike(termo_like),
-            AuditoriaConteudo.observacao.ilike(termo_like),
-        ))
+    consulta = _aplicar_busca_textual_auditoria(consulta, termo)
 
     paginacao_solicitada = page is not None or page_size is not None or bool(motivo) or bool(termo)
     ordenacao = (AuditoriaConteudo.decidido_em.desc(), AuditoriaConteudo.id.desc())

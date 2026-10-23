@@ -136,8 +136,8 @@ function Cadastro() {
       })
       const dados = await resposta.json().catch(() => ({}))
       if (!resposta.ok) throw new Error(dados.detail || 'Não conseguimos criar sua conta agora. Tente novamente.')
-      setSucesso(dados.mensagem || 'Conta criada! Agora é só entrar.')
-      setTimeout(() => navigate('/login', { state: { username: nome } }), 900)
+      setSucesso(dados.mensagem || 'Conta criada! Enviamos um link de confirmação para seu e-mail.')
+      setTimeout(() => navigate('/login', { state: { username: nome } }), 3500)
     } catch (error) {
       setErro(error.message || 'Não consegui falar com o servidor. Tente novamente em instantes.')
     } finally { setEnviando(false) }

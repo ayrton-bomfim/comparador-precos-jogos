@@ -11,7 +11,7 @@ from datetime import datetime, timezone, timedelta
 import requests
 import time
 import json
-from sqlalchemy import func, or_, text
+from sqlalchemy import case, func, or_, text
 from sqlalchemy.orm import Session
 from ..banco_dados import get_db
 from ..modelos import Jogo, HistoricoPreco, AuditoriaConteudo, Usuario, NotificacaoUsuario
@@ -88,6 +88,62 @@ def _jogo_visivel_catalogo():
     return ((~jogo_somente_steam) | steam_status_valido) & tem_preco_base
 
 
+@router.get("/sugestoes")
+def sugerir_jogos_cabecalho(
+    busca: str = "",
+    db: Session = Depends(get_db),
+):
+    """
+    Busca rápida e enxuta para o autocomplete do cabeçalho.
+
+    Retorna no máximo seis jogos e somente os campos usados pelas sugestões.
+    A pesquisa usa trigramas via índice PostgreSQL quando instalado; não faz
+    COUNT, paginação do catálogo, consultas de histórico ou carregamento ORM
+    de todos os campos do jogo.
+    """
+    termo = " ".join((busca or "").strip().lower().split())
+    if len(termo) < 3:
+        return []
+
+    padrao = f"%{termo}%"
+    prefixo = f"{termo}%"
+
+    resultados = (
+        db.query(
+            Jogo.id,
+            Jogo.nome,
+            Jogo.url_imagem_steam,
+            Jogo.url_imagem_epic,
+            Jogo.steam_id,
+        )
+        .outerjoin(AuditoriaConteudo, AuditoriaConteudo.jogo_id == Jogo.id)
+        .filter(
+            ~AuditoriaConteudo.status.in_(["pendente", "excluido"])
+            | AuditoriaConteudo.id.is_(None)
+        )
+        .filter(_jogo_visivel_catalogo())
+        .filter(func.lower(Jogo.nome).like(padrao))
+        .order_by(
+            case((func.lower(Jogo.nome).like(prefixo), 0), else_=1),
+            Jogo.nome.asc(),
+            Jogo.id.asc(),
+        )
+        .limit(6)
+        .all()
+    )
+
+    return [
+        {
+            "id": jogo.id,
+            "nome": jogo.nome,
+            "url_imagem_steam": jogo.url_imagem_steam,
+            "url_imagem_epic": jogo.url_imagem_epic,
+            "steam_id": jogo.steam_id,
+        }
+        for jogo in resultados
+    ]
+
+
 @router.get("/")
 # Esta rota usa SQLAlchemy síncrono; deve ser função síncrona (def) para
 # o FastAPI executá-la no thread pool, sem bloquear o event loop inteiro.
@@ -134,12 +190,12 @@ def listar_jogos(
         query_base = query_base.filter(Jogo.eh_brasileiro.is_(True))
 
     if busca:
-        termo_busca = f"%{busca}%"
+        termo_busca = f"%{' '.join(busca.lower().split())}%"
         query_base = query_base.filter(
             or_(
-                Jogo.nome.ilike(termo_busca),
-                Jogo.desenvolvedor.ilike(termo_busca),
-                Jogo.publicadora.ilike(termo_busca),
+                func.lower(Jogo.nome).like(termo_busca),
+                func.lower(Jogo.desenvolvedor).like(termo_busca),
+                func.lower(Jogo.publicadora).like(termo_busca),
             )
         )
 

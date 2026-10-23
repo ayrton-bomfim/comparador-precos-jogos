@@ -1,6 +1,6 @@
 """Rotas de autenticação e identificação do usuário atual."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 import os
 import re
@@ -19,6 +19,8 @@ from google.oauth2 import id_token as google_id_token
 from ..banco_dados import get_db
 from ..modelos import HistoricoNomeUsuario, Usuario
 from ..seguranca.rate_limit import limiter
+from ..servicos.email_service import EmailServiceError
+from .seguranca_conta import _criar_token, _url_frontend, _enviar_link
 from ..seguranca.autenticacao import (
     autenticar_usuario,
     criar_access_token,
@@ -111,6 +113,11 @@ class RecuperarUsernameResposta(BaseModel):
 def _agora_brasilia() -> datetime:
     """Retorna a data/hora de Brasília sem timezone, conforme as colunas SQL."""
     return datetime.now(ZoneInfo("America/Sao_Paulo")).replace(tzinfo=None)
+
+
+def _agora_sessao_utc() -> datetime:
+    """Retorna UTC sem timezone para a coluna ultima_atividade_sessao."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def _validar_username(username: str) -> str:
@@ -259,17 +266,36 @@ async def cadastrar_usuario(
     )
     db.add(usuario)
     try:
+        # O flush gera o ID necessário para associar o token à conta antes do commit.
+        db.flush()
+        token_confirmacao = _criar_token(db, usuario, "confirmar_email")
+        url_confirmacao = _url_frontend("/confirmar-email", token_confirmacao)
+        _enviar_link(
+            email,
+            "Confirme seu e-mail no DESCTRL",
+            "Confirme seu e-mail",
+            "Sua conta DESCTRL foi criada. Confirme este endereço para liberar os recursos que dependem de um e-mail verificado.",
+            url_confirmacao,
+        )
         db.commit()
         db.refresh(usuario)
-    except Exception:
+    except EmailServiceError as exc:
         db.rollback()
+        logger.exception("Falha ao enviar confirmação de e-mail durante o cadastro.")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Não foi possível enviar o e-mail de confirmação agora. Sua conta não foi criada; tente novamente mais tarde.",
+        ) from exc
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Falha ao criar conta ou preparar confirmação de e-mail.")
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Não foi possível criar a conta. Confira se o nome de usuário ou e-mail já está cadastrado.",
-        )
+            detail="Não foi possível criar a conta. Confira se o nome de usuário ou e-mail já está cadastrado e tente novamente.",
+        ) from exc
 
     return CadastroResposta(
-        mensagem="Conta criada com sucesso. Você já pode entrar.",
+        mensagem="Conta criada! Enviamos um link de confirmação para seu e-mail. Confira também a pasta de spam antes de entrar.",
         username=usuario.username,
     )
 
@@ -438,6 +464,9 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    usuario.ultima_atividade_sessao = _agora_sessao_utc()
+    db.commit()
+
     return TokenResposta(
         access_token=criar_access_token(usuario),
         token_type="bearer",
@@ -512,6 +541,8 @@ async def login_google(
     if usuario:
         if not usuario.ativo:
             raise HTTPException(status_code=403, detail="Esta conta está desativada.")
+        usuario.ultima_atividade_sessao = _agora_sessao_utc()
+        db.commit()
         return TokenResposta(
             access_token=criar_access_token(usuario),
             token_type="bearer",
@@ -614,6 +645,7 @@ async def cadastrar_com_google(
         ativo=True,
         email_verificado=True,
         google_sub=google_sub,
+        ultima_atividade_sessao=_agora_sessao_utc(),
     )
     db.add(usuario)
     try:
@@ -719,4 +751,20 @@ async def meu_usuario(
         ativo=usuario.ativo,
         email_verificado=bool(getattr(usuario, "email_verificado", False)),
         google_vinculado=bool(getattr(usuario, "google_sub", None)),
+    )
+
+@router.post("/session/refresh", response_model=TokenResposta)
+async def renovar_sessao(
+    usuario: Usuario = Depends(obter_usuario_atual),
+    db: Session = Depends(get_db),
+):
+    """Registra atividade explícita do frontend e renova a sessão válida."""
+    usuario.ultima_atividade_sessao = _agora_sessao_utc()
+    db.add(usuario)
+    db.commit()
+    db.refresh(usuario)
+
+    return TokenResposta(
+        access_token=criar_access_token(usuario),
+        token_type="bearer",
     )

@@ -24,7 +24,7 @@ ENV_FILE = PROJECT_ROOT / ".env"
 LOG_DIR = PROJECT_ROOT / "backend" / "desctrl_manager" / "logs"
 LOG_FILE = LOG_DIR / "manager.log"
 DB_TUNNEL_HOST = "127.0.0.1"
-DB_TUNNEL_PORT = 5434
+DB_TUNNEL_PORT = 5433
 DB_NAME_AWS = "desctrl"
 DB_USER_AWS = "desctrl_app"
 

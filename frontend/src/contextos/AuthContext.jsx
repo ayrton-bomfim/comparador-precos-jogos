@@ -5,11 +5,12 @@ import { API_URL } from '../servicos/api'
 export const API_BASE = API_URL
 
 const TOKEN_KEY = 'desctrl_token'
+const TEMPO_INATIVIDADE_MS = 6 * 60 * 60 * 1000
+const INTERVALO_MINIMO_REFRESH_MS = 60 * 1000
 const AuthContext = createContext(null)
 
-// O prazo efetivo vem do campo "exp" do JWT emitido pelo backend.
-// Assim, não duplicamos aqui os 60 minutos configurados no .env.
-// Futuramente, a política de aviso de expiração pode ser implementada neste contexto.
+// O JWT controla a validade máxima do token, e os eventos humanos controlam
+// a renovação e o encerramento local após seis horas sem atividade.
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY))
   const [usuario, setUsuario] = useState(null)
@@ -17,6 +18,11 @@ export function AuthProvider({ children }) {
   const [sessaoExpirada, setSessaoExpirada] = useState(false)
   const [redirecionarInicioAposLogout, setRedirecionarInicioAposLogout] = useState(false)
   const tokenAtualRef = useRef(token)
+  const ultimaAtividadeHumanaRef = useRef(Date.now())
+  const ultimaRenovacaoRef = useRef(0)
+  const renovacaoEmAndamentoRef = useRef(false)
+  const temporizadorInatividadeRef = useRef(null)
+  const tokenValidadoRef = useRef(null)
 
   useEffect(() => {
     tokenAtualRef.current = token
@@ -24,12 +30,128 @@ export function AuthProvider({ children }) {
 
   const encerrarSessao = (expirada = false) => {
     tokenAtualRef.current = null
+    tokenValidadoRef.current = null
+    if (temporizadorInatividadeRef.current !== null) {
+      window.clearTimeout(temporizadorInatividadeRef.current)
+      temporizadorInatividadeRef.current = null
+    }
     localStorage.removeItem(TOKEN_KEY)
     setToken(null)
     setUsuario(null)
     setCarregando(false)
     setSessaoExpirada(expirada)
   }
+
+  // A inatividade é medida por eventos humanos, não por requisições automáticas.
+  // A renovação é limitada a uma chamada por minuto durante o uso ativo.
+  useEffect(() => {
+    if (!token) {
+      if (temporizadorInatividadeRef.current !== null) {
+        window.clearTimeout(temporizadorInatividadeRef.current)
+        temporizadorInatividadeRef.current = null
+      }
+      return undefined
+    }
+
+    let ativo = true
+    ultimaAtividadeHumanaRef.current = Date.now()
+    ultimaRenovacaoRef.current = Date.now()
+
+    const agendarEncerramentoPorInatividade = () => {
+      if (temporizadorInatividadeRef.current !== null) {
+        window.clearTimeout(temporizadorInatividadeRef.current)
+      }
+
+      const tempoDecorrido = Date.now() - ultimaAtividadeHumanaRef.current
+      const tempoRestante = Math.max(0, TEMPO_INATIVIDADE_MS - tempoDecorrido)
+
+      temporizadorInatividadeRef.current = window.setTimeout(() => {
+        if (!ativo) return
+
+        const inatividadeAtual = Date.now() - ultimaAtividadeHumanaRef.current
+        if (inatividadeAtual >= TEMPO_INATIVIDADE_MS) {
+          encerrarSessao(true)
+        } else {
+          agendarEncerramentoPorInatividade()
+        }
+      }, tempoRestante)
+    }
+
+    const renovarSessaoPorAtividade = async () => {
+      const tokenAtual = tokenAtualRef.current
+      if (!ativo || !tokenAtual || renovacaoEmAndamentoRef.current) return
+
+      const agora = Date.now()
+      if (agora - ultimaRenovacaoRef.current < INTERVALO_MINIMO_REFRESH_MS) return
+
+      renovacaoEmAndamentoRef.current = true
+      ultimaRenovacaoRef.current = agora
+
+      try {
+        const resposta = await fetch(`${API_BASE}/api/auth/session/refresh`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${tokenAtual}` },
+        })
+
+        if (!ativo || tokenAtualRef.current !== tokenAtual) return
+
+        if (resposta.status === 401) {
+          encerrarSessao(true)
+          return
+        }
+
+        if (!resposta.ok) {
+          // Falhas transitórias não encerram a sessão imediatamente.
+          // Uma interação posterior poderá tentar renovar novamente.
+          ultimaRenovacaoRef.current = 0
+          return
+        }
+
+        const dados = await resposta.json()
+        if (!dados.access_token || !ativo || tokenAtualRef.current !== tokenAtual) {
+          ultimaRenovacaoRef.current = 0
+          return
+        }
+
+        localStorage.setItem(TOKEN_KEY, dados.access_token)
+        tokenAtualRef.current = dados.access_token
+        ultimaRenovacaoRef.current = Date.now()
+        setToken(dados.access_token)
+      } catch {
+        // Se a rede falhar, uma próxima interação poderá tentar novamente.
+        ultimaRenovacaoRef.current = 0
+      } finally {
+        renovacaoEmAndamentoRef.current = false
+      }
+    }
+
+    const registrarAtividadeHumana = () => {
+      if (!ativo || !tokenAtualRef.current) return
+
+      ultimaAtividadeHumanaRef.current = Date.now()
+      agendarEncerramentoPorInatividade()
+      void renovarSessaoPorAtividade()
+    }
+
+    agendarEncerramentoPorInatividade()
+
+    window.addEventListener('pointerdown', registrarAtividadeHumana, { passive: true })
+    window.addEventListener('keydown', registrarAtividadeHumana)
+    window.addEventListener('touchstart', registrarAtividadeHumana, { passive: true })
+    window.addEventListener('mousemove', registrarAtividadeHumana, { passive: true })
+
+    return () => {
+      ativo = false
+      window.removeEventListener('pointerdown', registrarAtividadeHumana)
+      window.removeEventListener('keydown', registrarAtividadeHumana)
+      window.removeEventListener('touchstart', registrarAtividadeHumana)
+      window.removeEventListener('mousemove', registrarAtividadeHumana)
+      if (temporizadorInatividadeRef.current !== null) {
+        window.clearTimeout(temporizadorInatividadeRef.current)
+        temporizadorInatividadeRef.current = null
+      }
+    }
+  }, [token])
 
   // Agenda o encerramento usando a expiração real informada no JWT.
   useEffect(() => {
@@ -63,6 +185,21 @@ export function AuthProvider({ children }) {
     let ativo = true
     const tokenVerificado = token
 
+    // Renovar o JWT não muda a identidade da sessão. Comparamos o `sub` do JWT
+    // para não repetir /me a cada rotação do token.
+    let identidadeToken = null
+    if (tokenVerificado) {
+      try {
+        const parte = tokenVerificado.split('.')[1]?.replace(/-/g, '+').replace(/_/g, '/')
+        const payload = JSON.parse(atob((parte || '').padEnd(Math.ceil((parte || '').length / 4) * 4, '=')))
+        identidadeToken = String(payload.sub || '')
+      } catch { identidadeToken = null }
+    }
+    if (tokenVerificado && identidadeToken && tokenValidadoRef.current === identidadeToken) {
+      setCarregando(false)
+      return () => { ativo = false }
+    }
+
     async function carregarUsuario() {
       if (!tokenVerificado) {
         if (ativo) {
@@ -72,8 +209,9 @@ export function AuthProvider({ children }) {
         return
       }
 
-      setCarregando(true)
-
+      // A renovação do JWT também altera `token`, mas não deve fazer a
+      // aplicação inteira voltar ao estado visual de carregamento.
+      // O carregamento global é reservado à inicialização da sessão.
       try {
         const resposta = await fetch(`${API_BASE}/api/auth/me`, {
           headers: { Authorization: `Bearer ${tokenVerificado}` },
@@ -83,6 +221,7 @@ export function AuthProvider({ children }) {
         const dados = await resposta.json()
 
         if (ativo && tokenAtualRef.current === tokenVerificado) {
+          tokenValidadoRef.current = identidadeToken
           setUsuario(dados)
         }
       } catch {

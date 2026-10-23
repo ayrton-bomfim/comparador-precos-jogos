@@ -25,8 +25,9 @@ from ..modelos import Usuario
 
 
 ALGORITHM = "HS256"
+SESSION_IDLE_TIMEOUT_HOURS = 6
 ACCESS_TOKEN_EXPIRE_MINUTES = int(
-    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")
+    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "360")
 )
 if ACCESS_TOKEN_EXPIRE_MINUTES <= 0:
     raise RuntimeError("ACCESS_TOKEN_EXPIRE_MINUTES deve ser maior que zero.")
@@ -172,6 +173,24 @@ async def obter_usuario_atual(
 
     if versao_token != int(getattr(usuario, "versao_sessao", 0) or 0):
         raise erro
+
+    # O banco usa DateTime sem fuso; armazenamos UTC sem tzinfo para manter
+    # comparações consistentes com a coluna ultima_atividade_sessao.
+    agora = datetime.now(timezone.utc).replace(tzinfo=None)
+    ultima_atividade = usuario.ultima_atividade_sessao
+
+    # Inicializa sessões antigas/recém-autenticadas que ainda não têm atividade.
+    # A rota de renovação atualizará este horário apenas quando for chamada
+    # pelo fluxo explícito de atividade do frontend.
+    if ultima_atividade is None:
+        usuario.ultima_atividade_sessao = agora
+        db.commit()
+    else:
+        if ultima_atividade.tzinfo is not None:
+            ultima_atividade = ultima_atividade.astimezone(timezone.utc).replace(tzinfo=None)
+
+        if agora - ultima_atividade >= timedelta(hours=SESSION_IDLE_TIMEOUT_HOURS):
+            raise erro
 
     return usuario
 

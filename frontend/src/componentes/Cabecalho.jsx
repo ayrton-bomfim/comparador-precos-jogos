@@ -211,20 +211,54 @@ function Cabecalho({ tema: temaProp, setTema: setTemaProp }) {
 
 
   const sugestoesBusca = useMemo(() => {
-    const termo = termoBusca.trim().toLocaleLowerCase('pt-BR')
+    // Padroniza acentos, caixa e separadores sem confundir trechos no meio de palavras.
+    const normalizarBusca = (valor) => valor
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('pt-BR')
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .trim()
+      .replace(/\s+/g, ' ')
+
+    const termo = normalizarBusca(termoBusca)
     if (!termo) return []
 
+    const palavrasTermo = termo.split(' ')
+    const pontuarJogo = (nomeOriginal) => {
+      const nome = normalizarBusca(nomeOriginal)
+      const palavrasNome = nome.split(' ')
+      const termoComLimites = ` ${termo} `
+      const nomeComLimites = ` ${nome} `
+
+      if (nome === termo) return 0
+      if (nome.startsWith(`${termo} `)) return 1
+      if (nomeComLimites.includes(termoComLimites)) return 2
+
+      // Aceita digitação parcial no início de uma palavra, não no meio dela.
+      const sequenciaInicial = palavrasNome.slice(0, palavrasTermo.length)
+      if (
+        sequenciaInicial.length === palavrasTermo.length &&
+        sequenciaInicial.every((palavra, indice) => palavra.startsWith(palavrasTermo[indice]))
+      ) return 3
+
+      // Para termos de uma palavra, permite encontrar palavras posteriores pelo prefixo.
+      if (
+        palavrasTermo.length === 1 &&
+        palavrasNome.some((palavra) => palavra.startsWith(termo))
+      ) return 4
+
+      return Number.POSITIVE_INFINITY
+    }
+
     return [...jogosBusca]
-      .filter((jogo) => jogo.nome.toLocaleLowerCase('pt-BR').includes(termo))
+      .map((jogo) => ({ jogo, pontuacao: pontuarJogo(jogo.nome) }))
+      .filter(({ pontuacao }) => Number.isFinite(pontuacao))
       .sort((a, b) => {
-        const nomeA = a.nome.toLocaleLowerCase('pt-BR')
-        const nomeB = b.nome.toLocaleLowerCase('pt-BR')
-        const comecaA = nomeA.startsWith(termo)
-        const comecaB = nomeB.startsWith(termo)
-        if (comecaA !== comecaB) return comecaA ? -1 : 1
-        return nomeA.localeCompare(nomeB, 'pt-BR')
+        if (a.pontuacao !== b.pontuacao) return a.pontuacao - b.pontuacao
+        return a.jogo.nome.localeCompare(b.jogo.nome, 'pt-BR')
       })
       .slice(0, 6)
+      .map(({ jogo }) => jogo)
   }, [termoBusca, jogosBusca])
 
   useEffect(() => {
@@ -252,7 +286,7 @@ function Cabecalho({ tema: temaProp, setTema: setTemaProp }) {
 
   useEffect(() => {
     const termo = termoBusca.trim()
-    if (!buscaAberta || termo.length < 2) {
+    if (!buscaAberta || termo.length < 3) {
       setJogosBusca([])
       return undefined
     }
@@ -261,11 +295,12 @@ function Cabecalho({ tema: temaProp, setTema: setTemaProp }) {
     const timeout = window.setTimeout(async () => {
       try {
         const resposta = await fetch(
-          `${API_JOGOS_URL}/?pagina=1&por_pagina=20&busca=${encodeURIComponent(termo)}&ordenacao=nome`,
+          `${API_JOGOS_URL}/sugestoes?busca=${encodeURIComponent(termo)}`,
           { signal: controller.signal }
         )
         if (!resposta.ok) throw new Error('Não foi possível carregar os jogos para a pesquisa.')
         const dados = await resposta.json()
+        if (controller.signal.aborted) return
         const lista = Array.isArray(dados) ? dados : dados.jogos || []
         setJogosBusca(lista.map((jogo) => ({
           id: jogo.id,
@@ -274,12 +309,12 @@ function Cabecalho({ tema: temaProp, setTema: setTemaProp }) {
             (jogo.steam_id ? `https://cdn.akamai.steamstatic.com/steam/apps/${jogo.steam_id}/header.jpg` : ''),
         })))
       } catch (erro) {
-        if (erro.name !== 'AbortError') {
+        if (erro.name !== 'AbortError' && !controller.signal.aborted) {
           console.error('Erro ao carregar jogos para a pesquisa do cabeçalho:', erro)
           setJogosBusca([])
         }
       }
-    }, 220)
+    }, 100)
 
     return () => {
       window.clearTimeout(timeout)
@@ -292,7 +327,12 @@ function Cabecalho({ tema: temaProp, setTema: setTemaProp }) {
     const termo = termoBusca.trim()
     setBuscaAberta(false)
     setTermoBusca('')
-    navigate(termo ? `/jogos?busca=${encodeURIComponent(termo)}` : '/jogos')
+    // Ao abrir o catálogo pelo botão "Pesquisar" do cabeçalho, remove a restrição
+    // de estúdios brasileiros para que a busca considere o catálogo completo.
+    const parametros = new URLSearchParams()
+    parametros.set('filtro', 'todos')
+    if (termo) parametros.set('busca', termo)
+    navigate(`/jogos?${parametros.toString()}`)
   }
 
   const abrirJogoBuscaCabecalho = (id) => {
@@ -570,7 +610,7 @@ function Cabecalho({ tema: temaProp, setTema: setTemaProp }) {
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
             </button>
           </form>
-          {termoBusca.trim().length >= 2 && (
+          {termoBusca.trim().length > 0 && (
             <div id="sugestoes-busca-cabecalho" className="cabecalho-busca-sugestoes">
               {sugestoesBusca.length ? sugestoesBusca.map((jogo) => (
                 <button
@@ -587,7 +627,7 @@ function Cabecalho({ tema: temaProp, setTema: setTemaProp }) {
                 </button>
               )) : (
                 <div className="cabecalho-busca-sem-resultados">
-                  {termoBusca.trim().length < 2 ? 'Digite pelo menos 2 caracteres.' : 'Nenhum jogo encontrado.'}
+                  {termoBusca.trim().length < 3 ? 'Digite pelo menos 3 caracteres para ver sugestões.' : 'Nenhum jogo encontrado.'}
                 </div>
               )}
             </div>

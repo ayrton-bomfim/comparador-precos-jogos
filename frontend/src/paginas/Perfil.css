@@ -1535,3 +1535,76 @@
     padding: 9px;
   }
 }
+
+
+/* Cartão de e-mail: ação de confirmação agrupada com o status do endereço. */
+.pagina-perfil .perfil-dado-conta-card#perfil-conta-email {
+  align-items: center;
+}
+
+.pagina-perfil .perfil-conta-email-conteudo {
+  min-width: 0;
+  flex: 1;
+}
+
+.pagina-perfil .perfil-email-confirmacao-acoes {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.pagina-perfil .perfil-email-confirmacao-acoes .perfil-dado-conta-acao-texto {
+  white-space: normal;
+  text-align: center;
+  border-color: var(--roxo-tema);
+  background: var(--roxo-tema);
+  color: #fff;
+  transition: filter .15s ease, opacity .15s ease, transform .15s ease;
+}
+
+.pagina-perfil .perfil-email-confirmacao-acoes .perfil-dado-conta-acao-texto:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.pagina-perfil .perfil-email-confirmacao-acoes .perfil-dado-conta-acao-texto:disabled {
+  opacity: .65;
+  cursor: wait;
+}
+
+.pagina-perfil .perfil-email-confirmacao-mensagem {
+  display: block;
+  max-width: 100%;
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.pagina-perfil .perfil-email-confirmacao-mensagem.sucesso {
+  color: #36a875;
+}
+
+.pagina-perfil .perfil-email-confirmacao-mensagem.erro {
+  color: #e16a75;
+}
+
+.pagina-perfil #perfil-conta-email-acao {
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+@media (max-width: 520px) {
+  .pagina-perfil .perfil-dado-conta-card#perfil-conta-email {
+    align-items: flex-start;
+  }
+
+  .pagina-perfil #perfil-conta-email-acao {
+    margin-left: auto;
+  }
+
+  .pagina-perfil .perfil-email-confirmacao-acoes .perfil-dado-conta-acao-texto {
+    max-width: 100%;
+  }
+}

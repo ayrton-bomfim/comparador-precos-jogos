@@ -8,8 +8,17 @@ import './Favoritos.css'
 
 const dinheiro = (valor) => valor == null ? 'Indisponível' : Number(valor) === 0 ? 'Grátis' : Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
+// Padroniza acentos, caixa, pontuação e espaços para a busca funcionar de forma previsível.
+const normalizarTextoBusca = (valor) => String(valor || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLocaleLowerCase('pt-BR')
+  .replace(/[\p{P}\p{S}]/gu, '')
+  .replace(/\s+/g, ' ')
+  .trim()
+
 export default function Favoritos() {
-  const { token, autenticado, carregando: authCarregando } = useAuth()
+  const { token, usuario, autenticado, carregando: authCarregando } = useAuth()
   const { tema } = useTema()
   const navigate = useNavigate()
 
@@ -40,6 +49,7 @@ export default function Favoritos() {
   const [salvandoAlerta, setSalvandoAlerta] = useState(false)
   const [erroAlerta, setErroAlerta] = useState('')
   const requisicaoAtual = useRef(0)
+  const favoritosCarregadosRef = useRef(false)
 
   const carregar = useCallback(async () => {
     const idRequisicao = ++requisicaoAtual.current
@@ -48,14 +58,19 @@ export default function Favoritos() {
       setFavoritos([]); setErro(''); setCarregando(false)
       return
     }
-    setCarregando(true); setErro('')
+    // Não desmonta visualmente a coleção durante uma atualização em segundo plano.
+    if (!favoritosCarregadosRef.current) setCarregando(true)
+    setErro('')
     try {
       const resposta = await fetch(`${API_URL}/api/favoritos`, {
         headers: { Authorization: `Bearer ${tokenDaRequisicao}` },
       })
       if (!resposta.ok) throw new Error(resposta.status === 401 ? 'Sua sessão expirou. Entre novamente.' : 'Não foi possível carregar seus favoritos.')
       const dados = await resposta.json()
-      if (idRequisicao === requisicaoAtual.current) setFavoritos(dados.favoritos || [])
+      if (idRequisicao === requisicaoAtual.current) {
+        setFavoritos(dados.favoritos || [])
+        favoritosCarregadosRef.current = true
+      }
     } catch (e) {
       if (idRequisicao === requisicaoAtual.current) setErro(e.message || 'Falha de conexão com a API.')
     } finally {
@@ -63,15 +78,18 @@ export default function Favoritos() {
     }
   }, [token])
 
+  const usuarioId = usuario?.id
+
   useEffect(() => {
     requisicaoAtual.current += 1
-    // Reset sincronizado ao trocar de sessão para não exibir dados da conta anterior.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFavoritos([]); setErro(''); setRemovendo(null)
-    if (!authCarregando && autenticado) carregar()
-    else if (!authCarregando) setCarregando(false)
+    // Limpa os dados apenas ao encerrar a sessão, não quando o JWT é renovado.
+    if (!authCarregando && !autenticado) {
+      setFavoritos([]); favoritosCarregadosRef.current = false; setErro(''); setRemovendo(null); setCarregando(false)
+    } else if (!authCarregando && autenticado) {
+      carregar()
+    }
     return () => { requisicaoAtual.current += 1 }
-  }, [authCarregando, autenticado, token, carregar])
+  }, [authCarregando, autenticado, usuarioId, carregar])
 
   useEffect(() => {
     if (!token || !autenticado || authCarregando) {
@@ -141,8 +159,24 @@ export default function Favoritos() {
     }
   }
 
+  // Pré-calcula o texto pesquisável apenas quando a coleção muda.
+  // Assim, a cada tecla não precisamos normalizar novamente todos os favoritos.
+  const favoritosIndexados = useMemo(() => favoritos.map(jogo => ({
+    jogo,
+    textoBusca: normalizarTextoBusca(
+      `${jogo.nome} ${jogo.desenvolvedor || ''} ${jogo.publicadora || ''}`
+    ),
+  })), [favoritos])
+
   const filtrados = useMemo(() => {
-    let lista = favoritos.filter(j => `${j.nome} ${j.desenvolvedor || ''} ${j.publicadora || ''}`.toLowerCase().includes(busca.toLowerCase().trim()))
+    const termoDigitado = normalizarTextoBusca(busca)
+    // Mantém a coleção completa até haver pelo menos 3 caracteres úteis.
+    const termoBusca = termoDigitado.length >= 3 ? termoDigitado : ''
+
+    let lista = favoritosIndexados
+      .filter(item => !termoBusca || item.textoBusca.includes(termoBusca))
+      .map(item => item.jogo)
+
     if (loja === 'steam') lista = lista.filter(j => j.steam_id)
     if (loja === 'epic') lista = lista.filter(j => j.epic_id && j.epic_id !== 'EXCLUSIVO_STEAM')
     if (filtroPrecoHistorico === 'menor-preco-historico') {
@@ -153,7 +187,7 @@ export default function Favoritos() {
     if (ordenacao === 'menor-preco') lista.sort((a,b) => Math.min(a.preco_steam ?? Infinity, a.preco_epic ?? Infinity) - Math.min(b.preco_steam ?? Infinity, b.preco_epic ?? Infinity))
     if (ordenacao === 'maior-desconto') lista.sort((a,b) => Math.max(b.desconto_steam || 0,b.desconto_epic || 0) - Math.max(a.desconto_steam || 0,a.desconto_epic || 0))
     return lista
-  }, [favoritos, busca, loja, filtroPrecoHistorico, ordenacao])
+  }, [favoritosIndexados, busca, loja, filtroPrecoHistorico, ordenacao])
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / itensPorPagina))
   const paginaAtual = Math.min(pagina, totalPaginas)
@@ -217,7 +251,7 @@ export default function Favoritos() {
     <section className="favoritos-ferramentas" aria-label="Busca e filtros dos favoritos">
        <label className="favoritos-busca">
          <span aria-hidden="true">⌕</span>
-         <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar por jogo, desenvolvedora ou publicadora…" aria-label="Buscar nos favoritos" />
+         <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Digite 3 caracteres para buscar…" aria-label="Buscar nos favoritos" />
        </label>
        <div className="favoritos-atalho-filtros">
          <div className="favoritos-resumo-filtros-ativos" aria-live="polite">

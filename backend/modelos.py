@@ -36,6 +36,8 @@ class Usuario(Base):
     senha_hash = Column(String(255), nullable=False)
     # Versão usada para invalidar JWTs emitidos antes de uma mudança de senha.
     versao_sessao = Column(Integer, nullable=False, default=0, server_default="0")
+    # Horário da última atividade humana reconhecida na sessão.
+    ultima_atividade_sessao = Column(DateTime, nullable=True)
     role = Column(String(20), nullable=False, default="user", index=True)
     ativo = Column(Boolean, nullable=False, default=True)
     email_verificado = Column(Boolean, nullable=False, default=False)

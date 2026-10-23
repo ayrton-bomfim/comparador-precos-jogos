@@ -231,7 +231,7 @@ function GaleriaCuradoria({
 }
 
 function Curadoria() {
-  const { token, isAdmin, carregando } = useAuth()
+  const { token, usuario, isAdmin, carregando } = useAuth()
 
   const [pendentes, setPendentes] = useState([])
   const [totalPendentes, setTotalPendentes] = useState(0)
@@ -303,10 +303,15 @@ function Curadoria() {
   const sequenciaPendentes = useRef(0)
   const sequenciaStatus = useRef(0)
 
+  // Mantém a função de cabeçalhos estável entre renovações do token.
+  // Cada requisição ainda usa sempre o token mais recente.
+  const tokenAtualRef = useRef(token)
+  tokenAtualRef.current = token
+
   const getHeaders = useCallback(() => ({
-    Authorization: `Bearer ${token}`,
+    Authorization: `Bearer ${tokenAtualRef.current}`,
     'Content-Type': 'application/json',
-  }), [token])
+  }), [])
 
   // Atualiza os contadores de todas as abas ao entrar na Curadoria, sem exigir que cada aba seja aberta.
   const atualizarContadoresAbas = useCallback(async () => {
@@ -339,7 +344,7 @@ function Curadoria() {
     if (consultas[3].status === 'fulfilled') setTotalExcluidos(totalDaResposta(consultas[3]))
     if (consultas[4].status === 'fulfilled') setTotalVitrine(totalDaResposta(consultas[4]))
     if (consultas[5].status === 'fulfilled') setTotalFeedbackPendentes(totalDaResposta(consultas[5]))
-  }, [getHeaders, isAdmin, token])
+  }, [getHeaders, isAdmin])
 
   useEffect(() => {
     atualizarContadoresAbas()
@@ -611,7 +616,7 @@ function Curadoria() {
     setAprovacaoPendente(null)
     setAcaoLote(null)
     setProcessandoLote(false)
-  }, [token, isAdmin])
+  }, [usuario?.id, isAdmin])
 
   const carregarFeedback = useCallback(async () => {
     if (!isAdmin || !token) return
@@ -631,7 +636,7 @@ function Curadoria() {
     } finally {
       setFeedbackCarregando(false)
     }
-  }, [getHeaders, isAdmin, token, feedbackStatus, paginaFeedback])
+  }, [getHeaders, isAdmin, feedbackStatus, paginaFeedback])
 
   const atualizarStatusFeedback = async (item) => {
     setFeedbackAcaoId(item.id)
@@ -684,7 +689,7 @@ function Curadoria() {
     if (aba === 'vitrine') return
     const statusBackend = aba === 'aprovados' ? 'aprovado' : 'excluido'
     carregarStatus(statusBackend)
-  }, [isAdmin, token, aba, carregarPendentes, carregarConteudosSensiveis, carregarStatus, carregarFeedback])
+  }, [isAdmin, Boolean(token), aba, carregarPendentes, carregarConteudosSensiveis, carregarStatus, carregarFeedback])
 
   const carregarVitrine = useCallback(async () => {
     if (!isAdmin || !token) return
@@ -706,11 +711,11 @@ function Curadoria() {
     } finally {
       setCarregandoVitrine(false)
     }
-  }, [getHeaders, isAdmin, token, paginaVitrine, termoVitrine])
+  }, [getHeaders, isAdmin, paginaVitrine, termoVitrine])
 
   useEffect(() => {
     if (aba === 'vitrine' && isAdmin && token) carregarVitrine()
-  }, [aba, isAdmin, token, carregarVitrine])
+  }, [aba, isAdmin, Boolean(token), carregarVitrine])
 
   const atualizarItemVitrine = async (item, alteracoes) => {
     setAcaoId(item.id)
