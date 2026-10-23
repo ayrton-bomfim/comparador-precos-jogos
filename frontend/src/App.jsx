@@ -92,7 +92,7 @@ function AvisoBeta() {
           <ul>
             <li><strong>Os dados ainda estão sendo refinados.</strong> Os preços podem ser diferentes dos da loja no momento da consulta, e um mesmo jogo pode aparecer em cards separados, um para cada plataforma.</li>
             <li><strong>As estimativas são experimentais.</strong> A data estimada da próxima promoção usa o histórico já coletado, mas a fórmula ainda está sendo ajustada e pode ser imprecisa.</li>
-            <li><strong>Alguns recursos estão incompletos.</strong> Você pode ver suas conquistas, mas as recompensas ainda não podem ser aplicadas, porque as artes estão em produção. Também podem ocorrer lentidão e erros pontuais.</li>
+            <li><strong>Alguns recursos estão incompletos.</strong> Você pode ver suas conquistas, mas as recompensas ainda não podem ser aplicadas, porque as artes estão em produção. Também pode ocorrer lentidão e erros pontuais.</li>
           </ul>
           <div className="aviso-beta-atencao">
             <span className="aviso-beta-atencao-icone" aria-hidden="true">ⓘ</span>
