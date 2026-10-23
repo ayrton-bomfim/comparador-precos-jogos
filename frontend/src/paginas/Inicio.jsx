@@ -347,7 +347,7 @@ function Inicio() {
                     className="comparador-detalhes"
                     onClick={() => navigate(`/jogos/${jogoComparacao.id}`)}
                   >
-                    Ver detalhes do jogo →
+                    Ver detalhes do jogo 
                   </button>
 
                   <button
@@ -355,7 +355,7 @@ function Inicio() {
                     className="comparador-previsao"
                     onClick={() => navigate(`/ofertas?jogo=${encodeURIComponent(jogoComparacao.id)}`)}
                   >
-                    Ver previsão de preço →
+                    Ver previsão de preço 
                   </button>
 
                   <button
@@ -450,7 +450,7 @@ function VitrineBrasileira({ jogos = [], destino = '/jogos' }) {
       <div className="vitrine-brasil-cabecalho">
         <div className="vitrine-brasil-identidade">
           <span className="vitrine-brasil-simbolo" aria-hidden="true">🇧🇷</span>
-          <span className="vitrine-brasil-eyebrow">VITRINE ESPECIAL · DESENVOLVIMENTO NACIONAL</span>
+          <span className="vitrine-brasil-eyebrow">DESTAQUES NO DESENVOLVIMENTO NACIONAL</span>
         </div>
         <h2 id="titulo-vitrine-brasil">Brasil <span>em jogo</span></h2>
         <p>Histórias, ideias e mundos criados por estúdios brasileiros.</p>
@@ -465,7 +465,7 @@ function VitrineBrasileira({ jogos = [], destino = '/jogos' }) {
               <span className="vitrine-brasil-conteudo">
                 <span className="vitrine-brasil-chamada">DESTAQUE NACIONAL</span>
                 <strong>{principal.nome}</strong>
-                <span className="vitrine-brasil-acao">Conhecer jogo <span aria-hidden="true">↗</span></span>
+                <span className="vitrine-brasil-acao">Conhecer jogo<span aria-hidden="true"></span></span>
               </span>
             </NavLink>
 
@@ -475,14 +475,14 @@ function VitrineBrasileira({ jogos = [], destino = '/jogos' }) {
                   {jogo.imagem && <img className="vitrine-brasil-imagem" src={jogo.imagem} alt="" loading="lazy" decoding="async" />}
                   <span className="vitrine-brasil-selo">🇧🇷 NACIONAL</span>
                   <strong>{jogo.nome}</strong>
-                  <span className="vitrine-brasil-link">Ver jogo ↗</span>
+                  <span className="vitrine-brasil-link">Ver jogo </span>
                 </NavLink>
               ))}
             </div>
           </div>
 
           <div className="vitrine-brasil-rodape">
-            <NavLink className="vitrine-brasil-ver-todos" to={destino}>Explorar jogos brasileiros <span aria-hidden="true">→</span></NavLink>
+            <NavLink className="vitrine-brasil-ver-todos" to={destino}>Explorar jogos brasileiros <span aria-hidden="true"></span></NavLink>
             <div className="vitrine-brasil-navegacao" aria-label="Navegação da vitrine">
               <button type="button" onClick={() => avancar(-1)} disabled={total < 2} aria-label="Jogo brasileiro anterior">‹</button>
               <div className="vitrine-brasil-indicadores" aria-label={`Jogo ${indicePrincipal + 1} de ${total}`}>

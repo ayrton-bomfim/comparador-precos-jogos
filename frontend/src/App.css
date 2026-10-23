@@ -1,6 +1,6 @@
 .app {
   min-height: 100vh;
-  background: #f7f7f8;
+  background: #DCDCE5;
 }
 
 .cabecalho {
@@ -1297,7 +1297,7 @@ footer strong {
 @property --fundo {
   syntax: '<color>';
   inherits: true;
-  initial-value: #f7f7f8;
+  initial-value: #DCDCE5;
 }
 
 @property --fundo-card {
@@ -1373,10 +1373,10 @@ footer strong {
    ============================================================ */
 
 .app {
-  --fundo: #f7f7f8;
+  --fundo: #DCDCE5;
   --fundo-card: #ffffff;
   --fundo-header: #ffffff;
-  --fundo-hero: #ffffff;
+  --fundo-hero: #DCDCE5;
   --texto: #17171b;
   --texto-secundario: #66666d;
   --texto-suave: #77777e;
@@ -1573,7 +1573,7 @@ footer strong {
   background:
     radial-gradient(circle at 12% 42%, rgba(109, 40, 217, 0.08), transparent 22%),
     radial-gradient(circle at 88% 48%, rgba(109, 40, 217, 0.07), transparent 24%),
-    linear-gradient(180deg, #f8f8fb 0%, #f1f1f5 100%);
+    linear-gradient(180deg, #E5E5ED 0%, var(--fundo) 100%);
   border-top-color: rgba(91, 76, 168, 0.24);
   color: var(--texto-secundario);
 }
@@ -3713,8 +3713,20 @@ footer strong {
 }
 
 .app .pesquisa-jogos {
-  background: var(--fundo);
+  background: #F7F7FA;
   border-color: var(--borda-forte);
+}
+
+/* A pesquisa fica clara no tema claro, mas acompanha o fundo dos
+   componentes no tema escuro, inclusive quando o tema é automático. */
+.app.tema-escuro .pesquisa-jogos {
+  background: var(--fundo-card);
+}
+
+@media (prefers-color-scheme: dark) {
+  .app.tema-sistema .pesquisa-jogos {
+    background: var(--fundo-card);
+  }
 }
 
 .app .grupo-filtros button,
@@ -3956,8 +3968,8 @@ footer strong {
 .app .hero::before {
   opacity: 1;
   background:
-    radial-gradient(circle at 80% 25%, rgba(107, 67, 255, 0.12), transparent 32%),
-    linear-gradient(135deg, #ffffff 0%, #f1f1f4 100%);
+    radial-gradient(circle at 80% 25%, color-mix(in srgb, var(--roxo-tema) 10%, transparent), transparent 32%),
+    linear-gradient(135deg, var(--fundo-hero) 0%, var(--fundo) 100%);
 }
 
 /* Versão escura */
@@ -4122,8 +4134,8 @@ footer strong {
 .app.tema-claro .viewport-carrossel::after {
   background: linear-gradient(
     to right,
-    #f7f7f8 0%,
-    rgba(247, 247, 248, 0) 100%
+    #DCDCE5 0%,
+    rgba(220, 220, 229, 0) 100%
   );
 }
 
@@ -4139,8 +4151,8 @@ footer strong {
 .app.tema-claro .viewport-carrossel::after {
   background: linear-gradient(
     to left,
-    #f7f7f8 0%,
-    rgba(247, 247, 248, 0) 100%
+    #DCDCE5 0%,
+    rgba(220, 220, 229, 0) 100%
   );
 }
 
@@ -4157,8 +4169,8 @@ footer strong {
   background:
     linear-gradient(
       to right,
-      #f7f7f8 0%,
-      rgba(247, 247, 248, 0) 100%
+      #DCDCE5 0%,
+      rgba(220, 220, 229, 0) 100%
     );
 }
 
@@ -4166,8 +4178,8 @@ footer strong {
   background:
     linear-gradient(
       to left,
-      #f7f7f8 0%,
-      rgba(247, 247, 248, 0) 100%
+      #DCDCE5 0%,
+      rgba(220, 220, 229, 0) 100%
     );
 }
 
@@ -6744,7 +6756,7 @@ footer strong {
 /* No claro: circuitos quase como uma marca d'água tecnológica. */
 .app.tema-claro,
 .app.tema-sistema:not(.tema-escuro) {
-  background-color: #f7f7f9;
+  background-color: var(--fundo);
 }
 
 /* No escuro: mesma composição, um pouco mais presente sem virar textura. */
@@ -7508,7 +7520,7 @@ html {
 .vitrine-brasil-indicadores button { width:7px; height:7px; padding:0; border:0; border-radius:50%; background:#64746a; cursor:pointer; }
 .vitrine-brasil-indicadores button.ativo { width:20px; border-radius:99px; background:var(--brasil-amarelo); }
 .vitrine-brasil-vazia { padding:32px 18px; border:1px dashed rgba(99,222,142,.35); border-radius:12px; color:#bdc9c0; text-align:center; }
-.app.tema-claro .vitrine-brasil { background:radial-gradient(ellipse at 0% 0%,rgba(17,130,68,.13),transparent 42%),radial-gradient(ellipse at 100% 100%,rgba(241,211,75,.12),transparent 38%),linear-gradient(125deg,#f2faf4 0%,#fff 56%,#fffdf1 100%); border-color:rgba(39,150,83,.35); box-shadow:0 14px 38px rgba(14,91,53,.08); }
+.app.tema-claro .vitrine-brasil { background:radial-gradient(ellipse at 0% 0%,rgba(17,130,68,.16),transparent 42%),radial-gradient(ellipse at 100% 100%,rgba(241,211,75,.16),transparent 38%),linear-gradient(125deg,#e2eee5 0%,#f0f0e9 56%,#f3edcf 100%); border-color:rgba(39,150,83,.35); box-shadow:0 14px 38px rgba(14,91,53,.08); }
 .app.tema-claro .vitrine-brasil-cabecalho h2 { color:#173c29; }
 .app.tema-claro .vitrine-brasil-cabecalho p { color:#53685b; }
 .app.tema-claro .vitrine-brasil-ver-todos { color:#176b3d; background:rgba(19,117,62,.07); }
@@ -9749,5 +9761,1547 @@ html {
     width: 12px;
     height: 14px;
     flex-basis: 12px;
+  }
+}
+
+/* DESCTRL — VITRINE BRASIL: MAIS PRESENÇA NO MODO CLARO */
+.app.tema-claro .vitrine-brasil {
+  --brasil-verde: #145b35;
+  --brasil-verde-claro: #167344;
+  --brasil-amarelo: #e8c936;
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(31, 125, 69, 0.22), transparent 46%),
+    radial-gradient(ellipse at 100% 100%, rgba(226, 190, 48, 0.25), transparent 42%),
+    linear-gradient(125deg, #dceade 0%, #e8eee4 48%, #f4e9bc 100%);
+  border: 1px solid rgba(25, 105, 57, 0.58);
+  box-shadow:
+    0 18px 42px rgba(25, 75, 47, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.app.tema-claro .vitrine-brasil-cabecalho h2 {
+  color: #173c29;
+}
+
+.app.tema-claro .vitrine-brasil-cabecalho p {
+  color: #4d6255;
+}
+
+.app.tema-claro .vitrine-brasil-eyebrow,
+.app.tema-claro .vitrine-brasil-chamada {
+  color: #16834a;
+}
+
+.app.tema-claro .vitrine-brasil-simbolo {
+  background: rgba(232, 201, 54, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(34, 125, 70, 0.08);
+}
+
+.app.tema-claro .vitrine-brasil-principal,
+.app.tema-claro .vitrine-brasil-secundario {
+  border-color: rgba(21, 70, 43, 0.28);
+  box-shadow:
+    0 9px 22px rgba(19, 43, 29, 0.17),
+    0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.app.tema-claro .vitrine-brasil-principal::before,
+.app.tema-claro .vitrine-brasil-secundario::before {
+  background: linear-gradient(
+    180deg,
+    rgba(5, 12, 8, 0.04) 0%,
+    rgba(5, 12, 8, 0.08) 24%,
+    rgba(5, 12, 8, 0.55) 62%,
+    rgba(5, 12, 8, 0.91) 100%
+  );
+}
+
+.app.tema-claro .vitrine-brasil-principal:hover,
+.app.tema-claro .vitrine-brasil-secundario:hover {
+  border-color: rgba(22, 131, 74, 0.72);
+  box-shadow: 0 13px 28px rgba(19, 43, 29, 0.23);
+}
+
+.app.tema-claro .vitrine-brasil-selo {
+  border-color: rgba(148, 226, 174, 0.58);
+  background: rgba(8, 49, 29, 0.9);
+  color: #e8ffef;
+}
+
+.app.tema-claro .vitrine-brasil-acao {
+  background: #f0d64e;
+  color: #173c29;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.16);
+}
+
+.app.tema-claro .vitrine-brasil-acao:hover {
+  filter: brightness(1.035);
+}
+
+.app.tema-claro .vitrine-brasil-link {
+  color: #ffe36a;
+}
+
+.app.tema-claro .vitrine-brasil-ver-todos {
+  border-color: rgba(22, 131, 74, 0.36);
+  background: rgba(22, 131, 74, 0.08);
+  color: #176b3d;
+}
+
+.app.tema-claro .vitrine-brasil-ver-todos:hover {
+  border-color: rgba(22, 131, 74, 0.68);
+  background: rgba(22, 131, 74, 0.13);
+}
+
+.app.tema-claro .vitrine-brasil-navegacao > button {
+  border-color: rgba(37, 75, 52, 0.2);
+  background: rgba(255, 255, 255, 0.62);
+  color: #244b34;
+  box-shadow: 0 2px 7px rgba(20, 45, 30, 0.07);
+}
+
+.app.tema-claro .vitrine-brasil-navegacao > button:hover:not(:disabled) {
+  border-color: rgba(22, 131, 74, 0.48);
+  background: #ffffff;
+}
+
+.app.tema-claro .vitrine-brasil-indicadores button {
+  background: #9aaa9e;
+}
+
+.app.tema-claro .vitrine-brasil-indicadores button.ativo {
+  background: #e8c936;
+}
+
+.app.tema-claro .vitrine-brasil-vazia {
+  border-color: rgba(22, 131, 74, 0.35);
+  color: #4d6255;
+}
+/* ============================================================
+   DESCTRL — refinamento visual do rodapé
+   Adicionar ao final de App.css, depois dos estilos anteriores.
+   Corrige botões nativos, equilíbrio das colunas e cartões das lojas.
+   ============================================================ */
+
+.app .footer-conteudo {
+  grid-template-columns:
+    minmax(250px, 1.65fr)
+    minmax(105px, 0.72fr)
+    minmax(155px, 1fr)
+    minmax(190px, 1.18fr)
+    minmax(180px, 1.08fr);
+  align-items: start;
+  column-gap: clamp(22px, 2.5vw, 36px);
+  row-gap: 28px;
+  padding-top: 38px;
+  padding-bottom: 34px;
+}
+
+.app .footer-marca {
+  max-width: 330px;
+}
+
+.app .footer-coluna {
+  min-width: 0;
+  gap: 10px;
+}
+
+.app .footer-coluna h3 {
+  margin: 3px 0 5px;
+  min-height: 22px;
+  line-height: 1.35;
+}
+
+.app .footer-coluna > a:not(.footer-loja),
+.app .footer-coluna > button.footer-link-botao,
+.app .footer-universidade {
+  display: inline-flex;
+  align-items: baseline;
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.65;
+  text-align: left;
+  text-decoration: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.app .footer-coluna > a:not(.footer-loja):hover,
+.app .footer-coluna > button.footer-link-botao:hover,
+.app .footer-universidade:hover {
+  color: var(--roxo-forte-tema, #7054d6);
+  transform: none;
+}
+
+.app .footer-coluna > button.footer-link-botao:focus-visible,
+.app .footer-universidade:focus-visible,
+.app .footer-email-contato:focus-visible {
+  outline: 2px solid var(--roxo-forte-tema, #7054d6);
+  outline-offset: 4px;
+  border-radius: 3px;
+}
+
+.app .footer-lojas {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 9px;
+  min-width: 0;
+}
+
+.app .footer-lojas h3 {
+  margin-bottom: 5px;
+}
+
+.app .footer-loja {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 205px;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 5px 10px;
+  border-radius: 11px;
+}
+
+.app .footer-loja > span:last-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.app .footer-loja-icone,
+.app .footer-loja-icone-epic {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+}
+
+.app .footer-coluna-contato {
+  overflow-wrap: anywhere;
+}
+
+.app .footer-universidade-label {
+  margin-top: 5px;
+  margin-bottom: -3px;
+  color: var(--texto-suave, #777486);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.app .footer-universidade {
+  gap: 5px;
+}
+
+.app .footer-universidade span {
+  color: var(--roxo-forte-tema, #7054d6);
+  font-size: 11px;
+}
+
+.app .footer-base {
+  margin-right: auto;
+  margin-left: auto;
+  padding-top: 15px;
+  padding-bottom: 18px;
+}
+
+.app .footer-base span:first-child,
+.app .footer-base span:last-child {
+  line-height: 1.5;
+}
+
+.app .footer-base span:last-child {
+  letter-spacing: 1.1px;
+}
+
+/* Os botões do modal mantêm seu estilo próprio, sem herdar o visual dos links. */
+.app .footer-modal-acoes button,
+.app .footer-modal-acoes a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-height: 40px;
+  padding: 9px 14px;
+  border: 1px solid var(--borda, #484852);
+  border-radius: 9px;
+  box-shadow: none;
+  font: inherit;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.app .footer-modal-acoes a {
+  border-color: transparent;
+  background: var(--roxo-forte-tema, #7054d6);
+  color: #fff;
+}
+
+@media (max-width: 1120px) {
+  .app .footer-conteudo {
+    grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(125px, 1fr));
+    gap: 28px 24px;
+  }
+
+  .app .footer-marca {
+    grid-column: 1 / -1;
+    max-width: 470px;
+  }
+
+  .app .footer-lojas {
+    grid-column: auto;
+  }
+
+  .app .footer-loja {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 820px) {
+  .app .footer-conteudo {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px 24px;
+  }
+
+  .app .footer-marca {
+    grid-column: 1 / -1;
+    max-width: 460px;
+  }
+
+  .app .footer-lojas {
+    grid-column: auto;
+    display: flex;
+  }
+
+  .app .footer-coluna-contato {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 680px) {
+  .app .site-footer {
+    padding-right: 6vw;
+    padding-left: 6vw;
+  }
+
+  .app .footer-conteudo {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 26px 20px;
+    padding-top: 30px;
+    padding-bottom: 28px;
+  }
+
+  .app .footer-marca {
+    grid-column: 1 / -1;
+  }
+
+  .app .footer-lojas {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .app .footer-lojas h3 {
+    grid-column: 1 / -1;
+  }
+
+  .app .footer-loja {
+    max-width: none;
+    min-width: 0;
+  }
+
+  .app .footer-base {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 15px;
+    padding-bottom: 18px;
+  }
+
+  .app .footer-base span:last-child {
+    text-align: left;
+  }
+}
+
+@media (max-width: 390px) {
+  .app .footer-conteudo {
+    column-gap: 15px;
+    row-gap: 23px;
+  }
+
+  .app .footer-lojas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app .footer-lojas h3 {
+    grid-column: auto;
+  }
+
+  .app .footer-base {
+    font-size: 11px;
+  }
+
+  .app .footer-base span:last-child {
+    font-size: 9px;
+  }
+}
+
+/* Ajustes para o modo claro sem interferir na paleta escura. */
+.app.tema-claro .footer-link-botao:hover,
+.app.tema-sistema .footer-link-botao:hover,
+.app.tema-claro .footer-universidade:hover,
+.app.tema-sistema .footer-universidade:hover {
+  color: #6042c5;
+}
+
+/* ============================================================
+   DESCTRL — animações do rodapé e desfoque do modal de contato
+   Integrado ao App.css enviado pelo usuário.
+   ============================================================ */
+
+/* ============================================================
+   DESCTRL — acabamento das interações do rodapé
+   Adicionar ao final do CSS atual do rodapé/App.css.
+   ============================================================ */
+
+/* Interações suaves nos links e botões do rodapé. */
+.app .footer-conteudo a:not(.footer-loja),
+.app .footer-link-botao {
+  transform-origin: left center;
+  transition: color 180ms ease, transform 180ms ease, text-shadow 180ms ease;
+  will-change: transform;
+}
+
+.app .footer-conteudo a:not(.footer-loja):hover,
+.app .footer-link-botao:hover {
+  color: var(--roxo-forte-tema, #7054d6);
+  transform: translateY(-2px) scale(1.035);
+  text-shadow: 0 3px 14px rgba(112, 84, 214, 0.15);
+}
+
+/* Cartões das lojas ganham um pequeno avanço e zoom ao passar o mouse. */
+.app .footer-loja {
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  transform: translateY(0) scale(1);
+}
+
+.app .footer-loja:hover {
+  transform: translateY(-3px) scale(1.025);
+  box-shadow: 0 8px 20px rgba(65, 47, 140, 0.13);
+}
+
+/* Overlay com desfoque do conteúdo atrás da janela de contato. */
+.app .footer-modal-overlay {
+  background: rgba(18, 15, 30, 0.48);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  animation: footer-overlay-entrada 180ms ease-out both;
+}
+
+.app .footer-modal-contato {
+  animation: footer-modal-entrada 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes footer-overlay-entrada {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes footer-modal-entrada {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Modal de sugestões também ganha o mesmo desfoque, sem alterar seu envio. */
+.app .site-footer > div[role="presentation"]:has(form[aria-labelledby="titulo-sugestao"]) {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app .footer-conteudo a:not(.footer-loja),
+  .app .footer-link-botao,
+  .app .footer-loja,
+  .app .footer-modal-overlay,
+  .app .footer-modal-contato {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    will-change: auto;
+  }
+}
+
+
+
+/* ============================================================
+   DESCTRL — modal de contato simplificado
+   O modal é renderizado no body para ocupar a viewport inteira,
+   independentemente de transformações ou efeitos no rodapé.
+   ============================================================ */
+.footer-modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10000 !important;
+  display: grid !important;
+  place-items: center !important;
+  box-sizing: border-box;
+  padding: 16px;
+  background: rgba(5, 5, 9, 0.72) !important;
+  -webkit-backdrop-filter: blur(9px);
+  backdrop-filter: blur(9px);
+  animation: footer-contato-overlay-in 180ms ease-out both;
+}
+
+.footer-modal-contato {
+  position: relative;
+  width: min(100%, 520px);
+  box-sizing: border-box;
+  padding: 26px 24px 24px;
+  border: 1px solid #393941;
+  border-radius: 16px;
+  background: #19191e;
+  color: #f5f5f7;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.48);
+  animation: footer-contato-modal-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.footer-modal-contato h2 {
+  margin: 0 42px 22px 0;
+  color: #f5f5f7;
+  font-size: 21px;
+  line-height: 1.3;
+  font-weight: 750;
+}
+
+.footer-modal-fechar {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #e9e9ef;
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.footer-modal-fechar:hover {
+  background: rgba(167, 139, 250, 0.13);
+  color: #c4b5fd;
+  transform: scale(1.06);
+}
+
+.footer-contato-email-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 54px;
+  padding: 8px 10px 8px 15px;
+  border: 1px solid #45454f;
+  border-radius: 10px;
+  background: #202024;
+  box-sizing: border-box;
+}
+
+.footer-email-contato {
+  min-width: 0;
+  color: #c4b5fd;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.footer-copiar-email {
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #494952;
+  border-radius: 8px;
+  background: #292930;
+  color: #e6e2f5;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.footer-copiar-email svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.footer-copiar-email:hover {
+  transform: translateY(-1px) scale(1.04);
+  border-color: #8b78ef;
+  background: rgba(112, 84, 214, 0.2);
+  color: #d8ccff;
+}
+
+.footer-copiar-email:focus-visible,
+.footer-modal-fechar:focus-visible {
+  outline: 2px solid #a78bfa;
+  outline-offset: 3px;
+}
+
+.footer-copiar-feedback {
+  display: block;
+  min-height: 18px;
+  margin: 7px 0 0 3px;
+  color: #a7f3d0;
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.footer-copiar-feedback.visivel {
+  opacity: 1;
+}
+
+@keyframes footer-contato-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes footer-contato-modal-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 480px) {
+  .footer-modal-contato {
+    padding: 23px 18px 18px;
+  }
+
+  .footer-modal-contato h2 {
+    font-size: 19px;
+  }
+
+  .footer-email-contato {
+    font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footer-modal-overlay,
+  .footer-modal-contato,
+  .footer-modal-fechar,
+  .footer-copiar-email,
+  .footer-copiar-feedback {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ============================================================
+   DESCTRL | Revisão final do rodapé
+   Tema do modal de contato + interações consistentes.
+   O modal usa createPortal(document.body), portanto seus estilos
+   de tema precisam detectar a classe de tema dentro de .app.
+   ============================================================ */
+
+/* Links e ações do rodapé: movimento uniforme, sem deslocar o layout. */
+.app .site-footer .footer-conteudo a:not(.footer-loja),
+.app .site-footer .footer-link-botao {
+  display: inline-flex;
+  align-items: center;
+  transform: translateY(0) scale(1);
+  transform-origin: left center;
+  transition:
+    color 180ms ease,
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    text-shadow 180ms ease;
+  will-change: transform;
+}
+
+.app .site-footer .footer-conteudo a:not(.footer-loja):hover,
+.app .site-footer .footer-link-botao:hover {
+  color: var(--roxo-forte-tema, #7054d6);
+  transform: translateY(-2px) scale(1.045);
+  text-shadow: 0 3px 14px rgba(112, 84, 214, 0.16);
+}
+
+.app .site-footer .footer-conteudo a:not(.footer-loja):active,
+.app .site-footer .footer-link-botao:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.app .site-footer .footer-loja {
+  transform: translateY(0) scale(1);
+  transition:
+    transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 200ms ease,
+    border-color 200ms ease;
+  will-change: transform;
+}
+
+.app .site-footer .footer-loja:hover {
+  transform: translateY(-3px) scale(1.025);
+  box-shadow: 0 8px 20px rgba(65, 47, 140, 0.13);
+}
+
+.app .site-footer .footer-loja:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+/* Modal no estado base: escuro, para o tema escuro. */
+.footer-modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10000 !important;
+  display: grid !important;
+  place-items: center !important;
+  box-sizing: border-box !important;
+  padding: 20px !important;
+  background: rgba(5, 5, 9, 0.62) !important;
+  -webkit-backdrop-filter: blur(9px);
+  backdrop-filter: blur(9px);
+}
+
+.footer-modal-contato {
+  width: min(100%, 520px) !important;
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 26px 24px 24px;
+  border: 1px solid #393941;
+  border-radius: 16px;
+  background: #19191e;
+  color: #f5f5f7;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
+}
+
+.footer-modal-contato h2 {
+  color: inherit;
+}
+
+.footer-contato-email-linha {
+  background: #202024;
+  border-color: #45454f;
+}
+
+.footer-email-contato {
+  color: #c2b4ff;
+}
+
+.footer-modal-fechar {
+  color: #f5f5f7;
+}
+
+.footer-copiar-email {
+  background: #292930;
+  color: #f5f5f7;
+  border-color: #454550;
+}
+
+/* O portal está no body, fora de .app. Detectamos o tema ativo
+   pelo elemento .app e aplicamos a paleta clara ao modal. */
+body:has(.app.tema-claro) > .footer-modal-overlay .footer-modal-contato {
+  background: #ffffff !important;
+  color: #202027 !important;
+  border-color: #dedce8 !important;
+  box-shadow: 0 24px 70px rgba(35, 28, 60, 0.20) !important;
+}
+
+body:has(.app.tema-claro) > .footer-modal-overlay .footer-modal-contato h2,
+body:has(.app.tema-claro) > .footer-modal-overlay .footer-modal-fechar {
+  color: #202027 !important;
+}
+
+body:has(.app.tema-claro) > .footer-modal-overlay .footer-contato-email-linha {
+  background: #f7f7fb !important;
+  border-color: #dedce8 !important;
+}
+
+body:has(.app.tema-claro) > .footer-modal-overlay .footer-email-contato {
+  color: #5b42bf !important;
+}
+
+body:has(.app.tema-claro) > .footer-modal-overlay .footer-copiar-email {
+  background: #ffffff !important;
+  color: #373344 !important;
+  border-color: #dedce8 !important;
+}
+
+body:has(.app.tema-claro) > .footer-modal-overlay .footer-copiar-email:hover {
+  background: #f0edff !important;
+  border-color: #8068df !important;
+  transform: translateY(-1px) scale(1.04);
+}
+
+body:has(.app.tema-claro) > .footer-modal-overlay .footer-modal-fechar:hover {
+  background: #f0edff !important;
+  color: #5b42bf !important;
+}
+
+/* Tema Sistema: claro por padrão, escuro quando o sistema operacional
+   estiver configurado para usar o modo escuro. */
+body:has(.app.tema-sistema) > .footer-modal-overlay .footer-modal-contato {
+  background: #ffffff;
+  color: #202027;
+  border-color: #dedce8;
+}
+
+body:has(.app.tema-sistema) > .footer-modal-overlay .footer-modal-contato h2,
+body:has(.app.tema-sistema) > .footer-modal-overlay .footer-modal-fechar {
+  color: #202027;
+}
+
+body:has(.app.tema-sistema) > .footer-modal-overlay .footer-contato-email-linha {
+  background: #f7f7fb;
+  border-color: #dedce8;
+}
+
+body:has(.app.tema-sistema) > .footer-modal-overlay .footer-email-contato {
+  color: #5b42bf;
+}
+
+body:has(.app.tema-sistema) > .footer-modal-overlay .footer-copiar-email {
+  background: #ffffff;
+  color: #373344;
+  border-color: #dedce8;
+}
+
+@media (prefers-color-scheme: dark) {
+  body:has(.app.tema-sistema) > .footer-modal-overlay .footer-modal-contato {
+    background: #19191e;
+    color: #f5f5f7;
+    border-color: #393941;
+  }
+
+  body:has(.app.tema-sistema) > .footer-modal-overlay .footer-modal-contato h2,
+  body:has(.app.tema-sistema) > .footer-modal-overlay .footer-modal-fechar {
+    color: #f5f5f7;
+  }
+
+  body:has(.app.tema-sistema) > .footer-modal-overlay .footer-contato-email-linha {
+    background: #202024;
+    border-color: #45454f;
+  }
+
+  body:has(.app.tema-sistema) > .footer-modal-overlay .footer-email-contato {
+    color: #c2b4ff;
+  }
+
+  body:has(.app.tema-sistema) > .footer-modal-overlay .footer-copiar-email {
+    background: #292930;
+    color: #f5f5f7;
+    border-color: #454550;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer-modal-contato {
+    padding: 23px 18px 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app .site-footer .footer-conteudo a:not(.footer-loja),
+  .app .site-footer .footer-link-botao,
+  .app .site-footer .footer-loja {
+    transition: none !important;
+    transform: none !important;
+    will-change: auto;
+  }
+
+  .footer-modal-overlay,
+  .footer-modal-contato,
+  .footer-modal-fechar,
+  .footer-copiar-email {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ============================================================
+   CORREÇÃO DIRETA | Hover dos botões do rodapé
+   O seletor anterior do rodapé tinha especificidade menor que
+   `.app .footer-coluna > button.footer-link-botao:hover`,
+   que definia `transform: none`. Estes seletores vencem essa regra.
+   ============================================================ */
+
+.app .site-footer .footer-coluna > button.footer-link-botao,
+.app .site-footer button.footer-link-botao {
+  display: inline-flex;
+  transform: translateY(0) scale(1);
+  transform-origin: left center;
+  transition:
+    color 180ms ease,
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    text-shadow 180ms ease;
+  will-change: transform;
+}
+
+.app .site-footer .footer-coluna > button.footer-link-botao:hover,
+.app .site-footer button.footer-link-botao:hover {
+  color: var(--roxo-forte-tema, #7054d6);
+  transform: translateY(-2px) scale(1.045);
+  text-shadow: 0 3px 14px rgba(112, 84, 214, 0.16);
+}
+
+.app .site-footer .footer-coluna > button.footer-link-botao:active,
+.app .site-footer button.footer-link-botao:active {
+  transform: translateY(0) scale(0.985);
+}
+
+/* Garante que o link/ação de contato também receba o hover,
+   mesmo se a estrutura do componente mudar de botão para link. */
+.app .site-footer .footer-coluna-contato > a,
+.app .site-footer .footer-coluna-contato > button,
+.app .site-footer .footer-conteudo a.footer-link-botao,
+.app .site-footer .footer-conteudo button.footer-link-botao {
+  transform-origin: left center;
+  transition:
+    color 180ms ease,
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    text-shadow 180ms ease;
+}
+
+.app .site-footer .footer-coluna-contato > a:hover,
+.app .site-footer .footer-coluna-contato > button:hover,
+.app .site-footer .footer-conteudo a.footer-link-botao:hover,
+.app .site-footer .footer-conteudo button.footer-link-botao:hover {
+  transform: translateY(-2px) scale(1.045);
+}
+
+
+/* ============================================================
+   LOJAS MONITORADAS | Identidade visual compartilhada com Favoritos
+   ============================================================ */
+.app .footer-loja {
+  border: 1px solid var(--borda-tema, #e1e1e8);
+  background: var(--fundo-card, #ffffff);
+  color: var(--texto, #202027);
+  box-shadow: none;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 180ms ease;
+}
+
+.app .footer-loja.footer-loja-steam {
+  border-color: color-mix(in srgb, #3b82f6 42%, var(--borda-tema, #e1e1e8));
+  background: color-mix(in srgb, #3b82f6 7%, var(--fundo-card, #ffffff));
+}
+
+.app .footer-loja.footer-loja-epic {
+  border-color: color-mix(in srgb, #8b5cf6 45%, var(--borda-tema, #e1e1e8));
+  background: color-mix(in srgb, #8b5cf6 7%, var(--fundo-card, #ffffff));
+}
+
+.app .footer-loja.footer-loja-steam:hover {
+  border-color: #3b82f6;
+  background: color-mix(in srgb, #3b82f6 15%, var(--fundo-card, #ffffff));
+  box-shadow: 0 7px 18px color-mix(in srgb, #3b82f6 12%, transparent);
+}
+
+.app .footer-loja.footer-loja-epic:hover {
+  border-color: #8b5cf6;
+  background: color-mix(in srgb, #8b5cf6 15%, var(--fundo-card, #ffffff));
+  box-shadow: 0 7px 18px color-mix(in srgb, #8b5cf6 12%, transparent);
+}
+
+.app .footer-loja-icone {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: transparent;
+  isolation: auto;
+}
+
+.app .footer-loja-icone::before,
+.app .footer-loja-icone::after {
+  content: none !important;
+}
+
+.app .footer-loja-logo {
+  display: block;
+  width: 23px;
+  height: 23px;
+  flex: 0 0 23px;
+  overflow: visible;
+}
+
+.app .footer-loja-logo-steam {
+  color: #3b82f6;
+}
+
+.app .footer-loja-logo-epic {
+  color: var(--texto, #202027);
+}
+
+.app.tema-escuro .footer-loja-logo-steam {
+  color: #8ab4f8;
+}
+
+.app.tema-escuro .footer-loja-logo-epic {
+  color: #f5f5f7;
+}
+
+@media (prefers-color-scheme: dark) {
+  .app.tema-sistema .footer-loja-logo-steam {
+    color: #8ab4f8;
+  }
+
+  .app.tema-sistema .footer-loja-logo-epic {
+    color: #f5f5f7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app .footer-loja {
+    transition: none;
+  }
+}
+
+
+/* ============================================================
+   ASSINATURA ACADÊMICA | Universidade Paulista
+   Base: App(20261023-060838).css enviado pelo usuário.
+   O nome e o curso formam um único link, adaptado aos temas.
+   ============================================================ */
+/* ============================================================
+   ASSINATURA ACADÊMICA | Universidade Paulista
+   Ícone de graduação e nome/curso em uma única área clicável.
+   ============================================================ */
+.app .site-footer .footer-universidade-assinatura {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  align-self: flex-start;
+  gap: 12px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0;
+  color: var(--texto, inherit);
+  text-decoration: none;
+  transform-origin: left center;
+  transition:
+    color 180ms ease,
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    text-shadow 180ms ease;
+}
+
+.app .site-footer .footer-universidade-icone {
+  display: inline-flex;
+  flex: 0 0 46px;
+  width: 46px;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, #3159a8 65%, transparent);
+  border-radius: 9px;
+  background: #243b76;
+  color: #ffffff;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.app .site-footer .footer-universidade-icone svg {
+  display: block;
+  width: 21px;
+  height: 21px;
+}
+
+.app .site-footer .footer-universidade-textos {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.app .site-footer .footer-universidade-nome {
+  display: block;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+  transition: color 180ms ease;
+}
+
+.app .site-footer .footer-universidade-curso {
+  display: block;
+  color: var(--texto-suave, #777486);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  transition: color 180ms ease;
+}
+
+.app .site-footer .footer-universidade-assinatura:hover {
+  color: var(--roxo-forte-tema, #7054d6);
+  transform: translateY(-1px);
+  text-shadow: 0 3px 12px rgba(112, 84, 214, 0.12);
+}
+
+.app .site-footer .footer-universidade-assinatura:hover .footer-universidade-icone {
+  border-color: color-mix(in srgb, var(--roxo-forte-tema, #7054d6) 65%, #243b76);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--roxo-tema, #7054d6) 22%, transparent);
+}
+
+.app .site-footer .footer-universidade-assinatura:hover .footer-universidade-curso {
+  color: var(--texto-secundario, var(--texto-suave, #777486));
+}
+
+.app .site-footer .footer-universidade-assinatura:focus-visible {
+  outline: 2px solid var(--roxo-forte-tema, #7054d6);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app .site-footer .footer-universidade-assinatura,
+  .app .site-footer .footer-universidade-icone,
+  .app .site-footer .footer-universidade-nome,
+  .app .site-footer .footer-universidade-curso {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+
+/* ============================================================
+   MODAL ENVIAR SUGESTÃO | temas claro e escuro
+   Estilos centralizados para evitar campos escuros no tema claro.
+   ============================================================ */
+.app .footer-sugestao-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: 20px;
+  background: rgba(5, 5, 9, 0.72);
+  -webkit-backdrop-filter: blur(9px);
+  backdrop-filter: blur(9px);
+  animation: footer-sugestao-overlay-in 180ms ease-out both;
+}
+
+.app .footer-sugestao-modal {
+  position: relative;
+  width: min(100%, 568px);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 26px 27px 25px;
+  border: 1px solid #393941;
+  border-radius: 16px;
+  background: #19191e;
+  color: #f5f5f7;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
+  animation: footer-sugestao-modal-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.app .footer-sugestao-modal h2 {
+  margin: 0 38px 18px 0;
+  color: inherit;
+  font-size: 22px;
+  line-height: 1.3;
+  font-weight: 750;
+}
+
+.app .footer-sugestao-intro {
+  margin: 0 0 17px;
+  color: var(--texto-secundario, #d0ced8);
+  line-height: 1.5;
+}
+
+.app .footer-sugestao-modal label {
+  display: block;
+  margin: 14px 0 6px;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.app .footer-sugestao-campo {
+  display: block;
+  width: 100%;
+  min-height: 46px;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border: 1px solid #4b4b55;
+  border-radius: 8px;
+  outline: none;
+  background: #202024;
+  color: #f5f5f7;
+  font: inherit;
+  font-size: 14px;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.app .footer-sugestao-campo:focus {
+  border-color: var(--roxo-forte-tema, #8068df);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--roxo-tema, #8068df) 18%, transparent);
+}
+
+.app .footer-sugestao-campo option {
+  background: #202024;
+  color: #f5f5f7;
+}
+
+.app .footer-sugestao-descricao {
+  min-height: 112px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.app .footer-sugestao-descricao::placeholder {
+  color: #a4a1ad;
+  opacity: 1;
+}
+
+.app .footer-sugestao-mensagem {
+  margin: 12px 0 0;
+  color: inherit;
+  line-height: 1.5;
+}
+
+.app .footer-sugestao-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 19px;
+}
+
+.app .footer-sugestao-botao {
+  min-height: 44px;
+  padding: 10px 15px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.app .footer-sugestao-botao:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.app .footer-sugestao-botao:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+}
+
+.app .footer-sugestao-botao:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.app .footer-sugestao-botao-secundario {
+  border-color: #55545f;
+  background: #292930;
+  color: #f5f5f7;
+}
+
+.app .footer-sugestao-botao-secundario:hover:not(:disabled) {
+  border-color: #8272c8;
+  background: #32313b;
+}
+
+.app .footer-sugestao-botao-principal {
+  border-color: var(--roxo-tema, #8068df);
+  background: var(--roxo-tema, #7054d6);
+  color: #ffffff;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--roxo-tema, #7054d6) 20%, transparent);
+}
+
+.app .footer-sugestao-botao-principal:hover:not(:disabled) {
+  background: var(--roxo-forte-tema, #5e43c2);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--roxo-tema, #7054d6) 26%, transparent);
+}
+
+.app .footer-sugestao-fechar {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.app .footer-sugestao-fechar:hover {
+  background: color-mix(in srgb, var(--roxo-tema, #8068df) 14%, transparent);
+  color: var(--roxo-forte-tema, #a995ff);
+}
+
+/* Paleta clara: todos os textos e campos mudam juntos. */
+.app.tema-claro .footer-sugestao-modal {
+  border-color: #dedce8;
+  background: #ffffff;
+  color: #25232d;
+  box-shadow: 0 24px 70px rgba(35, 28, 60, 0.2);
+}
+
+.app.tema-claro .footer-sugestao-intro {
+  color: #555260;
+}
+
+.app.tema-claro .footer-sugestao-campo {
+  border-color: #d3d0dc;
+  background: #ffffff;
+  color: #25232d;
+}
+
+.app.tema-claro .footer-sugestao-campo option {
+  background: #ffffff;
+  color: #25232d;
+}
+
+.app.tema-claro .footer-sugestao-descricao::placeholder {
+  color: #777382;
+}
+
+.app.tema-claro .footer-sugestao-botao-secundario {
+  border-color: #d3d0dc;
+  background: #f5f4f8;
+  color: #302d3a;
+}
+
+.app.tema-claro .footer-sugestao-botao-secundario:hover:not(:disabled) {
+  border-color: #a99bdd;
+  background: #eeebf8;
+}
+
+.app.tema-claro .footer-sugestao-fechar:hover {
+  color: #5b42bf;
+}
+
+@media (prefers-color-scheme: light) {
+  .app.tema-sistema .footer-sugestao-modal {
+    border-color: #dedce8;
+    background: #ffffff;
+    color: #25232d;
+    box-shadow: 0 24px 70px rgba(35, 28, 60, 0.2);
+  }
+
+  .app.tema-sistema .footer-sugestao-intro { color: #555260; }
+
+  .app.tema-sistema .footer-sugestao-campo {
+    border-color: #d3d0dc;
+    background: #ffffff;
+    color: #25232d;
+  }
+
+  .app.tema-sistema .footer-sugestao-campo option {
+    background: #ffffff;
+    color: #25232d;
+  }
+
+  .app.tema-sistema .footer-sugestao-descricao::placeholder { color: #777382; }
+
+  .app.tema-sistema .footer-sugestao-botao-secundario {
+    border-color: #d3d0dc;
+    background: #f5f4f8;
+    color: #302d3a;
+  }
+
+  .app.tema-sistema .footer-sugestao-botao-secundario:hover:not(:disabled) {
+    border-color: #a99bdd;
+    background: #eeebf8;
+  }
+
+  .app.tema-sistema .footer-sugestao-fechar:hover { color: #5b42bf; }
+}
+
+@keyframes footer-sugestao-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes footer-sugestao-modal-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 520px) {
+  .app .footer-sugestao-modal {
+    padding: 24px 18px 18px;
+  }
+
+  .app .footer-sugestao-acoes {
+    flex-direction: column-reverse;
+  }
+
+  .app .footer-sugestao-botao {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app .footer-sugestao-overlay,
+  .app .footer-sugestao-modal,
+  .app .footer-sugestao-campo,
+  .app .footer-sugestao-botao,
+  .app .footer-sugestao-fechar {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+
+/* ============================================================
+   Rodapé mobile: lojas e contato lado a lado
+   ============================================================ */
+@media (max-width: 680px) {
+  .app .footer-conteudo {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 16px;
+  }
+
+  .app .footer-lojas {
+    grid-column: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .app .footer-lojas h3 {
+    grid-column: auto;
+    margin-bottom: 4px;
+  }
+
+  .app .footer-loja {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 38px;
+    gap: 7px;
+    padding: 4px 8px;
+    border-radius: 9px;
+  }
+
+  .app .footer-loja-icone,
+  .app .footer-loja-icone-epic {
+    flex: 0 0 27px;
+    width: 27px;
+    height: 27px;
+  }
+
+  .app .footer-loja > span:last-child {
+    min-width: 0;
+    font-size: 11px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .app .footer-coluna-contato {
+    grid-column: auto;
+    min-width: 0;
+  }
+
+  .app .footer-coluna-contato > * {
+    max-width: 100%;
+  }
+
+  .app .footer-universidade-assinatura {
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .app .footer-universidade-textos {
+    min-width: 0;
+  }
+
+  .app .footer-universidade-nome,
+  .app .footer-universidade-curso {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 390px) {
+  .app .footer-conteudo {
+    column-gap: 12px;
+    row-gap: 21px;
+  }
+
+  .app .footer-loja {
+    min-height: 35px;
+    gap: 5px;
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .app .footer-loja-icone,
+  .app .footer-loja-icone-epic {
+    flex-basis: 24px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .app .footer-loja > span:last-child {
+    font-size: 10px;
   }
 }

@@ -8,6 +8,7 @@
   --sobre-ambar: #e5a54b;
   --sobre-ambar-texto: color-mix(in srgb, var(--sobre-ambar) 60%, var(--texto));
   --sobre-linha: var(--borda-tema, rgba(145, 125, 190, .22));
+  --sobre-largura-texto: 37rem;
   width: 100%;
   max-width: 100%;
   overflow: hidden;
@@ -41,7 +42,7 @@
 }
 
 .pagina-sobre .sobre-intro-destaque {
-  max-width: 44ch;
+  max-width: var(--sobre-largura-texto);
   margin: 0 auto;
   color: var(--texto);
   font-size: clamp(17px, 1.9vw, 21px);
@@ -53,7 +54,7 @@
 .pagina-sobre .sobre-intro-texto {
   display: grid;
   gap: 16px;
-  max-width: 58ch;
+  max-width: var(--sobre-largura-texto);
   margin: 28px auto 0;
   text-align: left;
 }
@@ -63,7 +64,8 @@
   color: var(--texto-secundario);
   font-size: clamp(15px, 1.4vw, 16px);
   line-height: 1.75;
-  text-wrap: pretty;
+  text-indent: 1.6em;
+  text-wrap: wrap;
 }
 
 /* Assinatura do autor: foto pequena e redonda, no fim do texto. */

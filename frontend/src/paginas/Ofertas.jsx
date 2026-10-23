@@ -4225,7 +4225,7 @@ function Ofertas() {
                     to={`/jogos/${jogoSelecionado.id}`}
                     className="ofertas-link-detalhes"
                   >
-                    Ver detalhes do jogo →
+                    Ver detalhes do jogo
                   </Link>
 
                   <div className="jogo-promocoes-bloco">

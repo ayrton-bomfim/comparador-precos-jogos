@@ -1,15 +1,44 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { NavLink, useLocation } from 'react-router-dom'
 import { API_BASE } from '../contextos/AuthContext'
 
 function Rodape() {
   const location = useLocation()
   const [aberto, setAberto] = useState(false)
+  const [contatoAberto, setContatoAberto] = useState(false)
+  const [emailCopiado, setEmailCopiado] = useState(false)
   const [tipo, setTipo] = useState('melhoria')
   const [pagina, setPagina] = useState(() => `${window.location.pathname}${window.location.search}`)
   const [descricao, setDescricao] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [mensagem, setMensagem] = useState('')
+
+  const copiarEmailContato = async () => {
+    const email = 'contato@desctrl.com.br'
+    try {
+      await navigator.clipboard.writeText(email)
+      setEmailCopiado(true)
+      window.setTimeout(() => setEmailCopiado(false), 1800)
+    } catch {
+      // Fallback para navegadores/contextos sem acesso à Clipboard API.
+      const campo = document.createElement('textarea')
+      campo.value = email
+      campo.setAttribute('readonly', '')
+      campo.style.position = 'fixed'
+      campo.style.opacity = '0'
+      document.body.appendChild(campo)
+      campo.select()
+      const copiou = document.execCommand('copy')
+      document.body.removeChild(campo)
+      setEmailCopiado(copiou)
+      if (copiou) window.setTimeout(() => setEmailCopiado(false), 1800)
+    }
+  }
+
+  const irParaTopo = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const abrirSugestao = () => {
     setPagina(`${location.pathname}${location.search}`)
@@ -90,7 +119,7 @@ function Rodape() {
 
       <div className="footer-conteudo">
         <div className="footer-marca">
-          <NavLink className="footer-logo" to="/" aria-label="DESCTRL">
+          <NavLink className="footer-logo" to="/" aria-label="DESCTRL" onClick={irParaTopo}>
             <span className="footer-logo-des">DES</span>
             <span className="footer-logo-ctrl">CTRL</span>
           </NavLink>
@@ -105,80 +134,225 @@ function Rodape() {
 
         <div className="footer-coluna">
           <h3>Explorar</h3>
-          <NavLink to="/">Início</NavLink>
-          <NavLink to="/jogos">Jogos</NavLink>
-          <NavLink to="/ofertas">Ofertas</NavLink>
+          <NavLink to="/" onClick={irParaTopo}>Início</NavLink>
+          <NavLink to="/jogos" onClick={irParaTopo}>Jogos</NavLink>
+          <NavLink to="/ofertas" onClick={irParaTopo}>Ofertas</NavLink>
         </div>
 
         <div className="footer-coluna">
-          <h3>Sobre</h3>
-          <NavLink to="/sobre">Sobre o DESCTRL</NavLink>
-        </div>
-
-        <div className="footer-coluna">
-          <h3>Participar</h3>
-          <button type="button" onClick={abrirSugestao} style={{ background: 'none', border: 0, padding: 0, color: 'inherit', textAlign: 'left', cursor: 'pointer', font: 'inherit' }}>Enviar sugestão</button>
+          <h3>Sobre o projeto</h3>
+          <NavLink to="/sobre" onClick={irParaTopo}>Sobre o DESCTRL</NavLink>
+          <button
+            type="button"
+            className="footer-link-botao"
+            onClick={abrirSugestao}
+          >
+            Enviar sugestão
+          </button>
         </div>
 
         <div className="footer-coluna footer-lojas">
           <h3>Lojas monitoradas</h3>
 
           <a
-            className="footer-loja"
+            className="footer-loja footer-loja-steam"
             href="https://store.steampowered.com/"
             target="_blank"
             rel="noreferrer"
           >
-            <span
-              className="footer-loja-icone footer-loja-icone-steam"
-              aria-hidden="true"
-            >
-              <span className="steam-no-principal">
-                <span className="steam-nucleo"></span>
-              </span>
-              <span className="steam-no-secundario"></span>
-              <span className="steam-ligacao"></span>
+            <span className="footer-loja-icone footer-loja-icone-steam" aria-hidden="true">
+              <svg className="footer-loja-logo footer-loja-logo-steam" viewBox="0 0 24 24" fill="none">
+                <circle cx="15.7" cy="7.1" r="4.2" stroke="currentColor" strokeWidth="1.8" />
+                <circle cx="7.1" cy="16.7" r="3.1" stroke="currentColor" strokeWidth="1.8" />
+                <circle cx="15.7" cy="7.1" r="1.5" stroke="currentColor" strokeWidth="1.5" />
+                <path d="m9.8 15.1 3.3-2.2M9.3 18.4l3.5 1.4a4.2 4.2 0 0 0 5.4-2.6l1.1-3.1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </span>
             <span>Steam</span>
           </a>
 
           <a
-            className="footer-loja"
+            className="footer-loja footer-loja-epic"
             href="https://store.epicgames.com/?lang=pt-BR"
             target="_blank"
             rel="noreferrer"
           >
-            <span
-              className="footer-loja-icone footer-loja-icone-epic"
-              aria-hidden="true"
-            >
-              <span className="epic-emblema">
-                <span className="epic-titulo">EPIC</span>
-                <span className="epic-subtitulo">GAMES</span>
-                <span className="epic-ponta"></span>
-              </span>
+            <span className="footer-loja-icone footer-loja-icone-epic" aria-hidden="true">
+              <svg className="footer-loja-logo footer-loja-logo-epic" viewBox="0 0 24 24">
+                <path d="M5 3.5h14v17H5z" fill="currentColor" />
+                <path d="M8 7h8v2H10v2h5.5v2H10v2h6v2H8z" fill="var(--fundo-card, #ffffff)" />
+              </svg>
             </span>
             <span>Epic Games Store</span>
           </a>
         </div>
+
+        <div className="footer-coluna footer-coluna-contato">
+          <h3>Contato</h3>
+          <button
+            type="button"
+            className="footer-link-botao"
+            onClick={() => setContatoAberto(true)}
+          >
+            Fale com a gente
+          </button>
+          <span className="footer-universidade-label">Projeto acadêmico</span>
+          <a
+            className="footer-universidade footer-universidade-assinatura"
+            href="https://www.unip.br/"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Universidade Paulista, Ciência da Computação"
+          >
+            <span className="footer-universidade-icone" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" focusable="false">
+                <path d="m2 10 10-5 10 5-10 5-10-5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M6 12v5c3.5 2.7 8.5 2.7 12 0v-5M22 10v6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <span className="footer-universidade-textos">
+              <span className="footer-universidade-nome">Universidade Paulista</span>
+              <span className="footer-universidade-curso">Ciência da Computação</span>
+            </span>
+          </a>
+        </div>
       </div>
 
+      {contatoAberto && createPortal(
+        <div
+          className="footer-modal-overlay"
+          role="presentation"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setContatoAberto(false)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setContatoAberto(false)
+          }}
+        >
+          <div
+            className="footer-modal-contato"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-contato"
+          >
+            <button
+              type="button"
+              className="footer-modal-fechar"
+              onClick={() => setContatoAberto(false)}
+              aria-label="Fechar janela de contato"
+            >
+              ×
+            </button>
+            <h2 id="titulo-contato">Entre em contato</h2>
+            <div className="footer-contato-email-linha">
+              <span className="footer-email-contato">contato@desctrl.com.br</span>
+              <button
+                type="button"
+                className="footer-copiar-email"
+                onClick={copiarEmailContato}
+                aria-label={emailCopiado ? 'E-mail copiado' : 'Copiar endereço de e-mail'}
+                title={emailCopiado ? 'Copiado!' : 'Copiar e-mail'}
+              >
+                {emailCopiado ? (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m5 12 4 4L19 6" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="8" y="8" width="11" height="12" rx="2" />
+                    <path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            <span className={`footer-copiar-feedback${emailCopiado ? ' visivel' : ''}`} role="status">
+              {emailCopiado ? 'E-mail copiado' : ''}
+            </span>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {aberto && (
-        <div role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setAberto(false) }} style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(0,0,0,.72)', display: 'grid', placeItems: 'center', padding: 16 }}>
-          <form role="dialog" aria-modal="true" aria-labelledby="titulo-sugestao" onSubmit={enviarSugestao} style={{ width: 'min(100%, 520px)', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box', background: 'var(--fundo-card, #19191d)', color: 'var(--texto-principal, #f5f5f5)', border: '1px solid var(--borda, #38383e)', borderRadius: 16, padding: 24, boxShadow: '0 20px 70px #0008' }}>
-            <button type="button" onClick={() => setAberto(false)} aria-label="Fechar" style={{ float: 'right', background: 'transparent', color: 'inherit', border: 0, fontSize: 22, cursor: 'pointer' }}>×</button>
-            <h2 id="titulo-sugestao" style={{ marginTop: 0 }}>Enviar sugestão</h2>
-            <p>Conte o que podemos melhorar no DESCTRL.</p>
-            <label htmlFor="tipo-sugestao" style={{ display: 'block', margin: '14px 0 6px', fontWeight: 600 }}>Tipo</label>
-            <select id="tipo-sugestao" value={tipo} onChange={(e) => setTipo(e.target.value)} style={{ width: '100%', padding: 12, borderRadius: 8, color: 'inherit', background: 'var(--fundo-input, #202024)', border: '1px solid var(--borda, #555)' }}>
-              <option value="melhoria">Melhoria em algo existente</option><option value="funcionalidade">Nova funcionalidade</option><option value="interface">Interface e usabilidade</option><option value="outro">Outro</option>
+        <div
+          className="footer-sugestao-overlay"
+          role="presentation"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setAberto(false)
+          }}
+        >
+          <form
+            className="footer-sugestao-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-sugestao"
+            onSubmit={enviarSugestao}
+          >
+            <button
+              type="button"
+              className="footer-sugestao-fechar"
+              onClick={() => setAberto(false)}
+              aria-label="Fechar"
+            >
+              ×
+            </button>
+            <h2 id="titulo-sugestao">Enviar sugestão</h2>
+            <p className="footer-sugestao-intro">Conte o que podemos melhorar no DESCTRL.</p>
+
+            <label htmlFor="tipo-sugestao">Tipo</label>
+            <select
+              id="tipo-sugestao"
+              className="footer-sugestao-campo"
+              value={tipo}
+              onChange={(e) => setTipo(e.target.value)}
+            >
+              <option value="melhoria">Melhoria em algo existente</option>
+              <option value="funcionalidade">Nova funcionalidade</option>
+              <option value="interface">Interface e usabilidade</option>
+              <option value="outro">Outro</option>
             </select>
-            <label htmlFor="pagina-sugestao" style={{ display: 'block', margin: '14px 0 6px', fontWeight: 600 }}>Página de origem (editável)</label>
-            <input id="pagina-sugestao" value={pagina} onChange={(e) => setPagina(e.target.value)} maxLength={500} required style={{ width: '100%', boxSizing: 'border-box', padding: 12, borderRadius: 8, color: 'inherit', background: 'var(--fundo-input, #202024)', border: '1px solid var(--borda, #555)' }} />
-            <label htmlFor="descricao-sugestao" style={{ display: 'block', margin: '14px 0 6px', fontWeight: 600 }}>Sua sugestão</label>
-            <textarea id="descricao-sugestao" value={descricao} onChange={(e) => setDescricao(e.target.value)} minLength={5} maxLength={5000} required rows={5} placeholder="Descreva sua ideia..." style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', padding: 12, borderRadius: 8, color: 'inherit', background: 'var(--fundo-input, #202024)', border: '1px solid var(--borda, #555)' }} />
-            {mensagem && <p role="status">{mensagem}</p>}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}><button type="button" onClick={() => setAberto(false)} style={{ padding: '10px 14px', borderRadius: 8, cursor: 'pointer' }}>Fechar</button><button type="submit" disabled={enviando} style={{ padding: '10px 14px', borderRadius: 8, cursor: 'pointer' }}>{enviando ? 'Enviando...' : 'Enviar sugestão'}</button></div>
+
+            <label htmlFor="pagina-sugestao">Página de origem (editável)</label>
+            <input
+              id="pagina-sugestao"
+              className="footer-sugestao-campo"
+              value={pagina}
+              onChange={(e) => setPagina(e.target.value)}
+              maxLength={500}
+              required
+            />
+
+            <label htmlFor="descricao-sugestao">Sua sugestão</label>
+            <textarea
+              id="descricao-sugestao"
+              className="footer-sugestao-campo footer-sugestao-descricao"
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              minLength={5}
+              maxLength={5000}
+              required
+              rows={5}
+              placeholder="Descreva sua ideia..."
+            />
+
+            {mensagem && <p className="footer-sugestao-mensagem" role="status">{mensagem}</p>}
+
+            <div className="footer-sugestao-acoes">
+              <button
+                type="button"
+                className="footer-sugestao-botao footer-sugestao-botao-secundario"
+                onClick={() => setAberto(false)}
+              >
+                Fechar
+              </button>
+              <button
+                type="submit"
+                className="footer-sugestao-botao footer-sugestao-botao-principal"
+                disabled={enviando}
+              >
+                {enviando ? 'Enviando...' : 'Enviar sugestão'}
+              </button>
+            </div>
           </form>
         </div>
       )}

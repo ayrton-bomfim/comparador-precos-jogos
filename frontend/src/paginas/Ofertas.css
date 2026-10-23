@@ -434,6 +434,22 @@
   text-decoration: underline;
 }
 
+/* Botão de detalhes com aparência própria do tema claro. */
+.app.tema-claro .ofertas-link-detalhes {
+  padding: 12px 16px;
+  border: 1px solid rgba(107, 67, 255, 0.22);
+  border-radius: 10px;
+  background: #ffffff !important;
+  color: #6b43ff !important;
+  box-shadow: 0 6px 18px var(--sombra-tema);
+}
+
+.app.tema-claro .ofertas-link-detalhes:hover {
+  background: #f7f7fa !important;
+  color: #5632db !important;
+  text-decoration: none;
+}
+
 .jogo-promocoes-bloco {
   width: 100%;
   max-width: 660px;
@@ -532,6 +548,11 @@
   background: var(--fundo);
   border: 1px solid var(--borda-tema);
   border-radius: 14px;
+}
+
+/* No tema claro, os cards Steam/Epic da previsão ficam claros. */
+.app.tema-claro .previsao-plataforma {
+  background: var(--fundo-card);
 }
 
 .previsao-plataforma.indisponivel {

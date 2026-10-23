@@ -28,18 +28,30 @@ function Sobre() {
           <h1>O que é o DESCTRL?</h1>
 
           <p className="sobre-intro-destaque">
-            Este projeto é o meu trabalho de conclusão do curso de Ciência da Computação na Universidade Paulista.
+            Este é o meu projeto para o trabalho de conclusão do curso de Ciência da Computação na Universidade Paulista.
           </p>
 
           <div className="sobre-intro-texto">
             <p>
-              Jogos fazem parte da minha vida desde criança. Quando precisei escolher um tema, queria algo que
-              me mantivesse engajado durante todo o projeto e que me permitisse aplicar na prática o que aprendi em sala.
+              Jogos fazem parte da minha vida desde criança e, quando chegou a hora de escolher um tema para o TCC,
+              queria desenvolver algo com o qual eu realmente me identificasse. Mais do que cumprir uma etapa da
+              faculdade, queria construir algo que me despertasse curiosidade, me desafiasse e me permitisse colocar
+              em prática tudo o que vinha aprendendo ao longo do curso.
             </p>
             <p>
-              Juntar essas duas coisas resultou em uma aplicação que compara os preços de jogos entre as principais
-              lojas digitais e registra como eles mudam ao longo do tempo. A proposta é investigar se esse histórico
-              ajuda a perceber quando vale mais a pena comprar.
+              Foi assim que surgiu o DESCTRL, uma plataforma que compara os preços de jogos digitais em diferentes
+              lojas e acompanha como esses valores mudam ao longo do tempo. A ideia é transformar esse histórico em
+              informação útil, ajudando a entender melhor as variações de preço e a identificar oportunidades de compra.
+            </p>
+            <p>
+              Mas o DESCTRL também é feito de coisas que vão além do código. Ao longo dessa jornada, conversas, ideias,
+              opiniões e incentivos das pessoas que fazem parte da minha vida também contribuíram para que o projeto
+              tomasse forma. De maneiras diferentes, cada uma deixou um pouco de si nessa construção, e acho que isso
+              torna tudo ainda mais especial.
+            </p>
+            <p>
+              No fim, este projeto reúne um pouco de tudo o que me trouxe até aqui: uma paixão que me acompanha desde
+              criança, o conhecimento que venho construindo e as pessoas que, de alguma forma, fazem parte dessa história.
             </p>
 
             <figure className="sobre-autor sobre-autor-grande">

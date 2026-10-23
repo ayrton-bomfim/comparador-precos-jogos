@@ -687,3 +687,242 @@
   .cabecalho-busca-camada,
   .cabecalho-busca { animation: none; }
 }
+
+
+
+/* ============================================================
+   MENU DE PERFIL — TEMA CLARO
+   Sobrescreve apenas as cores fixas do menu DESCTRL.
+   O tema escuro mantém integralmente a aparência original.
+   ============================================================ */
+.app.tema-claro .perfil-menu .dropdown-perfil.desctrl-menu-novo {
+  background: #ffffff !important;
+  border-color: #d9d5e5 !important;
+  color: #292536 !important;
+  box-shadow: 0 22px 55px rgba(42, 31, 72, 0.18) !important;
+}
+
+.app.tema-claro .desctrl-menu-novo .desctrl-conta-info > strong,
+.app.tema-claro .desctrl-menu-novo .desctrl-link-texto strong {
+  color: #292536 !important;
+}
+
+.app.tema-claro .desctrl-menu-novo .desctrl-nivel,
+.app.tema-claro .desctrl-menu-novo .desctrl-conta-info small,
+.app.tema-claro .desctrl-menu-novo .desctrl-progresso > div:first-child,
+.app.tema-claro .desctrl-menu-novo .desctrl-link-texto small {
+  color: #6d667d !important;
+}
+
+.app.tema-claro .desctrl-menu-novo .desctrl-nivel span {
+  color: #6941b8 !important;
+  background: #eee6ff !important;
+}
+
+.app.tema-claro .desctrl-menu-novo .desctrl-progresso {
+  border-bottom-color: #e4dfed !important;
+}
+
+.app.tema-claro .desctrl-menu-novo .desctrl-barra {
+  background: #e8e1f3 !important;
+}
+
+.app.tema-claro .desctrl-menu-novo .desctrl-barra span {
+  background: #8055d6 !important;
+}
+
+.app.tema-claro .desctrl-menu-novo .desctrl-links {
+  border-bottom-color: #e4dfed !important;
+}
+
+.app.tema-claro .desctrl-menu-novo .desctrl-link {
+  color: #292536 !important;
+}
+
+.app.tema-claro .desctrl-menu-novo .desctrl-link:hover,
+.app.tema-claro .desctrl-menu-novo .desctrl-link:focus-visible {
+  background: #f3effb !important;
+}
+
+.app.tema-claro .desctrl-menu-novo .desctrl-link-icone {
+  background: #eee7fb !important;
+  color: #7547c6 !important;
+}
+
+.app.tema-claro .desctrl-menu-novo .desctrl-seta {
+  color: #8b829b !important;
+}
+
+.app.tema-claro .desctrl-menu-novo .desctrl-sair {
+  color: #b43e55 !important;
+}
+
+.app.tema-claro .desctrl-menu-novo .desctrl-sair:hover {
+  background: #fff0f2 !important;
+}
+
+/* Visitante: adapta também o convite, os benefícios e o acesso à conta. */
+.app.tema-claro .desctrl-menu-visitante .desctrl-visitante-apresentacao h2,
+.app.tema-claro .desctrl-menu-visitante .desctrl-visitante-beneficio strong {
+  color: #292536 !important;
+}
+
+.app.tema-claro .desctrl-menu-visitante .desctrl-visitante-apresentacao p,
+.app.tema-claro .desctrl-menu-visitante .desctrl-visitante-beneficio small {
+  color: #6d667d !important;
+}
+
+.app.tema-claro .desctrl-menu-visitante .desctrl-visitante-icone {
+  background: #eee7fb !important;
+  color: #7547c6 !important;
+}
+
+.app.tema-claro .desctrl-menu-visitante .desctrl-visitante-entrar {
+  color: #6d667d !important;
+}
+
+.app.tema-claro .desctrl-menu-visitante .desctrl-visitante-entrar a {
+  color: #6941b8 !important;
+}
+
+
+/* ============================================================
+   CABEÇALHO — DIVISÓRIA CINZA NEUTRA
+   Evita que a linha inferior herde um tom arroxeado do tema.
+   ============================================================ */
+.app .cabecalho {
+  /* Divisória discreta que acompanha o tema ativo. */
+  border-bottom: 1px solid var(--borda-tema, #303038) !important;
+  border-bottom-color: var(--borda-tema, #303038) !important;
+  box-shadow: none !important;
+}
+
+
+/* ============================================================
+   NAVEGAÇÃO — PÁGINA ATIVA COM DESTAQUE ROXO ANIMADO
+   Mantém o cabeçalho branco e anima somente o link selecionado.
+   ============================================================ */
+.cabecalho .navegacao a {
+  position: relative;
+  isolation: isolate;
+  border-radius: 9px 9px 0 0;
+  transition:
+    color .22s ease,
+    background-color .22s ease,
+    transform .22s ease;
+}
+
+.cabecalho .navegacao a.ativo {
+  color: #7044d8 !important;
+  font-weight: 650;
+  background: linear-gradient(
+    180deg,
+    rgba(126, 87, 224, 0.09) 0%,
+    rgba(126, 87, 224, 0.015) 100%
+  );
+}
+
+.cabecalho .navegacao a.ativo::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(90deg, #9b7af7 0%, #7044d8 48%, #b49aff 100%);
+  background-size: 200% 100%;
+  box-shadow: 0 0 8px rgba(126, 87, 224, 0.28);
+  animation: desctrl-link-ativo-brilho 2.8s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.cabecalho .navegacao a.ativo::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 5px 7px 7px;
+  border-radius: 7px;
+  background: rgba(126, 87, 224, 0.045);
+  opacity: 0;
+  animation: desctrl-link-ativo-aura 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.cabecalho .navegacao a:not(.ativo):hover {
+  color: #7044d8;
+  background: rgba(126, 87, 224, 0.055);
+}
+
+@keyframes desctrl-link-ativo-brilho {
+  0%, 100% {
+    background-position: 0% 50%;
+    box-shadow: 0 0 5px rgba(126, 87, 224, 0.20);
+  }
+  50% {
+    background-position: 100% 50%;
+    box-shadow: 0 0 11px rgba(126, 87, 224, 0.42);
+  }
+}
+
+@keyframes desctrl-link-ativo-aura {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cabecalho .navegacao a,
+  .cabecalho .navegacao a.ativo::before,
+  .cabecalho .navegacao a.ativo::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .cabecalho .navegacao a.ativo::after {
+    background: #8055d6;
+    box-shadow: none;
+  }
+}
+
+
+/* AJUSTE FINAL — navegação ativa roxa sem bloco de fundo */
+.cabecalho .navegacao a {
+  background: transparent !important;
+}
+
+.cabecalho .navegacao a.ativo {
+  color: #7044d8 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.cabecalho .navegacao a.ativo::before {
+  content: none !important;
+  display: none !important;
+  animation: none !important;
+}
+
+.cabecalho .navegacao a:not(.ativo):hover {
+  background: transparent !important;
+  color: #7044d8;
+}
+
+.cabecalho .navegacao a.ativo::after {
+  height: 3px;
+  left: 4px;
+  right: 4px;
+  bottom: -1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8055d6 0%, #a58af0 50%, #8055d6 100%);
+  background-size: 180% 100%;
+  box-shadow: 0 0 6px rgba(128, 85, 214, 0.24);
+  animation: desctrl-link-ativo-brilho 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cabecalho .navegacao a.ativo::after {
+    animation: none !important;
+    background: #8055d6;
+    box-shadow: none;
+  }
+}

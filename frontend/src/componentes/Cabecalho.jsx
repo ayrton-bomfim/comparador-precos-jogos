@@ -592,7 +592,6 @@ function Cabecalho({ tema: temaProp, setTema: setTemaProp }) {
               )}
             </div>
           )}
-          <div className="cabecalho-busca-rodape">Pressione Enter para ver todos os resultados · Esc para fechar</div>
         </div>
       )}
 

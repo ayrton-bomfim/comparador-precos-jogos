@@ -50,33 +50,26 @@ function RedirecionarSessaoExpirada() {
   return null
 }
 
-const REVISAO_AVISO_BETA = 'beta-aviso-1'
-const CHAVE_AVISO_BETA = `desctrl:${REVISAO_AVISO_BETA}:nao-mostrar`
-const CHAVE_SESSAO_BETA = `desctrl:${REVISAO_AVISO_BETA}:reconhecido`
+const REVISAO_AVISO_BETA = 'beta-aviso-2'
+const CHAVE_SESSAO_BETA = `desctrl:${REVISAO_AVISO_BETA}:nao-mostrar-sessao`
 
 function AvisoBeta() {
   const [aberto, setAberto] = useState(() => {
     try {
-      const jaDispensado = localStorage.getItem(CHAVE_AVISO_BETA) === 'true'
-      const reconhecidoNestaSessao = sessionStorage.getItem(CHAVE_SESSAO_BETA) === 'true'
-      return !jaDispensado && !reconhecidoNestaSessao
+      return sessionStorage.getItem(CHAVE_SESSAO_BETA) !== 'true'
     } catch {
       return true
     }
   })
-  const [leuAviso, setLeuAviso] = useState(false)
   const [naoMostrarNovamente, setNaoMostrarNovamente] = useState(false)
 
   function continuar() {
-    if (!leuAviso) return
     try {
       if (naoMostrarNovamente) {
-        localStorage.setItem(CHAVE_AVISO_BETA, 'true')
-      } else {
         sessionStorage.setItem(CHAVE_SESSAO_BETA, 'true')
       }
     } catch {
-      // A confirmação ainda permite continuar mesmo se o navegador bloquear o armazenamento.
+      // Se o navegador bloquear o armazenamento, o aviso ainda pode ser fechado normalmente.
     }
     setAberto(false)
   }
@@ -92,34 +85,28 @@ function AvisoBeta() {
         </div>
         <h2 id="aviso-beta-titulo">Você está entrando no beta do DESCTRL!</h2>
         <p id="aviso-beta-introducao" className="aviso-beta-introducao">
-          Estamos construindo uma experiência melhor para comparar preços de jogos. Esta versão está em fase de testes e pode apresentar limitações.
+          O DESCTRL é um projeto acadêmico e esta versão está em testes. Explore à vontade e nos ajude a encontrar o que ainda não está certo.
         </p>
         <div className="aviso-beta-conteudo">
-          <h3>O que você precisa saber</h3>
+          <h3>Inconsistências que podem ocorrer nesta versão</h3>
           <ul>
-            <li><strong>Preços e promoções podem estar desatualizados.</strong> Os valores e a disponibilidade nas lojas podem mudar antes da próxima atualização do DESCTRL.</li>
-            <li><strong>Algumas informações podem estar incompletas ou incorretas.</strong> Jogos podem apresentar dados ausentes, edições identificadas incorretamente ou históricos de preços incompletos.</li>
-            <li><strong>Podem ocorrer erros ou instabilidades.</strong> Algumas páginas e funcionalidades podem ficar lentas, falhar ou apresentar comportamentos inesperados.</li>
-            <li><strong>Os recursos ainda estão evoluindo.</strong> Funcionalidades, cálculos, gráficos e previsões podem ser ajustados ou modificados durante os testes.</li>
+            <li><strong>Os dados ainda estão sendo refinados.</strong> Os preços podem ser diferentes dos da loja no momento da consulta, e um mesmo jogo pode aparecer em cards separados, um para cada plataforma.</li>
+            <li><strong>As estimativas são experimentais.</strong> A data estimada da próxima promoção usa o histórico já coletado, mas a fórmula ainda está sendo ajustada e pode ser imprecisa.</li>
+            <li><strong>Alguns recursos estão incompletos.</strong> Você pode ver suas conquistas, mas as recompensas ainda não podem ser aplicadas, porque as artes estão em produção. Também podem ocorrer lentidão e erros pontuais.</li>
           </ul>
           <div className="aviso-beta-atencao">
             <span className="aviso-beta-atencao-icone" aria-hidden="true">ⓘ</span>
-            <p>Antes de comprar, confirme diretamente na loja o preço, a edição do jogo, as condições da oferta e a disponibilidade. O DESCTRL é uma ferramenta de apoio à comparação e não garante que os dados estejam atualizados em tempo real ou que uma oferta continue disponível.</p>
+            <p>Antes de comprar, confirme o preço, a edição do jogo e as condições da oferta diretamente na loja. O DESCTRL ajuda na comparação, mas não garante dados em tempo real nem que a oferta continue disponível.</p>
           </div>
-          <p className="aviso-beta-feedback">Encontrou algum problema? Use o recurso de feedback, quando disponível, para nos ajudar a identificar melhorias.</p>
+          <p className="aviso-beta-feedback">Achou algo estranho? Use o feedback no rodapé de qualquer página ou a opção de reportar na página do jogo. Testar a fundo e avisar o que encontrar é a melhor ajuda que você pode dar.</p>
         </div>
         <div className="aviso-beta-rodape">
-          <p className="aviso-beta-nota">Agradecemos por testar o DESCTRL e contribuir para sua evolução. Durante o beta, a plataforma poderá apresentar erros, limitações e alterações.</p>
-          <label className="aviso-beta-checkbox">
-            <input type="checkbox" checked={leuAviso} onChange={(evento) => setLeuAviso(evento.target.checked)} />
-            <span>Li e compreendi o aviso sobre a versão beta.</span>
-          </label>
           <label className="aviso-beta-checkbox aviso-beta-checkbox-secundario">
             <input type="checkbox" checked={naoMostrarNovamente} onChange={(evento) => setNaoMostrarNovamente(evento.target.checked)} />
-            <span>Não mostrar novamente nesta versão do aviso, neste navegador.</span>
+            <span>Não mostrar novamente nesta sessão.</span>
           </label>
-          <button className="aviso-beta-continuar" type="button" disabled={!leuAviso} onClick={continuar}>
-            Entendi, continuar <span aria-hidden="true">→</span>
+          <button className="aviso-beta-continuar" type="button" onClick={continuar}>
+            Entendi, continuar <span aria-hidden="true"></span>
           </button>
         </div>
       </section>
@@ -180,7 +167,7 @@ function App() {
 
     const atualizarCores = () => {
       const escuro = tema === 'escuro' || (tema === 'sistema' && mediaEscuro.matches)
-      const cor = escuro ? '#101014' : '#f7f7f8'
+      const cor = escuro ? '#101014' : '#DCDCE5'
 
       let metaTema = document.querySelector('meta[name="theme-color"]')
       if (!metaTema) {
