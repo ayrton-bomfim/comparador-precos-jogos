@@ -174,6 +174,33 @@ function App() {
   const location = useLocation()
   const mostrarAvisoBeta = location.pathname === '/'
 
+  // Mantém o navegador e as áreas externas ao app alinhados ao tema ativo.
+  useEffect(() => {
+    const mediaEscuro = window.matchMedia('(prefers-color-scheme: dark)')
+
+    const atualizarCores = () => {
+      const escuro = tema === 'escuro' || (tema === 'sistema' && mediaEscuro.matches)
+      const cor = escuro ? '#101014' : '#f7f7f8'
+
+      let metaTema = document.querySelector('meta[name="theme-color"]')
+      if (!metaTema) {
+        metaTema = document.createElement('meta')
+        metaTema.name = 'theme-color'
+        document.head.appendChild(metaTema)
+      }
+      metaTema.setAttribute('content', cor)
+
+      document.documentElement.style.backgroundColor = cor
+      document.body.style.backgroundColor = cor
+      document.documentElement.style.colorScheme = escuro ? 'dark' : 'light'
+    }
+
+    atualizarCores()
+    mediaEscuro.addEventListener('change', atualizarCores)
+
+    return () => mediaEscuro.removeEventListener('change', atualizarCores)
+  }, [tema])
+
   if (MODO_MANUTENCAO) return <PaginaManutencao />
 
   return (

@@ -3,6 +3,8 @@ import CardJogo from './CardJogo'
 
 function CarrosselJogos({ jogos, mostrarDesconto = false }) {
   const listaRef = useRef(null)
+  const toqueInicialRef = useRef(null)
+  const arrastouRef = useRef(false)
   const [indiceAtual, setIndiceAtual] = useState(0)
   const [itensVisiveis, setItensVisiveis] = useState(4)
   const [passo, setPasso] = useState(0)
@@ -65,6 +67,40 @@ function CarrosselJogos({ jogos, mostrarDesconto = false }) {
   const podeVoltar = indiceExibicao > 0
   const podeAvancar = indiceExibicao < maximo
 
+  const iniciarGesto = (evento) => {
+    if (evento.pointerType === 'mouse') return
+    toqueInicialRef.current = { x: evento.clientX, y: evento.clientY }
+    arrastouRef.current = false
+  }
+
+  const finalizarGesto = (evento) => {
+    const inicio = toqueInicialRef.current
+    toqueInicialRef.current = null
+    if (!inicio || evento.pointerType === 'mouse') return
+
+    const deltaX = evento.clientX - inicio.x
+    const deltaY = evento.clientY - inicio.y
+    const limiteDeslizamento = 40
+
+    // Só navega quando o gesto é predominantemente horizontal.
+    if (Math.abs(deltaX) > limiteDeslizamento && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+      arrastouRef.current = true
+      rolar(deltaX < 0 ? 1 : -1)
+    }
+  }
+
+  const cancelarGesto = () => {
+    toqueInicialRef.current = null
+  }
+
+  const impedirCliqueAposArraste = (evento) => {
+    if (arrastouRef.current) {
+      evento.preventDefault()
+      evento.stopPropagation()
+      arrastouRef.current = false
+    }
+  }
+
   const rolar = (direcao) => {
     setIndiceAtual((atual) => {
       const novoIndice = atual + direcao * itensVisiveis
@@ -116,6 +152,10 @@ function CarrosselJogos({ jogos, mostrarDesconto = false }) {
         className={`viewport-carrossel ${
           podeVoltar ? 'tem-esquerda' : ''
         } ${podeAvancar ? 'tem-direita' : ''}`}
+        onPointerDown={iniciarGesto}
+        onPointerUp={finalizarGesto}
+        onPointerCancel={cancelarGesto}
+        onClickCapture={impedirCliqueAposArraste}
       >
         <div
           className="lista-carrossel"

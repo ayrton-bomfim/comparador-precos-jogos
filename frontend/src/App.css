@@ -2576,14 +2576,28 @@ footer strong {
   font-weight: 600;
   cursor: pointer;
   transition:
-    border-color 0.2s ease,
-    color 0.2s ease,
-    background 0.2s ease;
+    border-color 0.12s ease,
+    color 0.12s ease,
+    background 0.12s ease;
 }
 
-.botao-voltar-detalhes:hover {
+.app .conteudo-detalhes .botao-voltar-detalhes:hover {
   border-color: var(--roxo-tema);
   color: var(--roxo-tema);
+  background-color: color-mix(in srgb, var(--roxo-tema) 7%, var(--fundo-card));
+}
+
+.app .conteudo-detalhes .botao-voltar-detalhes:focus-visible {
+  outline: 2px solid var(--roxo-tema);
+  outline-offset: 3px;
+}
+
+.icone-voltar-detalhes {
+  display: inline-block;
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 0.8;
+  transform: translateY(-1px);
 }
 
 /* =========================================================
@@ -9637,5 +9651,103 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .app .historico-detalhes.grafico-tela-cheia {
     scroll-behavior: auto;
+  }
+}
+
+/* Botões de acesso às lojas na página de detalhes.
+   Seguem o padrão visual dos botões Steam/Epic da página de Favoritos. */
+.app .botao-loja {
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border: 1px solid var(--borda-tema);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--fundo-card) 92%, var(--roxo-tema));
+  color: var(--texto) !important;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    border-color .18s ease,
+    background-color .18s ease,
+    color .18s ease,
+    transform .18s ease;
+}
+
+.app .botao-loja-steam {
+  border-color: color-mix(in srgb, #3b82f6 48%, var(--borda-tema));
+  background: color-mix(in srgb, #3b82f6 7%, var(--fundo-card));
+}
+
+.app .botao-loja-steam:hover {
+  border-color: #3b82f6;
+  background: color-mix(in srgb, #3b82f6 15%, var(--fundo-card));
+  color: var(--texto) !important;
+  transform: translateY(-1px);
+}
+
+.app .botao-loja-epic {
+  border-color: color-mix(in srgb, #8b5cf6 48%, var(--borda-tema));
+  background: color-mix(in srgb, #8b5cf6 7%, var(--fundo-card));
+}
+
+.app .botao-loja-epic:hover {
+  border-color: #8b5cf6;
+  background: color-mix(in srgb, #8b5cf6 15%, var(--fundo-card));
+  color: var(--texto) !important;
+  transform: translateY(-1px);
+}
+
+.app .botao-loja:focus-visible {
+  outline: 2px solid var(--roxo-tema);
+  outline-offset: 3px;
+}
+
+@media (max-width: 520px) {
+  .app .botao-loja {
+    min-height: 38px;
+    padding: 0 9px;
+    font-size: 11px;
+  }
+}
+
+
+/* Ícones oficiais estilizados no início dos botões de loja, seguindo Favoritos. */
+.app .botao-loja {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.app .botao-loja-icone {
+  display: block;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+}
+.app .botao-loja-icone-steam {
+  width: 17px;
+  height: 17px;
+}
+.app .botao-loja-icone-epic {
+  width: 14px;
+  height: 16px;
+  flex-basis: 14px;
+}
+@media (max-width: 520px) {
+  .app .botao-loja {
+    gap: 5px;
+  }
+  .app .botao-loja-icone {
+    width: 14px;
+    height: 14px;
+    flex-basis: 14px;
+  }
+  .app .botao-loja-icone-epic {
+    width: 12px;
+    height: 14px;
+    flex-basis: 12px;
   }
 }

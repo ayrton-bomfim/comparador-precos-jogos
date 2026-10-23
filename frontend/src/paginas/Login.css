@@ -120,19 +120,42 @@
 }
 
 .login-voltar-inicio a {
-  color: inherit;
-  opacity: .72;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 9px 14px;
+  border: 1px solid var(--borda-tema, #3b3b46);
+  border-radius: 9px;
+  background: var(--fundo-card, #19191e);
+  color: var(--texto, #f5f5f7);
+  font-size: 13px;
+  font-weight: 600;
   text-decoration: none;
-  transition: opacity .2s ease, color .2s ease;
+  cursor: pointer;
+  transition:
+    border-color .12s ease,
+    color .12s ease,
+    background-color .12s ease;
+}
+
+.login-voltar-chevron {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-left: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
 }
 
 .login-voltar-inicio a:hover {
-  color: var(--roxo-tema, #b58aff);
-  opacity: 1;
+  border-color: var(--roxo-tema, #8b78ef);
+  color: var(--roxo-tema, #8b78ef);
 }
 
 .login-voltar-inicio a:focus-visible {
-  outline: 2px solid var(--roxo-tema, #b58aff);
-  outline-offset: 4px;
-  border-radius: 3px;
+  outline: 2px solid var(--roxo-tema, #8b78ef);
+  outline-offset: 3px;
 }

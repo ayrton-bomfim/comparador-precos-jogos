@@ -195,19 +195,38 @@
 }
 
 .cadastro-voltar-inicio a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border: 1px solid var(--borda-tema, rgba(127, 127, 127, .3));
+  border-radius: 9px;
+  background: var(--fundo-card, rgba(127, 127, 127, .06));
   color: inherit;
-  opacity: .72;
+  opacity: 1;
   text-decoration: none;
-  transition: opacity .2s ease, color .2s ease;
+  font-weight: 600;
+  transition: border-color .12s ease, color .12s ease, background .12s ease;
+}
+
+.cadastro-voltar-chevron {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-left: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transition: color .12s ease;
 }
 
 .cadastro-voltar-inicio a:hover {
+  border-color: var(--roxo-tema, #b58aff);
   color: var(--roxo-tema, #b58aff);
-  opacity: 1;
 }
 
 .cadastro-voltar-inicio a:focus-visible {
   outline: 2px solid var(--roxo-tema, #b58aff);
-  outline-offset: 4px;
-  border-radius: 3px;
+  outline-offset: 3px;
 }

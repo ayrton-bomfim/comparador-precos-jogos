@@ -47,7 +47,7 @@ def renderizar_email_seguranca(preheader: str, titulo: str, chamada: str, explic
               <p style="margin:0;color:#B9B2CD;font-size:13px;line-height:21px;">Por segurança, este link expira em <strong style="color:#F8F7FF;">{validade_minutos} minutos</strong> e só pode ser usado uma vez.</p>
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:22px;border-collapse:separate;"><tr>
                 <td align="center" bgcolor="#8B5CF6" style="border-radius:8px;">
-                  <a href="{url_html}" target="_blank" style="display:inline-block;padding:14px 22px;border:1px solid #8B5CF6;border-radius:8px;color:#FFFFFF;font-size:15px;line-height:20px;font-weight:800;text-decoration:none;">{botao_html}&nbsp; &#8599;</a>
+                  <a href="{url_html}" target="_blank" style="display:inline-block;padding:14px 22px;border:1px solid #8B5CF6;border-radius:8px;color:#FFFFFF;font-size:15px;line-height:20px;font-weight:800;text-decoration:none;">{botao_html}</a>
                 </td>
               </tr></table>
             </td></tr>

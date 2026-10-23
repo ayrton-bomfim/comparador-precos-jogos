@@ -803,7 +803,7 @@ function Perfil() {
               <h1>{abaAtiva === 'configuracoes' ? 'Configurações' : abaAtiva === 'conquistas' ? 'Conquistas' : abaAtiva === 'notificacoes' ? 'Notificações' : 'Meu perfil'}</h1>
               <p>{abaAtiva === 'configuracoes' ? 'Personalize a aparência e escolha quais avisos gostaria de acompanhar.' : abaAtiva === 'conquistas' ? 'Complete objetivos, ganhe XP e personalize sua identidade no DESCTRL.' : abaAtiva === 'notificacoes' ? 'Acompanhe avisos de preços e conquistas, mesmo depois que os alertas temporários desaparecerem.' : 'Sua coleção, suas conquistas e a evolução dos preços em um só lugar.'}</p>
             </div>
-            <NavLink className="perfil-voltar" to="/">← Voltar</NavLink>
+            <NavLink className="perfil-voltar" to="/"><span className="perfil-voltar-chevron" aria-hidden="true" />Voltar</NavLink>
           </div>
 
           <nav className="perfil-abas" aria-label="Seções do perfil">
@@ -1000,8 +1000,11 @@ function Perfil() {
               <section className="perfil-painel perfil-painel-favoritos">
                 <header className="perfil-painel-cabecalho">
                   <div><span className="perfil-painel-eyebrow">SUA COLEÇÃO</span><h2>Jogos favoritos</h2><p>{favoritosDestaque.length > 1 ? 'Escolha de um a três jogos. Clique em um card para fixar seu histórico por 2 minutos.' : 'Escolha até três jogos para destacar. Seu jogo em destaque será mostrado no gráfico abaixo.'}</p></div>
-                  <div className="perfil-painel-acoes"><button type="button" className="perfil-link-discreto perfil-link-botao" onClick={abrirModalDestaques} disabled={carregandoFavoritos || favoritosPerfil.length === 0}>Escolher destaques</button><Link to="/favoritos" className="perfil-link-discreto">Ver todos <span aria-hidden="true">↗</span></Link></div>
+                  <Link to="/favoritos" className="perfil-link-discreto">Ver todos</Link>
                 </header>
+                <div className="perfil-painel-acoes">
+                  <button type="button" className="perfil-link-discreto perfil-link-botao perfil-escolher-destaques" onClick={abrirModalDestaques} disabled={carregandoFavoritos || favoritosPerfil.length === 0}>Escolher destaques</button>
+                </div>
                 {erroFavoritos ? (
                   <div className="perfil-overview-vazio"><strong>Não foi possível carregar seus favoritos.</strong><p>{erroFavoritos}</p><button type="button" onClick={() => setVersaoFavoritosPerfil(versao => versao + 1)}>Tentar novamente</button></div>
                 ) : carregandoFavoritos && favoritosPerfil.length === 0 ? (
@@ -1037,7 +1040,7 @@ function Perfil() {
               <aside className="perfil-painel perfil-painel-conquistas">
                 <header className="perfil-painel-cabecalho perfil-painel-cabecalho-lateral">
                   <div><span className="perfil-painel-eyebrow">PROGRESSO</span><h2>Conquistas recentes</h2></div>
-                  <button type="button" className="perfil-link-discreto perfil-link-botao" onClick={() => selecionarAba('conquistas')}>Ver todas <span aria-hidden="true">↗</span></button>
+                  <button type="button" className="perfil-link-discreto perfil-link-botao" onClick={() => selecionarAba('conquistas')}>Ver todas</button>
                 </header>
                 {carregandoConquistas && !dadosConquistas ? <div className="perfil-overview-vazio perfil-overview-vazio-compacto">Carregando conquistas…</div> : conquistasRecentes.length ? (
                   <div className="perfil-conquistas-recentes">
@@ -1160,7 +1163,7 @@ function Perfil() {
             <div className="perfil-modal-overlay" role="presentation" onMouseDown={evento => { if (evento.target === evento.currentTarget) setModalDestaquesAberto(false) }}>
               <section className="perfil-modal-destaques" role="dialog" aria-modal="true" aria-labelledby="perfil-modal-destaques-titulo">
                 <header className="perfil-modal-cabecalho">
-                  <div><span className="perfil-painel-eyebrow">SUA COLEÇÃO</span><h2 id="perfil-modal-destaques-titulo">Escolher jogos em destaque</h2><p>Selecione de um a três favoritos para mostrar na Visão geral. Você pode escolher menos de três; a ordem de seleção define a ordem dos cards.</p></div>
+                  <div><span className="perfil-painel-eyebrow">SUA COLEÇÃO</span><h2 id="perfil-modal-destaques-titulo">Escolher jogos em destaque</h2><p>Escolha quem entra no seu time de destaque. O primeiro selecionado vira o primeiro card.</p></div>
                   <button type="button" className="perfil-modal-fechar" onClick={() => setModalDestaquesAberto(false)} aria-label="Fechar seleção de destaques">×</button>
                 </header>
                 <div className="perfil-modal-destaques-corpo">
@@ -1192,7 +1195,7 @@ function Perfil() {
                   </div>
                 </div>
                 <footer className="perfil-modal-destaques-rodape">
-                  <p>Escolha pelo menos um favorito e no máximo três. A seleção fica salva neste navegador para sua conta.</p>
+                  <p>Capacidade: de 1 a 3 jogos.</p>
                   <div><button type="button" className="perfil-modal-cancelar" onClick={() => setModalDestaquesAberto(false)}>Cancelar</button><button type="button" className="perfil-personalizar-botao" onClick={salvarDestaques} disabled={idsDestaqueRascunho.length < 1}>Salvar destaques</button></div>
                 </footer>
               </section>
@@ -1211,12 +1214,19 @@ function Perfil() {
                   <button type="button" className={tipoPersonalizacao === 'moldura' ? 'ativa' : ''} onClick={() => { setTipoPersonalizacao('moldura'); setRecompensaSelecionada(null) }}>Molduras</button>
                   <button type="button" className={tipoPersonalizacao === 'capa' ? 'ativa' : ''} onClick={() => { setTipoPersonalizacao('capa'); setRecompensaSelecionada(null) }}>Capas de perfil</button>
                 </nav>
+                <div className="perfil-modal-aviso-loot" role="note">
+                  <span className="perfil-modal-aviso-loot-icone" aria-hidden="true">✦</span>
+                  <div>
+                    <strong>Loot a caminho</strong>
+                    <p>A conquista é sua, mas o loot ainda está na forja. Avatares, molduras e capas estão em desenvolvimento e vão chegar em uma próxima versão. Até lá, você já pode ver o que desbloqueou, só não dá para equipar ainda.</p>
+                  </div>
+                </div>
                 <div className="perfil-modal-corpo">
                   <div className="perfil-modal-previa">
                     <span className="perfil-painel-eyebrow">PRÉVIA ATUAL</span>
                     {tipoPersonalizacao === 'capa' ? <div className="perfil-modal-previa-capa"><span>{nomeUsuario}</span></div> : tipoPersonalizacao === 'moldura' ? <div className="perfil-modal-previa-avatar moldura"><span>{inicialAvatar}</span></div> : <div className="perfil-modal-previa-avatar"><span>{inicialAvatar}</span></div>}
                     <strong>{recompensaVisualSelecionada ? recompensaVisualSelecionada.nome : tipoPersonalizacao === 'avatar' ? 'Imagem de perfil padrão' : tipoPersonalizacao === 'moldura' ? 'Moldura padrão' : 'Capa padrão'}</strong>
-                    <small>A prévia usa o estilo padrão enquanto os arquivos visuais das recompensas não estiverem cadastrados.</small>
+                    <small>Textura não carregada. Na real, nem foi feita ainda. A prévia usa o visual padrão.</small>
                   </div>
                   <div className="perfil-modal-inventario">
                     <div className="perfil-modal-inventario-cabecalho"><h3>Recompensas desbloqueadas</h3><span>{conquistasDesbloqueadas.filter(item => item.tipo_recompensa === tipoPersonalizacao).length}</span></div>
@@ -1235,7 +1245,7 @@ function Perfil() {
                     )}
                   </div>
                 </div>
-                <footer className="perfil-modal-rodape"><p>O backend atual registra o tipo da recompensa, mas ainda não fornece o catálogo de imagens nem uma rota para equipar e salvar itens. Por isso, esta seleção é apenas uma prévia e não altera sua aparência de forma permanente.</p><button type="button" className="perfil-personalizar-botao" onClick={() => setPersonalizacaoAberta(false)}>Concluir</button></footer>
+                <footer className="perfil-modal-rodape"><p>Esta é uma prévia das recompensas disponíveis na versão beta.</p><button type="button" className="perfil-personalizar-botao" onClick={() => setPersonalizacaoAberta(false)}>Concluir</button></footer>
               </section>
             </div>
           )}
@@ -1591,7 +1601,7 @@ function ConquistasPanel({ dados, carregando, erro, dicasVisiveis, alternarDicas
                   <div className="conquista-metadados"><span>✦ {conquista.xp} XP</span><span>{conquista.dificuldade}</span>{!desbloqueada && !bloqueada && meta > 1 && <span>Progresso: {Math.min(progresso, meta)}/{meta}</span>}</div>
                   <div className="conquista-recompensa-compacta">
                     <span className="conquista-recompensa-icone" aria-hidden="true">{posicao === 0 ? '▱' : posicao === 1 ? '◉' : '▧'}</span>
-                    <span><small>RECOMPENSA</small><strong>{conquista.recompensa}</strong></span>
+                    <span><small>RECOMPENSA</small><strong>{conquista.recompensa}</strong><small className="conquista-recompensa-piada"><span aria-hidden="true">ⓘ</span> {conquista.recompensa === 'Imagem de perfil' ? 'Foto 3x4 ainda no estúdio' : conquista.recompensa === 'Capa de perfil' ? 'Papel de parede ainda sem papel' : conquista.recompensa === 'Moldura de avatar' ? 'Moldura ainda sem borda' : ''}</small></span>
                     <span className="conquista-recompensa-status">{bloqueada ? 'Bloqueada' : desbloqueada ? 'Desbloqueada' : 'A conquistar'}</span>
                   </div>
                   {desbloqueada && conquista.desbloqueada_em && <small className="conquista-data-desbloqueio">Conquistada em {new Date(conquista.desbloqueada_em).toLocaleDateString('pt-BR')}</small>}

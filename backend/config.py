@@ -1,8 +1,8 @@
 """
 Módulo de configuração da aplicação.
 
-Carrega explicitamente as variáveis do arquivo backend/.env e disponibiliza
-as configurações centralizadas para os demais módulos.
+Carrega as variáveis do arquivo .env na raiz do projeto, quando disponível,
+e disponibiliza as configurações centralizadas para os demais módulos.
 """
 import os
 from pathlib import Path
@@ -10,7 +10,8 @@ from dotenv import load_dotenv
 
 # Caminho explícito: funciona independentemente do diretório de execução.
 BACKEND_DIR = Path(__file__).resolve().parent
-ENV_FILE = BACKEND_DIR / ".env"
+PROJECT_DIR = BACKEND_DIR.parent
+ENV_FILE = PROJECT_DIR / ".env"
 load_dotenv(dotenv_path=ENV_FILE, override=False)
 
 

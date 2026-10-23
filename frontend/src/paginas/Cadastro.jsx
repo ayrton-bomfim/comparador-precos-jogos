@@ -227,7 +227,7 @@ function Cadastro() {
           </>
         )}
         <div className="cadastro-rodape">Já tem uma conta? <Link to="/login">Entrar</Link></div>
-        <div className="cadastro-voltar-inicio"><Link to="/">← Voltar para a página inicial</Link></div>
+        <div className="cadastro-voltar-inicio"><Link to="/"><span className="cadastro-voltar-chevron" aria-hidden="true" />Voltar para a página inicial</Link></div>
       </section>
     </main>
   )

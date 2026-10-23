@@ -179,7 +179,7 @@ class AgendadorColeta:
         resultado_epic = await coletar_historico_epic()
 
         print("\n[3/4] Avaliação dos alertas de preço e envio de e-mails")
-        from .avaliador_alertas_preco import avaliar_alertas_preco
+        from backend.servicos.avaliador_alertas_preco import avaliar_alertas_preco
         resultado_alertas = await asyncio.to_thread(avaliar_alertas_preco)
         print(f"Alertas avaliados: {resultado_alertas}")
 

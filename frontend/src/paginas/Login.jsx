@@ -110,7 +110,7 @@ function Login() {
         <BotaoLoginGoogle onCredential={handleGoogleCredential} disabled={entrando || entrandoGoogle} />
         {entrandoGoogle && <p className="login-google-status" role="status">Conectando à sua conta Google…</p>}
         <div className="login-cadastro-link">Ainda não tem uma conta? <Link to="/cadastro">Criar conta</Link></div>
-        <div className="login-voltar-inicio"><Link to="/">← Voltar para a página inicial</Link></div>
+        <div className="login-voltar-inicio"><Link to="/"><span className="login-voltar-chevron" aria-hidden="true" />Voltar para a página inicial</Link></div>
       </section>
     </main>
   )

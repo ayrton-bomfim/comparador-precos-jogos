@@ -1,54 +1,406 @@
-.pagina-sobre{--sobre-roxo:#8b5cf6;--sobre-roxo-claro:#b7a0ff;--sobre-ciano:#69e0d0;--sobre-linha:var(--borda-tema,rgba(145,125,190,.22));width:100%;max-width:100%;overflow:hidden;padding:34px clamp(18px,4vw,56px) 28px;color:var(--texto);background:var(--fundo)}
-.pagina-sobre *{box-sizing:border-box}
-.pagina-sobre .sobre-hero-visual,.pagina-sobre .sobre-recursos-secao,.pagina-sobre .sobre-fluxo-secao,.pagina-sobre .sobre-transparencia,.pagina-sobre .sobre-rodape{width:min(1240px,100%);margin-left:auto;margin-right:auto}
-.pagina-sobre .sobre-hero-visual{position:relative;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(300px,.95fr);align-items:center;min-height:350px;padding:clamp(26px,4vw,54px);overflow:hidden;border:1px solid color-mix(in srgb,var(--sobre-roxo) 28%,var(--sobre-linha));border-radius:28px;background:radial-gradient(ellipse at 78% 48%,color-mix(in srgb,var(--sobre-roxo) 19%,transparent),transparent 43%),linear-gradient(125deg,color-mix(in srgb,var(--fundo-card) 96%,var(--sobre-roxo) 4%),var(--fundo-card));box-shadow:0 18px 50px rgba(25,13,50,.08)}
-.pagina-sobre .sobre-hero-conteudo{position:relative;z-index:2;max-width:620px}
-.pagina-sobre .sobre-eyebrow{display:inline-flex;align-items:center;gap:8px;color:var(--sobre-roxo-claro);font-size:10px;font-weight:850;letter-spacing:.16em;line-height:1.5}
-.pagina-sobre .sobre-ponto-vivo{width:7px;height:7px;border-radius:50%;background:var(--sobre-ciano);box-shadow:0 0 12px color-mix(in srgb,var(--sobre-ciano) 65%,transparent)}
-.pagina-sobre .sobre-hero-visual h1{margin:18px 0 15px;font-size:clamp(36px,5.1vw,66px);font-weight:850;line-height:.99;letter-spacing:-.055em}
-.pagina-sobre .sobre-hero-visual h1 span{color:var(--sobre-roxo-claro)}
-.pagina-sobre .sobre-hero-visual p{max-width:530px;margin:0;color:var(--texto-secundario);font-size:clamp(13px,1.3vw,16px);line-height:1.75}
-.pagina-sobre .sobre-lojas-mini{display:flex;align-items:center;gap:9px;margin-top:24px}
-.pagina-sobre .sobre-loja-selo{display:grid;place-items:center;width:29px;height:29px;border:1px solid var(--sobre-linha);border-radius:9px;font-size:13px;font-weight:900}
-.pagina-sobre .steam-selo{background:#18344c;color:#e4f3ff}.pagina-sobre .epic-selo{background:#202020;color:#fff}
-.pagina-sobre .sobre-lojas-texto{display:flex;align-items:center;gap:9px;margin-left:3px;color:var(--texto-secundario);font-size:11px;font-weight:650}.pagina-sobre .sobre-lojas-texto i{width:3px;height:3px;border-radius:50%;background:var(--sobre-roxo-claro)}
-.pagina-sobre .sobre-hero-arte{position:relative;display:grid;place-items:center;min-height:280px;isolation:isolate}
-.pagina-sobre .sobre-orbita{position:absolute;z-index:-1;aspect-ratio:1;border:1px solid color-mix(in srgb,var(--sobre-roxo) 26%,transparent);border-radius:50%;transform:rotate(-24deg)}
-.pagina-sobre .orbita-externa{width:min(90%,330px)}.pagina-sobre .orbita-interna{width:min(68%,245px);border-style:dashed;opacity:.8}
-.pagina-sobre .sobre-placa-jogo{position:absolute;width:min(83%,310px);border:1px solid color-mix(in srgb,var(--sobre-roxo) 32%,var(--sobre-linha));border-radius:17px;background:color-mix(in srgb,var(--fundo-card) 88%,#20163a);box-shadow:0 22px 55px rgba(8,4,20,.23)}
-.pagina-sobre .placa-jogo-fundo{top:22%;left:8%;padding:17px 18px;transform:rotate(-9deg);opacity:.92}
-.pagina-sobre .placa-etiqueta,.pagina-sobre .placa-detalhes>span{color:var(--texto-secundario);font-size:8px;font-weight:850;letter-spacing:.14em}
-.pagina-sobre .placa-grafico{display:flex;align-items:end;gap:8px;height:73px;margin:12px 0 10px;padding:0 5px;border-bottom:1px solid var(--sobre-linha)}
-.pagina-sobre .placa-grafico i{flex:1;border-radius:5px 5px 0 0;background:linear-gradient(180deg,var(--sobre-roxo-claro),color-mix(in srgb,var(--sobre-roxo) 50%,transparent));opacity:.85}
-.pagina-sobre .placa-grafico i:nth-child(1){height:35%}.pagina-sobre .placa-grafico i:nth-child(2){height:53%}.pagina-sobre .placa-grafico i:nth-child(3){height:44%}.pagina-sobre .placa-grafico i:nth-child(4){height:75%}.pagina-sobre .placa-grafico i:nth-child(5){height:58%}.pagina-sobre .placa-grafico i:nth-child(6){height:86%}.pagina-sobre .placa-grafico i:nth-child(7){height:67%}
-.pagina-sobre .placa-linhas{display:grid;gap:5px}.pagina-sobre .placa-linhas i{display:block;width:72%;height:4px;border-radius:99px;background:var(--sobre-linha)}.pagina-sobre .placa-linhas i+ i{width:46%}
-.pagina-sobre .placa-jogo-frente{right:3%;bottom:14%;display:grid;grid-template-columns:94px 1fr;gap:14px;align-items:center;padding:13px;transform:rotate(5deg)}
-.pagina-sobre .placa-capa{position:relative;display:grid;place-items:center;min-height:112px;overflow:hidden;border-radius:10px;background:radial-gradient(circle at 70% 25%,#c2a9ff 0 3%,transparent 4%),radial-gradient(circle at 20% 80%,#5c35a9,transparent 45%),linear-gradient(145deg,#19132f,#55329b 55%,#1b1734);color:#fff;text-align:center}
-.pagina-sobre .placa-capa:before,.pagina-sobre .placa-capa:after{position:absolute;content:"";width:140%;height:1px;background:rgba(255,255,255,.28);transform:rotate(-35deg)}.pagina-sobre .placa-capa:after{transform:rotate(35deg)}.pagina-sobre .placa-capa span{z-index:1;font-size:17px;font-weight:950;line-height:.95;letter-spacing:.08em}.pagina-sobre .placa-capa b{position:absolute;right:10px;top:7px;color:#d5c5ff}
-.pagina-sobre .placa-detalhes{display:grid;gap:7px;min-width:0}.pagina-sobre .placa-detalhes strong{font-size:clamp(15px,2vw,22px);line-height:1.1}.pagina-sobre .placa-detalhes small{color:var(--texto-secundario);font-size:9px;line-height:1.4}.pagina-sobre .placa-tag{position:absolute;top:-12px;right:15px;padding:6px 9px;border-radius:8px;background:var(--sobre-ciano);color:#12312e;font-size:10px;font-weight:950;transform:rotate(5deg)}
-.pagina-sobre .sobre-brilho{position:absolute;width:7px;height:7px;border-radius:50%;background:var(--sobre-ciano);box-shadow:0 0 18px var(--sobre-ciano)}.pagina-sobre .brilho-um{top:17%;right:18%}.pagina-sobre .brilho-dois{bottom:17%;left:14%;width:5px;height:5px;background:var(--sobre-roxo-claro);box-shadow:0 0 16px var(--sobre-roxo)}
-.pagina-sobre .sobre-recursos-secao{padding:55px 0 48px}
-.pagina-sobre .sobre-secao-cabecalho{display:flex;align-items:end;justify-content:space-between;gap:22px;margin-bottom:20px}
-.pagina-sobre .sobre-secao-cabecalho h2,.pagina-sobre .sobre-fluxo-intro h2{margin:8px 0 0;font-size:clamp(23px,3vw,34px);line-height:1.12;letter-spacing:-.035em}
-.pagina-sobre .sobre-secao-cabecalho>p{max-width:270px;margin:0;color:var(--texto-secundario);font-size:12px;line-height:1.6}
-.pagina-sobre .sobre-recursos-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
-.pagina-sobre .sobre-recurso-card{position:relative;min-height:188px;padding:19px;border:1px solid var(--sobre-linha);border-radius:17px;background:var(--fundo-card);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
-.pagina-sobre .sobre-recurso-card:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--sobre-roxo) 48%,var(--sobre-linha));box-shadow:0 12px 28px rgba(25,13,50,.08)}
-.pagina-sobre .sobre-recurso-topo{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
-.pagina-sobre .sobre-recurso-icone{display:grid;place-items:center;width:39px;height:39px;border:1px solid color-mix(in srgb,var(--sobre-roxo) 28%,var(--sobre-linha));border-radius:12px;background:color-mix(in srgb,var(--sobre-roxo) 12%,var(--fundo));color:var(--sobre-roxo-claro);font-size:21px;font-weight:800}
-.pagina-sobre .sobre-recurso-numero{color:var(--texto-secundario);font-size:10px;font-weight:800;letter-spacing:.1em}
-.pagina-sobre .sobre-recurso-card h3{margin:0 0 8px;font-size:15px;letter-spacing:-.015em}.pagina-sobre .sobre-recurso-card p{margin:0;color:var(--texto-secundario);font-size:11px;line-height:1.65}
-.pagina-sobre .sobre-fluxo-secao{display:grid;grid-template-columns:minmax(210px,.7fr) minmax(0,1.7fr);gap:34px;align-items:center;padding:29px;border:1px solid var(--sobre-linha);border-radius:22px;background:linear-gradient(120deg,color-mix(in srgb,var(--sobre-roxo) 7%,var(--fundo-card)),var(--fundo-card))}
-.pagina-sobre .sobre-fluxo-intro p{max-width:300px;margin:12px 0 0;color:var(--texto-secundario);font-size:12px;line-height:1.7}
-.pagina-sobre .sobre-fluxo-passos{display:grid;grid-template-columns:minmax(0,1fr) 15px minmax(0,1fr) 15px minmax(0,1fr) 15px minmax(0,1fr);align-items:center;gap:8px}
-.pagina-sobre .sobre-fluxo-passo{display:flex;flex-direction:column;align-items:flex-start;min-width:0;min-height:144px;padding:13px 11px;border:1px solid var(--sobre-linha);border-radius:13px;background:var(--fundo-card)}
-.pagina-sobre .sobre-fluxo-icone{display:grid;place-items:center;width:31px;height:31px;margin-bottom:13px;border-radius:9px;background:color-mix(in srgb,var(--sobre-roxo) 13%,var(--fundo));color:var(--sobre-roxo-claro);font-size:19px;font-weight:800}
-.pagina-sobre .sobre-fluxo-numero{margin-bottom:6px;color:var(--texto-secundario);font-size:7px;font-weight:850;letter-spacing:.1em}.pagina-sobre .sobre-fluxo-passo strong{font-size:10px;line-height:1.4}.pagina-sobre .sobre-fluxo-passo small{margin-top:6px;color:var(--texto-secundario);font-size:9px;line-height:1.45}.pagina-sobre .sobre-fluxo-conector{color:var(--sobre-roxo-claro);font-size:16px;text-align:center}.pagina-sobre .passo-destaque{border-color:color-mix(in srgb,var(--sobre-ciano) 45%,var(--sobre-linha));background:color-mix(in srgb,var(--sobre-ciano) 5%,var(--fundo-card))}.pagina-sobre .passo-destaque .sobre-fluxo-icone{background:color-mix(in srgb,var(--sobre-ciano) 15%,var(--fundo));color:var(--sobre-ciano)}
-.pagina-sobre .sobre-transparencia{display:flex;align-items:flex-start;gap:14px;margin-top:24px;padding:18px 21px;border:1px solid color-mix(in srgb,var(--sobre-ciano) 27%,var(--sobre-linha));border-radius:15px;background:color-mix(in srgb,var(--sobre-ciano) 5%,var(--fundo-card))}
-.pagina-sobre .sobre-transparencia-icone{display:grid;place-items:center;flex:0 0 29px;width:29px;height:29px;border-radius:50%;background:color-mix(in srgb,var(--sobre-ciano) 17%,var(--fundo));color:var(--sobre-ciano);font-weight:900}
-.pagina-sobre .sobre-transparencia strong{font-size:12px}.pagina-sobre .sobre-transparencia p{margin:5px 0 0;color:var(--texto-secundario);font-size:11px;line-height:1.7}
-.pagina-sobre .sobre-rodape{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-top:28px;padding:19px 0 4px;border-top:1px solid var(--sobre-linha)}
-.pagina-sobre .sobre-rodape-marca{display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.08em}.pagina-sobre .sobre-marca-simbolo{display:grid;place-items:center;width:25px;height:25px;border-radius:8px;background:var(--sobre-roxo);color:white;font-weight:900}.pagina-sobre .sobre-rodape p{margin:0;color:var(--texto-secundario);font-size:10px;text-align:center}.pagina-sobre .sobre-rodape-ano{color:var(--texto-secundario);font-size:10px}
-@media(max-width:1000px){.pagina-sobre .sobre-hero-visual{grid-template-columns:minmax(0,1fr) minmax(250px,.8fr)}.pagina-sobre .sobre-recursos-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pagina-sobre .sobre-fluxo-secao{grid-template-columns:1fr;gap:22px}.pagina-sobre .sobre-fluxo-intro p{max-width:520px}}
-@media(max-width:680px){.pagina-sobre{padding:20px 14px 24px}.pagina-sobre .sobre-hero-visual{grid-template-columns:1fr;gap:5px;padding:28px 23px 15px;border-radius:21px}.pagina-sobre .sobre-hero-visual h1{font-size:clamp(38px,10vw,54px)}.pagina-sobre .sobre-hero-visual p{font-size:13px}.pagina-sobre .sobre-hero-arte{min-height:245px;margin-top:4px}.pagina-sobre .placa-jogo-frente{right:4%;bottom:12%}.pagina-sobre .placa-jogo-fundo{left:7%;top:16%}.pagina-sobre .sobre-recursos-secao{padding:38px 0 32px}.pagina-sobre .sobre-secao-cabecalho{display:block}.pagina-sobre .sobre-secao-cabecalho>p{margin-top:10px}.pagina-sobre .sobre-recursos-grid{gap:10px}.pagina-sobre .sobre-recurso-card{min-height:178px;padding:14px}.pagina-sobre .sobre-recurso-topo{margin-bottom:15px}.pagina-sobre .sobre-recurso-card h3{font-size:13px}.pagina-sobre .sobre-recurso-card p{font-size:10px}.pagina-sobre .sobre-fluxo-secao{padding:22px 15px;gap:20px}.pagina-sobre .sobre-fluxo-passos{grid-template-columns:1fr;gap:8px}.pagina-sobre .sobre-fluxo-passo{display:grid;grid-template-columns:35px 1fr;grid-template-rows:auto auto;column-gap:10px;min-height:0;padding:12px}.pagina-sobre .sobre-fluxo-icone{grid-row:1/4;margin:0}.pagina-sobre .sobre-fluxo-numero{margin:0 0 3px}.pagina-sobre .sobre-fluxo-passo strong{font-size:12px}.pagina-sobre .sobre-fluxo-passo small{margin-top:3px;font-size:10px}.pagina-sobre .sobre-fluxo-conector{height:12px;font-size:0}.pagina-sobre .sobre-fluxo-conector:after{content:'↓';font-size:15px}.pagina-sobre .sobre-transparencia{padding:15px;gap:10px}.pagina-sobre .sobre-transparencia p{font-size:10px}.pagina-sobre .sobre-rodape{flex-wrap:wrap}.pagina-sobre .sobre-rodape p{order:3;width:100%;text-align:left;line-height:1.5}}
-@media(prefers-reduced-motion:reduce){.pagina-sobre *{transition:none!important}}
+/* Sobre (visão do usuário comum): explica o projeto de forma curta, visual e transparente. */
+.pagina-sobre {
+  --sobre-roxo: #8b5cf6;
+  --sobre-roxo-claro: #b7a0ff;
+  --sobre-roxo-texto: color-mix(in srgb, var(--sobre-roxo) 70%, var(--texto));
+  --sobre-ciano: #69e0d0;
+  --sobre-ciano-texto: color-mix(in srgb, var(--sobre-ciano) 55%, var(--texto));
+  --sobre-ambar: #e5a54b;
+  --sobre-ambar-texto: color-mix(in srgb, var(--sobre-ambar) 60%, var(--texto));
+  --sobre-linha: var(--borda-tema, rgba(145, 125, 190, .22));
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  padding: clamp(32px, 5vw, 64px) clamp(18px, 4vw, 56px) 28px;
+  color: var(--texto);
+  background: var(--fundo);
+}
+
+.pagina-sobre,
+.pagina-sobre * { box-sizing: border-box; }
+
+.pagina-sobre .sobre-intro,
+.pagina-sobre .sobre-fluxo-secao,
+.pagina-sobre .sobre-limites {
+  width: min(1100px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Introdução: título e destaque centralizados; o texto corrido fica numa coluna estreita, alinhada à esquerda. */
+.pagina-sobre .sobre-intro { text-align: center; }
+
+.pagina-sobre .sobre-intro h1 {
+  max-width: 22ch;
+  margin: 0 auto 20px;
+  text-wrap: balance;
+  font-size: clamp(28px, 4.2vw, 44px);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -.03em;
+}
+
+.pagina-sobre .sobre-intro-destaque {
+  max-width: 44ch;
+  margin: 0 auto;
+  color: var(--texto);
+  font-size: clamp(17px, 1.9vw, 21px);
+  font-weight: 500;
+  line-height: 1.55;
+  text-wrap: balance;
+}
+
+.pagina-sobre .sobre-intro-texto {
+  display: grid;
+  gap: 16px;
+  max-width: 58ch;
+  margin: 28px auto 0;
+  text-align: left;
+}
+
+.pagina-sobre .sobre-intro-texto p {
+  margin: 0;
+  color: var(--texto-secundario);
+  font-size: clamp(15px, 1.4vw, 16px);
+  line-height: 1.75;
+  text-wrap: pretty;
+}
+
+/* Assinatura do autor: foto pequena e redonda, no fim do texto. */
+.pagina-sobre .sobre-autor {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 8px 0 0;
+}
+
+.pagina-sobre .sobre-autor img {
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
+  border: 2px solid color-mix(in srgb, var(--sobre-roxo) 55%, var(--sobre-linha));
+  border-radius: 50%;
+  background: var(--fundo-card);
+  object-fit: cover;
+}
+
+.pagina-sobre .sobre-autor figcaption {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.pagina-sobre .sobre-autor strong { font-size: 16px; line-height: 1.3; }
+.pagina-sobre .sobre-autor span { color: var(--texto-secundario); font-size: 13px; line-height: 1.4; }
+
+/* Variação grande e centralizada (círculo no estilo do GitHub). Para voltar à assinatura pequena, remova a classe sobre-autor-grande no JSX. */
+.pagina-sobre .sobre-autor-grande {
+  flex-direction: column;
+  justify-self: center;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.pagina-sobre .sobre-autor-grande img {
+  flex: none;
+  width: 168px;
+  height: 168px;
+  border: 1px solid var(--sobre-linha);
+}
+
+.pagina-sobre .sobre-autor-grande figcaption { text-align: center; }
+.pagina-sobre .sobre-autor-grande strong { font-size: 18px; }
+.pagina-sobre .sobre-autor-grande span { font-size: 14px; }
+
+/* Estado do projeto, separado do texto para não se perder no fim do parágrafo. */
+.pagina-sobre .sobre-intro-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 100%;
+  margin: 28px 0 0;
+  padding: 8px 15px;
+  border: 1px solid var(--sobre-linha);
+  border-radius: 14px;
+  color: var(--texto-secundario);
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.pagina-sobre .sobre-ponto-status {
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sobre-ciano);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--sobre-ciano) 60%, transparent);
+}
+
+/* Fluxo: o ponto principal da página. */
+.pagina-sobre .sobre-fluxo-secao {
+  margin-top: clamp(34px, 5vw, 56px);
+  padding: clamp(22px, 3vw, 34px);
+  border: 1px solid var(--sobre-linha);
+  border-radius: 22px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--sobre-roxo) 7%, var(--fundo-card)), var(--fundo-card));
+}
+
+.pagina-sobre .sobre-fluxo-secao h2,
+.pagina-sobre .sobre-limites h2 {
+  margin: 0 0 24px;
+  text-align: center;
+  text-wrap: balance;
+  font-size: clamp(20px, 2.4vw, 26px);
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+
+.pagina-sobre .sobre-fluxo {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 30px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pagina-sobre .sobre-etapa {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Conector entre etapas: linha + ponta de seta. */
+.pagina-sobre .sobre-etapa:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 63px;
+  left: calc(100% + 7px);
+  width: 16px;
+  height: 2px;
+  background: color-mix(in srgb, var(--sobre-roxo) 60%, transparent);
+}
+
+.pagina-sobre .sobre-etapa:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: 59px;
+  left: calc(100% + 15px);
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid color-mix(in srgb, var(--sobre-roxo) 60%, transparent);
+  border-right: 2px solid color-mix(in srgb, var(--sobre-roxo) 60%, transparent);
+  transform: rotate(45deg);
+}
+
+.pagina-sobre .sobre-etapa-visual {
+  display: grid;
+  place-items: center;
+  height: 128px;
+  padding: 14px;
+  overflow: hidden;
+  border: 1px solid var(--sobre-linha);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--sobre-roxo) 6%, var(--fundo));
+}
+
+.pagina-sobre .etapa-final .sobre-etapa-visual {
+  border-color: color-mix(in srgb, var(--sobre-ciano) 45%, var(--sobre-linha));
+  background: color-mix(in srgb, var(--sobre-ciano) 6%, var(--fundo));
+}
+
+/* 1. Lojas */
+.pagina-sobre .visual-lojas { align-content: center; gap: 8px; }
+.pagina-sobre .sobre-loja {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--sobre-linha);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 750;
+}
+.pagina-sobre .sobre-loja b {
+  display: grid;
+  place-items: center;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .12);
+  font-size: 12px;
+  font-weight: 900;
+}
+.pagina-sobre .steam-selo { background: #18344c; color: #e4f3ff; }
+.pagina-sobre .epic-selo { background: #202020; color: #fff; }
+
+/* 2. Coleta */
+.pagina-sobre .visual-coleta { align-content: center; gap: 9px; }
+.pagina-sobre .visual-coleta span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+.pagina-sobre .visual-coleta i {
+  display: block;
+  height: 8px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--texto-secundario) 38%, transparent);
+}
+.pagina-sobre .visual-coleta span:nth-child(1) i { width: 62%; }
+.pagina-sobre .visual-coleta span:nth-child(2) i { width: 48%; }
+.pagina-sobre .visual-coleta span:nth-child(3) i { width: 56%; }
+.pagina-sobre .visual-coleta b {
+  display: block;
+  flex: 0 0 38px;
+  height: 16px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--sobre-ciano) 45%, transparent);
+}
+
+/* 3. Histórico */
+.pagina-sobre .visual-historico svg { display: block; width: 100%; height: 100%; }
+.pagina-sobre .historico-base { fill: none; stroke: var(--sobre-linha); stroke-width: 1.5; stroke-dasharray: 3 4; }
+.pagina-sobre .historico-linha { fill: none; stroke: var(--sobre-roxo); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.pagina-sobre .historico-ponto { fill: var(--sobre-ciano); }
+
+/* 4. Para você */
+.pagina-sobre .visual-voce {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  align-content: center;
+  gap: 8px;
+}
+.pagina-sobre .visual-voce div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid var(--sobre-linha);
+  border-radius: 9px;
+  background: var(--fundo-card);
+}
+.pagina-sobre .visual-voce span { color: var(--texto-secundario); font-size: 11px; }
+.pagina-sobre .visual-voce strong { font-size: 14px; line-height: 1.2; white-space: nowrap; }
+.pagina-sobre .visual-voce small {
+  grid-column: 1 / -1;
+  color: var(--texto-secundario);
+  font-size: 11px;
+  text-align: right;
+}
+
+/* Texto das etapas */
+.pagina-sobre .sobre-etapa-texto { text-align: center; }
+
+.pagina-sobre .sobre-etapa h3 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 0 7px;
+  font-size: 17px;
+  line-height: 1.3;
+}
+.pagina-sobre .sobre-etapa-numero {
+  display: grid;
+  place-items: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border: 1px solid color-mix(in srgb, var(--sobre-roxo) 55%, var(--sobre-linha));
+  border-radius: 50%;
+  color: var(--sobre-roxo-texto);
+  font-size: 12px;
+  font-weight: 800;
+}
+.pagina-sobre .etapa-final .sobre-etapa-numero {
+  border-color: var(--sobre-ciano);
+  background: var(--sobre-ciano);
+  color: #12312e;
+}
+.pagina-sobre .sobre-etapa p {
+  margin: 0;
+  color: var(--texto-secundario);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* O que ele não faz: três avisos curtos, centralizados. */
+.pagina-sobre .sobre-limites { margin-top: clamp(32px, 4vw, 48px); }
+.pagina-sobre .sobre-limites h2 { text-align: center; }
+
+.pagina-sobre .sobre-limites-lista {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+  border: 1px solid var(--sobre-linha);
+  border-radius: 18px;
+  background: var(--fundo-card);
+}
+
+.pagina-sobre .sobre-limites-lista li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 22px;
+  text-align: center;
+}
+
+.pagina-sobre .sobre-limites-lista li + li { border-left: 1px solid var(--sobre-linha); }
+
+.pagina-sobre .sobre-limite-marca {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--sobre-ambar) 20%, var(--fundo-card));
+  color: var(--sobre-ambar-texto);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.pagina-sobre .sobre-limites-lista strong { font-size: 15px; line-height: 1.35; }
+.pagina-sobre .sobre-limites-lista p { max-width: 30ch; margin: 0; color: var(--texto-secundario); font-size: 14px; line-height: 1.55; }
+
+/* Tablet e celular: etapas empilhadas, conectores na vertical. */
+@media (max-width: 900px) {
+  .pagina-sobre .sobre-fluxo { grid-template-columns: minmax(0, 1fr); gap: 38px; max-width: 460px; margin-left: auto; margin-right: auto; }
+
+  .pagina-sobre .sobre-etapa:not(:last-child)::after {
+    top: calc(100% + 10px);
+    left: 50%;
+    width: 2px;
+    height: 18px;
+    margin-left: -1px;
+  }
+
+  .pagina-sobre .sobre-etapa:not(:last-child)::before {
+    top: calc(100% + 23px);
+    left: 50%;
+    margin-left: -4px;
+    transform: rotate(135deg);
+  }
+}
+
+@media (max-width: 700px) {
+  .pagina-sobre { padding: 24px 14px 24px; }
+  .pagina-sobre .sobre-autor-grande img { width: 132px; height: 132px; }
+  .pagina-sobre .sobre-fluxo-secao { border-radius: 18px; }
+  .pagina-sobre .sobre-limites-lista { grid-template-columns: minmax(0, 1fr); }
+  .pagina-sobre .sobre-limites-lista li { padding: 20px; }
+  .pagina-sobre .sobre-limites-lista li + li { border-left: 0; border-top: 1px solid var(--sobre-linha); }
+}

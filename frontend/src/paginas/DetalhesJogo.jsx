@@ -1490,7 +1490,8 @@ function DetalhesJogo() {
               className="botao-voltar-detalhes"
               onClick={() => navigate(-1)}
             >
-              ← Voltar
+              <span className="icone-voltar-detalhes" aria-hidden="true">‹</span>
+              Voltar
             </button>
 
             <button
@@ -1680,9 +1681,10 @@ function DetalhesJogo() {
                       href={jogo.url_steam}
                       target="_blank"
                       rel="noreferrer"
-                      className="botao-loja"
+                      className="botao-loja botao-loja-steam"
                     >
-                      Ver na Steam ↗
+                      <svg className="botao-loja-icone botao-loja-icone-steam" aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="15.7" cy="7.1" r="4.2" stroke="currentColor" strokeWidth="1.8"/><circle cx="7.1" cy="16.7" r="3.1" stroke="currentColor" strokeWidth="1.8"/><circle cx="15.7" cy="7.1" r="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="m9.8 15.1 3.3-2.2M9.3 18.4l3.5 1.4a4.2 4.2 0 0 0 5.4-2.6l1.1-3.1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Ver na Steam
                     </a>
                   )}
                 </article>
@@ -1727,9 +1729,10 @@ function DetalhesJogo() {
                       href={jogo.url_epic}
                       target="_blank"
                       rel="noreferrer"
-                      className="botao-loja"
+                      className="botao-loja botao-loja-epic"
                     >
-                      Ver na Epic ↗
+                      <svg className="botao-loja-icone botao-loja-icone-epic" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 3.5h14v17H5z" fill="currentColor"/><path d="M8 7h8v2H10v2h5.5v2H10v2h6v2H8z" fill="var(--fundo-card)"/></svg>
+                      Ver na Epic
                     </a>
                   )}
                 </article>
