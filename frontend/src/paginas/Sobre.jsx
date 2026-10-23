@@ -45,7 +45,7 @@ function Sobre() {
             </p>
             <p>
               Mas o DESCTRL também é feito de coisas que vão além do código. Ao longo dessa jornada, conversas, ideias,
-              opiniões e incentivos das pessoas que fazem parte da minha vida também contribuíram para que o projeto
+              sugestões e incentivos das pessoas que fazem parte da minha vida também contribuíram para que o projeto
               tomasse forma. De maneiras diferentes, cada uma deixou um pouco de si nessa construção, e acho que isso
               torna tudo ainda mais especial.
             </p>
