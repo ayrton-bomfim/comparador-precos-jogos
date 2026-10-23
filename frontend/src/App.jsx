@@ -114,21 +114,31 @@ function AvisoBeta() {
   )
 }
 
-const MODO_MANUTENCAO = false
+const DATA_LANCAMENTO = new Date('2026-10-23T16:00:00Z').getTime()
 
-function PaginaManutencao() {
+function PaginaManutencao({ agora }) {
+  const segundosRestantes = Math.max(0, Math.floor((DATA_LANCAMENTO - agora) / 1000))
+  const dias = Math.floor(segundosRestantes / 86400)
+  const horas = Math.floor((segundosRestantes % 86400) / 3600)
+  const minutos = Math.floor((segundosRestantes % 3600) / 60)
+  const segundos = segundosRestantes % 60
+
+  const blocos = [
+    { valor: String(dias).padStart(2, '0'), rotulo: 'DIAS' },
+    { valor: String(horas).padStart(2, '0'), rotulo: 'HORAS' },
+    { valor: String(minutos).padStart(2, '0'), rotulo: 'MIN' },
+    { valor: String(segundos).padStart(2, '0'), rotulo: 'SEG' },
+  ]
+
   return (
-    <main className="pagina-manutencao">
+    <main className="pagina-manutencao pagina-lancamento">
       <div className="manutencao-grade" aria-hidden="true" />
-      <header className="manutencao-cabecalho">
-        <a className="manutencao-marca" href="/" aria-label="DESCTRL">
+      <section className="manutencao-conteudo lancamento-conteudo" aria-label="Contagem regressiva para abertura do DESCTRL">
+        <a className="manutencao-marca lancamento-marca" href="/" aria-label="DESCTRL">
           <span className="manutencao-marca-des">DES</span>
           <span className="manutencao-marca-ctrl">CTRL</span>
         </a>
-        <span className="manutencao-status"><span className="manutencao-status-ponto" /><span>Em manutenção</span></span>
-      </header>
-      <section className="manutencao-conteudo" aria-labelledby="manutencao-titulo">
-        <div className="manutencao-ilustracao" aria-hidden="true">
+        <div className="manutencao-ilustracao lancamento-ilustracao" aria-hidden="true">
           <div className="manutencao-orbita manutencao-orbita-externa" />
           <div className="manutencao-orbita manutencao-orbita-interna" />
           <div className="manutencao-brilho" />
@@ -140,25 +150,38 @@ function PaginaManutencao() {
           <div className="manutencao-ferramenta manutencao-ferramenta-esquerda">⚙</div><div className="manutencao-ferramenta manutencao-ferramenta-direita">⌁</div>
           <span className="manutencao-particula part-1" /><span className="manutencao-particula part-2" /><span className="manutencao-particula part-3" /><span className="manutencao-particula part-4" />
         </div>
-        <p className="manutencao-etiqueta">EM BREVE</p>
-        <h1 id="manutencao-titulo">O DESCTRL chega<span>em breve!</span></h1>
-        <p className="manutencao-descricao">Estamos finalizando os últimos ajustes para lançar o DESCTRL e ajudar você a encontrar os melhores preços de jogos.</p>
-        <div className="manutencao-beneficios">
-          <article className="manutencao-card"><span className="manutencao-card-icone roxo" aria-hidden="true">✦</span><h2>Novas funcionalidades</h2><p>Estamos preparando melhorias e novos recursos.</p></article>
-          <article className="manutencao-card"><span className="manutencao-card-icone ciano" aria-hidden="true">▥</span><h2>Dados mais precisos</h2><p>Aprimorando a coleta e a qualidade das informações.</p></article>
-          <article className="manutencao-card"><span className="manutencao-card-icone rosa" aria-hidden="true">◇</span><h2>Mais estabilidade</h2><p>Trabalhando para uma navegação mais confiável.</p></article>
-          <article className="manutencao-card"><span className="manutencao-card-icone ciano" aria-hidden="true">⌘</span><h2>Feito para quem joga</h2><p>Para continuar ajudando você a encontrar bons preços.</p></article>
+        <div className="lancamento-contagem" role="timer" aria-label={`Tempo restante: ${dias} dias, ${horas} horas, ${minutos} minutos e ${segundos} segundos`}>
+          {blocos.map((bloco) => (
+            <div className="lancamento-bloco" key={bloco.rotulo}>
+              <span className="lancamento-valor">{bloco.valor}</span>
+              <span className="lancamento-rotulo">{bloco.rotulo}</span>
+            </div>
+          ))}
         </div>
-        <div className="manutencao-agradecimento"><span aria-hidden="true">♥</span><div><strong>Obrigado pela paciência e pelo apoio!</strong><p>Voltaremos em breve.</p></div></div>
       </section>
-      <footer className="manutencao-rodape"><span>DESCTRL</span></footer>
     </main>
   )
 }
 
 function App() {
   const { tema } = useTema()
+  const [agora, setAgora] = useState(() => Date.now())
   const location = useLocation()
+
+  useEffect(() => {
+    if (Date.now() >= DATA_LANCAMENTO) {
+      setAgora(Date.now())
+      return undefined
+    }
+
+    const intervalo = window.setInterval(() => {
+      const instanteAtual = Date.now()
+      setAgora(instanteAtual)
+      if (instanteAtual >= DATA_LANCAMENTO) window.clearInterval(intervalo)
+    }, 1000)
+
+    return () => window.clearInterval(intervalo)
+  }, [])
   const mostrarAvisoBeta = location.pathname === '/'
 
   // Mantém o navegador e as áreas externas ao app alinhados ao tema ativo.
@@ -188,7 +211,7 @@ function App() {
     return () => mediaEscuro.removeEventListener('change', atualizarCores)
   }, [tema])
 
-  if (MODO_MANUTENCAO) return <PaginaManutencao />
+  if (agora < DATA_LANCAMENTO) return <PaginaManutencao agora={agora} />
 
   return (
     <div className={`app tema-${tema}`}>
