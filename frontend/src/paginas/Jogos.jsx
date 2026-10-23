@@ -122,6 +122,40 @@ function Jogos() {
   const [filtrosAbertos, setFiltrosAbertos] = useState(false)
 
   const busca = searchParams.get('busca') || ''
+  const [buscaDigitada, setBuscaDigitada] = useState(busca)
+
+  // Mantém o campo alinhado com voltar/avançar do navegador e links externos.
+  useEffect(() => {
+    // Ao apagar até 2 caracteres, a URL é limpa, mas o texto digitado permanece.
+    if (buscaDigitada.trim().length < 3 && !busca) return
+    setBuscaDigitada(busca)
+  }, [busca])
+
+  // A busca dinâmica só começa com 3 caracteres, seguindo o padrão do cabeçalho.
+  // 100 ms evita consultas a cada tecla; termos menores limpam o filtro anterior.
+  useEffect(() => {
+    const termo = buscaDigitada.trim()
+    const parametros = new URLSearchParams(window.location.search)
+
+    if (termo.length < 3) {
+      if (parametros.has('busca')) {
+        parametros.delete('busca')
+        parametros.delete('pagina')
+        setSearchParams(parametros, { replace: true })
+      }
+      return undefined
+    }
+
+    const timeout = window.setTimeout(() => {
+      const atuais = new URLSearchParams(window.location.search)
+      if (atuais.get('busca') === termo && !atuais.has('pagina')) return
+      atuais.set('busca', termo)
+      atuais.delete('pagina')
+      setSearchParams(atuais, { replace: true })
+    }, 100)
+
+    return () => window.clearTimeout(timeout)
+  }, [buscaDigitada, setSearchParams])
 
   const filtrosValidos = [
     'brasileiros',
@@ -140,17 +174,37 @@ function Jogos() {
     'mais-vistos',
   ]
 
+  // Os filtros escolhidos ficam guardados apenas durante a sessão do navegador.
+  // Ao encerrar a sessão, o catálogo volta aos padrões do DESCTRL.
+  const [filtroInicialSessao] = useState(() => {
+    try {
+      const salvo = sessionStorage.getItem('desctrl-catalogo-filtro')
+      return filtrosValidos.includes(salvo) ? salvo : 'brasileiros'
+    } catch {
+      return 'brasileiros'
+    }
+  })
+
+  const [ordenacaoInicialSessao] = useState(() => {
+    try {
+      const salva = sessionStorage.getItem('desctrl-catalogo-ordenacao')
+      return ordenacoesValidas.includes(salva) ? salva : 'mais-vistos'
+    } catch {
+      return 'mais-vistos'
+    }
+  })
+
   const filtroParam = searchParams.get('filtro')
 
   const filtro = filtrosValidos.includes(filtroParam)
     ? filtroParam
-    : 'brasileiros'
+    : filtroInicialSessao
 
   const ordenacaoParam = searchParams.get('ordenacao')
 
   const ordenacao = ordenacoesValidas.includes(ordenacaoParam)
     ? ordenacaoParam
-    : 'mais-vistos'
+    : ordenacaoInicialSessao
 
   const paginaParam = Number(searchParams.get('pagina'))
 
@@ -164,6 +218,15 @@ function Jogos() {
   useEffect(() => {
     localStorage.setItem('tema-comparador', tema)
   }, [tema])
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('desctrl-catalogo-filtro', filtro)
+      sessionStorage.setItem('desctrl-catalogo-ordenacao', ordenacao)
+    } catch (erro) {
+      console.warn('Não foi possível guardar os filtros desta sessão.', erro)
+    }
+  }, [filtro, ordenacao])
 
   useEffect(() => {
     let ativo = true
@@ -244,6 +307,7 @@ function Jogos() {
 
   useEffect(() => {
     let ativo = true
+    const controller = new AbortController()
     async function carregarJogos() {
       try {
         setCarregando(true)
@@ -258,7 +322,8 @@ function Jogos() {
         })
 
         const resposta = await fetch(
-          `${API_JOGOS_URL}/?${parametros.toString()}`
+          `${API_JOGOS_URL}/?${parametros.toString()}`,
+          { signal: controller.signal }
         )
 
         if (!resposta.ok) {
@@ -288,7 +353,7 @@ function Jogos() {
             : dados.total_paginas || 1
         )
       } catch (erroCarregamento) {
-        if (!ativo) return
+        if (!ativo || erroCarregamento.name === 'AbortError') return
         console.error(erroCarregamento)
 
         setErro(
@@ -300,7 +365,10 @@ function Jogos() {
     }
 
     carregarJogos()
-    return () => { ativo = false }
+    return () => {
+      ativo = false
+      controller.abort()
+    }
   }, [pagina, porPagina, busca, filtro, ordenacao])
 
   /*
@@ -346,8 +414,6 @@ function Jogos() {
           valor === null ||
           valor === undefined ||
           valor === '' ||
-          (chave === 'filtro' && valor === 'brasileiros') ||
-          (chave === 'ordenacao' && valor === 'mais-vistos') ||
           (chave === 'pagina' && Number(valor) === 1)
         ) {
           parametros.delete(chave)
@@ -371,8 +437,9 @@ function Jogos() {
 
   const pesquisar = (evento) => {
     evento.preventDefault()
-
+    const termo = buscaDigitada.trim()
     atualizarParametros({
+      busca: termo || null,
       pagina: 1,
     })
   }
@@ -607,13 +674,8 @@ function Jogos() {
             <span className="icone-pesquisa">⌕</span>
             <input
               type="text"
-              value={busca}
-              onChange={(evento) => {
-                atualizarParametros({
-                  busca: evento.target.value,
-                  pagina: 1,
-                })
-              }}
+              value={buscaDigitada}
+              onChange={(evento) => setBuscaDigitada(evento.target.value)}
               placeholder="Pesquisar por nome do jogo..."
               aria-label="Pesquisar jogo"
             />

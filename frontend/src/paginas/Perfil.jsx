@@ -37,6 +37,8 @@ function Perfil() {
   const [novoEmail, setNovoEmail] = useState('')
   const [mensagemModalConta, setMensagemModalConta] = useState(null)
   const [emailAlteracaoCarregando, setEmailAlteracaoCarregando] = useState(false)
+  const [confirmacaoEmailCarregando, setConfirmacaoEmailCarregando] = useState(false)
+  const [confirmacaoEmailMensagem, setConfirmacaoEmailMensagem] = useState(null)
   const [dicasConquistasVisiveis, setDicasConquistasVisiveis] = useState(false)
   const [editandoUsername, setEditandoUsername] = useState(false)
   const [novoUsername, setNovoUsername] = useState('')
@@ -198,7 +200,9 @@ function Perfil() {
     let cancelado = false
 
     const carregarConquistas = async () => {
-      setCarregandoConquistas(true)
+      // Mantém as conquistas já exibidas durante renovações da sessão.
+      // O estado inicial de carregamento só aparece antes da primeira resposta.
+      if (!dadosConquistas) setCarregandoConquistas(true)
       setErroConquistas('')
       try {
         const resposta = await fetch(`${API_BASE}/api/conquistas`, {
@@ -221,7 +225,7 @@ function Perfil() {
   useEffect(() => {
     if (abaAtiva !== 'visao-geral' || !token || !visitaPerfilRegistrada) return undefined
     let cancelado = false
-    setCarregandoFavoritos(true)
+    if (favoritosPerfil.length === 0) setCarregandoFavoritos(true)
     setErroFavoritos('')
 
     const carregarFavoritosPerfil = async () => {
@@ -365,6 +369,38 @@ function Perfil() {
     }
   }
 
+  const reenviarConfirmacaoEmail = async () => {
+    if (confirmacaoEmailCarregando) return
+    if (!token) {
+      setConfirmacaoEmailMensagem({ tipo: 'erro', texto: 'Sua sessão expirou. Entre novamente e tente outra vez.' })
+      return
+    }
+
+    setConfirmacaoEmailCarregando(true)
+    setConfirmacaoEmailMensagem(null)
+    try {
+      const resposta = await fetch(`${API_BASE}/api/auth/email/confirmacao/reenviar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const resultado = await resposta.json().catch(() => ({}))
+      if (!resposta.ok) {
+        throw new Error(resultado.detail || 'Não foi possível reenviar a confirmação.')
+      }
+      setConfirmacaoEmailMensagem({
+        tipo: 'sucesso',
+        texto: resultado.mensagem || 'Enviamos um novo link de confirmação para seu e-mail.',
+      })
+    } catch (erro) {
+      setConfirmacaoEmailMensagem({
+        tipo: 'erro',
+        texto: erro.message || 'Não foi possível conectar ao servidor. Tente novamente.',
+      })
+    } finally {
+      setConfirmacaoEmailCarregando(false)
+    }
+  }
+
   const solicitarAlteracaoEmail = async (form) => {
     if (!form || emailAlteracaoCarregando) return
     if (!token) {
@@ -438,7 +474,10 @@ function Perfil() {
     if (abaAtiva !== 'notificacoes' || !token) return undefined
     let cancelado = false
     const carregarNotificacoes = async () => {
-      setCarregandoNotificacoes(true); setErroNotificacoes('')
+      // Não troca a lista existente por uma tela de carregamento ao renovar o token
+      // ou ao atualizar os dados em segundo plano.
+      if (notificacoes.length === 0) setCarregandoNotificacoes(true)
+      setErroNotificacoes('')
       try {
         const resposta = await fetch(`${API_BASE}/api/notificacoes?tipo=${encodeURIComponent(filtroNotificacoes)}&limite=200`, { headers: { Authorization: `Bearer ${token}` } })
         const dados = await resposta.json().catch(() => ({}))
@@ -853,7 +892,7 @@ function Perfil() {
                 <div className="perfil-configuracao-secao-titulo"><span aria-hidden="true">♧</span><div><h3>Notificações e alertas</h3><p>Escolha por quais canais você aceita receber avisos sobre os jogos que acompanha.</p></div></div>
                 <div className="perfil-opcoes-notificacao">
                   <PreferenciaToggle titulo="Notificações por e-mail" descricao={emailVerificado ? 'Receba avisos na sua caixa de entrada quando um jogo atender às condições que você configurou.' : 'Confirme seu e-mail para liberar este canal de notificação.'} checked={emailVerificado && preferenciasNotificacao.email} disabled={!emailVerificado || !preferenciasNotificacaoCarregadas} onChange={valor => alterarNotificacao('email', valor)} />
-                  {!emailVerificado && <div className="perfil-email-nao-verificado"><span aria-hidden="true">ⓘ</span><div><strong>Confirme seu e-mail para ativar</strong><small>O endereço precisa estar confirmado antes de habilitar alertas por e-mail.</small></div><button type="button" onClick={() => { document.getElementById('perfil-conta-email')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); document.getElementById('perfil-conta-email-acao')?.focus() }}>Ir para confirmação</button></div>}
+                  {!emailVerificado && <div className="perfil-email-nao-verificado"><span aria-hidden="true">ⓘ</span><div><strong>Confirme seu e-mail para ativar</strong><small>O endereço precisa estar confirmado antes de habilitar alertas por e-mail.</small></div><button type="button" onClick={() => { document.getElementById('perfil-conta-email')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); document.getElementById('perfil-email-confirmacao-acao')?.focus() }}>Ir para confirmação</button></div>}
                   <PreferenciaToggle titulo="Notificações no site" descricao="Preferência da conta para avisos dentro do DESCTRL." checked={preferenciasNotificacao.site} disabled={!preferenciasNotificacaoCarregadas} onChange={valor => alterarNotificacao('site', valor)} />
                 </div>
                   {erroPreferenciasNotificacao && <p className="perfil-aviso-local" role="alert"><span aria-hidden="true">ⓘ</span> {erroPreferenciasNotificacao}</p>}
@@ -870,7 +909,29 @@ function Perfil() {
                   </article>
                   <article className="perfil-dado-conta-card" id="perfil-conta-email">
                     <div className="perfil-dado-conta-icone" aria-hidden="true">✉</div>
-                    <div className="perfil-dado-conta-conteudo"><span>E-mail</span><strong>{emailUsuario}</strong><small>{emailVerificado ? 'Endereço confirmado.' : 'Confirmação do endereço ainda não identificada pela sessão.'}</small></div>
+                    <div className="perfil-dado-conta-conteudo perfil-conta-email-conteudo">
+                      <span>E-mail</span>
+                      <strong>{emailUsuario}</strong>
+                      <small>{emailVerificado ? 'Endereço confirmado.' : 'Este endereço ainda precisa ser confirmado.'}</small>
+                      {!emailVerificado && (
+                        <div className="perfil-email-confirmacao-acoes">
+                          <button
+                            id="perfil-email-confirmacao-acao"
+                            type="button"
+                            className="perfil-dado-conta-acao-texto"
+                            onClick={reenviarConfirmacaoEmail}
+                            disabled={confirmacaoEmailCarregando}
+                          >
+                            {confirmacaoEmailCarregando ? 'Enviando...' : 'Reenviar confirmação'}
+                          </button>
+                          {confirmacaoEmailMensagem && (
+                            <small className={`perfil-email-confirmacao-mensagem ${confirmacaoEmailMensagem.tipo}`} role={confirmacaoEmailMensagem.tipo === 'erro' ? 'alert' : 'status'}>
+                              {confirmacaoEmailMensagem.texto}
+                            </small>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <button id="perfil-conta-email-acao" type="button" className="perfil-dado-conta-acao-texto" onClick={() => abrirModalConta('email')}>Alterar</button>
                   </article>
                   <article className="perfil-dado-conta-card">

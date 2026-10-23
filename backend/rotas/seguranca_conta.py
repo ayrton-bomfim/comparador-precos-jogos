@@ -72,10 +72,15 @@ def _url_frontend(caminho: str, token: str) -> str:
 
 def _enviar_link(destinatario: str, assunto: str, titulo: str, explicacao: str, url: str):
     """Envia link usando a identidade visual aprovada no alerta de preço."""
-    if "novo e-mail" in titulo.lower():
+    titulo_normalizado = titulo.strip().lower()
+    if "novo e-mail" in titulo_normalizado:
         preheader = "Confirme o novo endereço de e-mail da sua conta DESCTRL."
         chamada = "Confirmação de segurança"
         texto_botao = "Confirmar novo e-mail"
+    elif "confirme seu e-mail" in titulo_normalizado:
+        preheader = "Confirme seu endereço de e-mail para concluir a configuração da conta DESCTRL."
+        chamada = "Confirmação de e-mail"
+        texto_botao = "Confirmar meu e-mail"
     else:
         preheader = "Use o link seguro para redefinir a senha da sua conta DESCTRL."
         chamada = "Proteção da sua conta"
@@ -103,6 +108,41 @@ def _token_valido(db: Session, bruto: str, finalidade: str):
         raise HTTPException(status_code=400, detail="Token inválido ou expirado. Solicite um novo link.")
     return registro
 
+@router.post("/email/confirmacao/reenviar")
+@limiter.limit("3/hour")
+def reenviar_confirmacao_email(
+    request: Request,
+    usuario: Usuario = Depends(obter_usuario_atual),
+    db: Session = Depends(get_db),
+):
+    """Reenvia a confirmação do endereço atual para uma conta não verificada."""
+    if usuario.email_verificado:
+        return {"mensagem": "Seu endereço de e-mail já está confirmado.", "email_verificado": True}
+    if not usuario.email or not EMAIL_RE.match(usuario.email):
+        raise HTTPException(status_code=400, detail="Sua conta não possui um endereço de e-mail válido.")
+
+    token = _criar_token(db, usuario, "confirmar_email")
+    url = _url_frontend("/confirmar-email", token)
+    try:
+        _enviar_link(
+            usuario.email,
+            "Confirme seu e-mail no DESCTRL",
+            "Confirme seu e-mail",
+            "Confirme o endereço de e-mail associado à sua conta DESCTRL. Esse passo libera recursos que dependem de um endereço confirmado.",
+            url,
+        )
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Falha ao reenviar confirmação de e-mail via Resend.")
+        raise HTTPException(
+            status_code=502,
+            detail="Não foi possível enviar o e-mail de confirmação. Tente novamente mais tarde.",
+        ) from exc
+
+    return {"mensagem": "Enviamos um novo link de confirmação para o seu e-mail.", "email_verificado": False}
+
+
 @router.post("/email/solicitar-alteracao")
 @limiter.limit("3/hour")
 def solicitar_alteracao_email(request: Request, payload: SolicitarEmail, usuario: Usuario = Depends(obter_usuario_atual), db: Session = Depends(get_db)):
@@ -129,21 +169,51 @@ def solicitar_alteracao_email(request: Request, payload: SolicitarEmail, usuario
 
 @router.post("/email/confirmar")
 @limiter.limit("10/minute")
-def confirmar_alteracao_email(request: Request, payload: ConfirmarToken, db: Session = Depends(get_db)):
-    registro = _token_valido(db, payload.token, "alterar_email")
-    if not registro.email_pendente or not EMAIL_RE.match(registro.email_pendente):
-        raise HTTPException(status_code=400, detail="Solicitação de alteração inválida.")
-    existente = db.query(Usuario).filter(Usuario.email == registro.email_pendente, Usuario.id != registro.usuario_id).first()
-    if existente:
-        raise HTTPException(status_code=409, detail="Este e-mail já está associado a outra conta.")
+def confirmar_email(request: Request, payload: ConfirmarToken, db: Session = Depends(get_db)):
+    # O mesmo componente frontend atende à confirmação inicial e à alteração de endereço.
+    registro = db.query(TokenSegurancaUsuario).filter(
+        TokenSegurancaUsuario.token_hash == _hash_token(payload.token),
+        TokenSegurancaUsuario.finalidade.in_(("alterar_email", "confirmar_email")),
+        TokenSegurancaUsuario.usado_em.is_(None),
+        TokenSegurancaUsuario.expira_em > _agora(),
+    ).first()
+    if not registro:
+        raise HTTPException(status_code=400, detail="Token inválido ou expirado. Solicite um novo link.")
+
     usuario = db.query(Usuario).filter(Usuario.id == registro.usuario_id).first()
     if not usuario:
         raise HTTPException(status_code=400, detail="Conta não encontrada.")
+
+    if registro.finalidade == "confirmar_email":
+        usuario.email_verificado = True
+        registro.usado_em = _agora()
+        db.commit()
+        return {
+            "mensagem": "E-mail confirmado com sucesso. Agora você pode receber alertas por e-mail.",
+            "email": usuario.email,
+            "email_verificado": True,
+            "tipo_confirmacao": "email_atual",
+        }
+
+    if not registro.email_pendente or not EMAIL_RE.match(registro.email_pendente):
+        raise HTTPException(status_code=400, detail="Solicitação de alteração inválida.")
+    existente = db.query(Usuario).filter(
+        Usuario.email == registro.email_pendente,
+        Usuario.id != registro.usuario_id,
+    ).first()
+    if existente:
+        raise HTTPException(status_code=409, detail="Este e-mail já está associado a outra conta.")
+
     usuario.email = registro.email_pendente
     usuario.email_verificado = True
     registro.usado_em = _agora()
     db.commit()
-    return {"mensagem": "E-mail alterado e confirmado com sucesso.", "email": usuario.email, "email_verificado": True}
+    return {
+        "mensagem": "E-mail alterado e confirmado com sucesso.",
+        "email": usuario.email,
+        "email_verificado": True,
+        "tipo_confirmacao": "alteracao_email",
+    }
 
 @router.post("/senha/alterar")
 def alterar_senha(payload: AlterarSenha, usuario: Usuario = Depends(obter_usuario_atual), db: Session = Depends(get_db)):

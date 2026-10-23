@@ -9,8 +9,8 @@ function ConfirmarEmail() {
   const [estado, setEstado] = useState(token ? 'aguardando' : 'erro')
   const [mensagem, setMensagem] = useState(
     token
-      ? 'Clique no botão abaixo para confirmar o novo endereço de e-mail.'
-      : 'Este link não contém um token de confirmação. Solicite uma nova alteração de e-mail pelo seu perfil.'
+      ? 'Clique no botão abaixo para confirmar o endereço de e-mail associado à sua conta.'
+      : 'Este link não contém um token de confirmação. Solicite uma nova confirmação ou alteração de e-mail pelo seu perfil.'
   )
 
   async function confirmar() {
@@ -29,7 +29,7 @@ function ConfirmarEmail() {
         throw new Error(dados.detail || 'Não foi possível confirmar o novo e-mail. O link pode ter expirado.')
       }
       setEstado('sucesso')
-      setMensagem(dados.mensagem || 'E-mail alterado e confirmado com sucesso.')
+      setMensagem(dados.mensagem || 'E-mail confirmado com sucesso.')
     } catch (error) {
       setEstado('erro')
       setMensagem(error.message || 'Não foi possível conectar ao servidor. Tente novamente.')
@@ -40,13 +40,13 @@ function ConfirmarEmail() {
     <main className="pagina-seguranca">
       <section className="seguranca-card">
         <div className="seguranca-marca">DES<span>CTRL</span></div>
-        <h1>{estado === 'sucesso' ? 'E-mail confirmado' : estado === 'erro' ? 'Não foi possível confirmar' : 'Confirmar novo e-mail'}</h1>
+        <h1>{estado === 'sucesso' ? 'E-mail confirmado' : estado === 'erro' ? 'Não foi possível confirmar' : 'Confirmar e-mail'}</h1>
         <p className="seguranca-descricao">
           {estado === 'sucesso'
-            ? 'O novo endereço foi confirmado e agora está associado à sua conta.'
+            ? 'Seu endereço de e-mail foi confirmado com sucesso.'
             : estado === 'erro'
-              ? 'O endereço de e-mail atual permanece ativo. Você pode voltar ao perfil e solicitar uma nova confirmação.'
-              : 'Confirme que deseja associar o novo endereço à sua conta DESCTRL. O endereço atual permanece ativo até a confirmação.'}
+              ? 'O endereço de e-mail não foi alterado. Volte ao perfil para solicitar um novo link de confirmação.'
+              : 'Confirme o endereço de e-mail associado à sua conta DESCTRL. Se você solicitou uma alteração de endereço, o novo e-mail só será aplicado após a confirmação.'}
         </p>
 
         {estado === 'sucesso' ? (
@@ -58,7 +58,7 @@ function ConfirmarEmail() {
             {estado === 'carregando' && <p className="seguranca-status" role="status">{mensagem}</p>}
             {estado === 'aguardando' && <p className="seguranca-status">{mensagem}</p>}
             <button className="seguranca-botao" type="button" onClick={confirmar} disabled={estado === 'carregando'}>
-              {estado === 'carregando' ? 'Confirmando…' : 'Confirmar novo e-mail'}
+              {estado === 'carregando' ? 'Confirmando…' : 'Confirmar e-mail'}
             </button>
           </>
         )}

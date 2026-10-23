@@ -50,27 +50,34 @@ function RedirecionarSessaoExpirada() {
   return null
 }
 
-const REVISAO_AVISO_BETA = 'beta-aviso-2'
-const CHAVE_SESSAO_BETA = `desctrl:${REVISAO_AVISO_BETA}:nao-mostrar-sessao`
+const REVISAO_AVISO_BETA = 'beta-aviso-3'
+const CHAVE_AVISO_BETA = `desctrl:${REVISAO_AVISO_BETA}:dispensado-em`
+const DURACAO_AVISO_BETA = 7 * 24 * 60 * 60 * 1000
 
 function AvisoBeta() {
   const [aberto, setAberto] = useState(() => {
     try {
-      return sessionStorage.getItem(CHAVE_SESSAO_BETA) !== 'true'
+      const dispensadoEm = Number(
+        localStorage.getItem(CHAVE_AVISO_BETA)
+      )
+
+      if (!Number.isFinite(dispensadoEm) || dispensadoEm <= 0) {
+        return true
+      }
+
+      return Date.now() - dispensadoEm >= DURACAO_AVISO_BETA
     } catch {
       return true
     }
   })
-  const [naoMostrarNovamente, setNaoMostrarNovamente] = useState(false)
 
   function continuar() {
     try {
-      if (naoMostrarNovamente) {
-        sessionStorage.setItem(CHAVE_SESSAO_BETA, 'true')
-      }
+      localStorage.setItem(CHAVE_AVISO_BETA, String(Date.now()))
     } catch {
       // Se o navegador bloquear o armazenamento, o aviso ainda pode ser fechado normalmente.
     }
+
     setAberto(false)
   }
 
@@ -101,10 +108,6 @@ function AvisoBeta() {
           <p className="aviso-beta-feedback">Achou algo estranho? Use o feedback no rodapé de qualquer página ou a opção de reportar na página do jogo. Testar a fundo e avisar o que encontrar é a melhor ajuda que você pode dar.</p>
         </div>
         <div className="aviso-beta-rodape">
-          <label className="aviso-beta-checkbox aviso-beta-checkbox-secundario">
-            <input type="checkbox" checked={naoMostrarNovamente} onChange={(evento) => setNaoMostrarNovamente(evento.target.checked)} />
-            <span>Não mostrar novamente nesta sessão.</span>
-          </label>
           <button className="aviso-beta-continuar" type="button" onClick={continuar}>
             Entendi, continuar <span aria-hidden="true"></span>
           </button>
@@ -183,6 +186,12 @@ function App() {
     return () => window.clearInterval(intervalo)
   }, [])
   const mostrarAvisoBeta = location.pathname === '/'
+
+  // Ao navegar para outra rota, começa sempre no topo da página.
+  // Centralizado aqui para funcionar também nos links do rodapé e menus.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [location.pathname])
 
   // Mantém o navegador e as áreas externas ao app alinhados ao tema ativo.
   useEffect(() => {
