@@ -1,8 +1,8 @@
 """
 Módulo de configuração da aplicação.
 
-Carrega as variáveis do arquivo .env na raiz do projeto, quando disponível,
-e disponibiliza as configurações centralizadas para os demais módulos.
+Carrega as variáveis do arquivo .env e disponibiliza as configurações
+centralizadas para os demais módulos.
 """
 import os
 from pathlib import Path
@@ -11,7 +11,13 @@ from dotenv import load_dotenv
 # Caminho explícito: funciona independentemente do diretório de execução.
 BACKEND_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BACKEND_DIR.parent
-ENV_FILE = PROJECT_DIR / ".env"
+
+# O .env fica na raiz do projeto no ambiente local e em backend/ no servidor
+# da AWS. Usa o primeiro que existir.
+ENV_FILE = next(
+    (arquivo for arquivo in (PROJECT_DIR / ".env", BACKEND_DIR / ".env") if arquivo.exists()),
+    PROJECT_DIR / ".env",
+)
 
 # Com DESCTRL_ENV=dev, o arquivo .env.dev é lido primeiro e suas variáveis
 # têm prioridade; o que faltar nele vem do .env principal. Sem a variável,
