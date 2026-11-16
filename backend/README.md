@@ -48,6 +48,7 @@ Rotinas que não fazem parte do fluxo diário. Foram usadas na montagem inicial 
 | Comando | O que faz |
 | --- | --- |
 | `python -m backend.ferramentas.criar_tabelas` | Cria as tabelas que ainda não existem (instalação nova). Não altera dados. |
+| `python -m backend.ferramentas.atualizar_banco_dev` | Recria o banco local (`.env.dev`) como cópia da produção, sem dados pessoais. Só lê a produção. |
 | `python -m backend.ferramentas.criar_admin` | Cria ou atualiza o administrador inicial a partir de `ADMIN_*` no `.env`. |
 | `python -m backend.ferramentas.sincronizar_catalogo_steam` | Baixa o catálogo de jogos da Steam (`IStoreService/GetAppList`) para `steam_catalogo` e `jogos`. |
 | `python -m backend.ferramentas.cadastrar_catalogo_epic` | Descobre, deduplica e cadastra o catálogo de jogos base da Epic (via EGDATA). |

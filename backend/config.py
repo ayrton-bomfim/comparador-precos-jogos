@@ -12,6 +12,18 @@ from dotenv import load_dotenv
 BACKEND_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BACKEND_DIR.parent
 ENV_FILE = PROJECT_DIR / ".env"
+
+# Com DESCTRL_ENV=dev, o arquivo .env.dev é lido primeiro e suas variáveis
+# têm prioridade; o que faltar nele vem do .env principal. Sem a variável,
+# apenas o .env é usado (comportamento da coleta diária).
+AMBIENTE = os.getenv("DESCTRL_ENV", "").strip().lower()
+if AMBIENTE:
+    ENV_AMBIENTE = PROJECT_DIR / f".env.{AMBIENTE}"
+    if not ENV_AMBIENTE.exists():
+        raise RuntimeError(
+            f"DESCTRL_ENV={AMBIENTE!r}, mas o arquivo {ENV_AMBIENTE.name} não existe."
+        )
+    load_dotenv(dotenv_path=ENV_AMBIENTE, override=False)
 load_dotenv(dotenv_path=ENV_FILE, override=False)
 
 

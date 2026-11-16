@@ -187,6 +187,27 @@ A interface abre em `http://localhost:5173`.
 
 `iniciar_projeto.bat` faz os passos acima automaticamente (detecta o `venv`, instala as dependências do frontend se faltarem, sobe API e Vite e abre o navegador). `parar_projeto.bat` encerra os dois processos.
 
+### 4. Banco local x produção
+
+O projeto trabalha com dois arquivos de configuração na raiz:
+
+| Arquivo | Banco | Usado por |
+| --- | --- | --- |
+| `.env` | Produção (PostgreSQL na AWS, via túnel SSH na porta 5433) | Coleta diária (`executar_coleta_agora.bat`) |
+| `.env.dev` | Cópia local de desenvolvimento (PostgreSQL local, porta 5432) | `iniciar_projeto.bat`, testes e demonstrações |
+
+O `.env.dev` é ativado pela variável `DESCTRL_ENV=dev`; o que não estiver nele é lido do `.env`. O `iniciar_projeto.bat` usa o banco local sempre que o `.env.dev` existir; para abrir o site sobre a produção, use `iniciar_projeto.bat producao`.
+
+Para atualizar a cópia local com os dados atuais da produção (com o túnel aberto):
+
+```bat
+python -m backend.ferramentas.atualizar_banco_dev
+set DESCTRL_ENV=dev
+python -m backend.ferramentas.criar_admin
+```
+
+A cópia traz catálogo, preços, histórico e auditorias, mas **não** traz dados pessoais (usuários, favoritos, alertas, notificações, conquistas).
+
 ## 🔄 Coleta de dados
 
 A coleta diária é orquestrada por `backend/coletores/agendador.py`:

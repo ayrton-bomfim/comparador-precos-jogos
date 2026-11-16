@@ -76,6 +76,19 @@ if errorlevel 1 (
 )
 echo.
 
+REM Banco usado pela API: o local (.env.dev) por padrao, para testes e demonstracoes.
+REM Para usar o banco de producao da AWS: iniciar_projeto.bat producao
+set "DESCTRL_ENV="
+if /i "%~1"=="producao" goto banco_definido
+if exist "%~dp0.env.dev" set "DESCTRL_ENV=dev"
+:banco_definido
+if defined DESCTRL_ENV (
+    echo [INFO] Banco: LOCAL de desenvolvimento - arquivo .env.dev
+) else (
+    echo [AVISO] Banco: PRODUCAO da AWS - arquivo .env. Alteracoes feitas no site afetam dados reais.
+)
+echo.
+
 echo [4/6] Iniciando backend FastAPI sem recarga automatica...
 start "Comparador - Backend FastAPI" /D "%~dp0" cmd /k ""!PYTHON_CMD!" -m uvicorn backend.app:app --host 127.0.0.1 --port 8000"
 
