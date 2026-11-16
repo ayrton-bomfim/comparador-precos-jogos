@@ -1,6 +1,6 @@
 """Rotas administrativas para curadoria e auditoria editorial do catálogo."""
 
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 from typing import Annotated
 
 import requests
@@ -143,6 +143,15 @@ class CuradoriaResposta(BaseModel):
     steam_conteudo_adulto: bool
     status_auditoria: str
 
+    # Metadados do jogo exibidos no painel de decisão, para evitar abrir a loja.
+    desenvolvedor: str | None = None
+    publicadora: str | None = None
+    genero: str | None = None
+    data_lancamento: date | None = None
+    steam_required_age: int | None = None
+    steam_content_descriptors: dict | None = None
+    steam_content_notes: str | None = None
+
     # Resumo opcional do encaminhamento automático de jogos relacionados.
     jogos_relacionados_encontrados: int = 0
     jogos_relacionados_adicionados: int = 0
@@ -210,6 +219,17 @@ def _serializar(
         decidido_em=curadoria.decidido_em,
         steam_conteudo_adulto=bool(jogo.steam_conteudo_adulto),
         status_auditoria=jogo.status_auditoria,
+        desenvolvedor=jogo.desenvolvedor,
+        publicadora=jogo.publicadora,
+        genero=jogo.genero,
+        data_lancamento=jogo.data_lancamento,
+        steam_required_age=jogo.steam_required_age,
+        steam_content_descriptors=(
+            jogo.steam_content_descriptors
+            if isinstance(jogo.steam_content_descriptors, dict)
+            else None
+        ),
+        steam_content_notes=jogo.steam_content_notes,
         jogos_relacionados_encontrados=resumo_relacionados.get("encontrados", 0),
         jogos_relacionados_adicionados=resumo_relacionados.get("adicionados", 0),
         jogos_relacionados_reabertos=resumo_relacionados.get("reabertos", 0),
@@ -768,12 +788,12 @@ def adicionar_para_avaliacao(
     return _serializar(curadoria)
 
 
-@router.get("/pendentes", response_model=list[CuradoriaResposta] | CuradoriaPaginaResposta)
+@router.get("/pendentes", response_model=CuradoriaPaginaResposta)
 def listar_pendentes(
     _: AdminDep,
     db: Session = Depends(get_db),
-    page: int | None = Query(default=None, ge=1),
-    page_size: int | None = Query(default=None, ge=1, le=100),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=100),
     motivo: str | None = Query(default=None, max_length=255),
     q: str | None = Query(default=None, max_length=255),
 ):
@@ -795,13 +815,8 @@ def listar_pendentes(
     termo = (q or "").strip()
     consulta = _aplicar_busca_textual_auditoria(consulta, termo)
 
-    paginacao_solicitada = page is not None or page_size is not None or bool(motivo) or bool(termo)
-    if not paginacao_solicitada:
-        registros = consulta.order_by(AuditoriaConteudo.criado_em.asc()).all()
-        return [_serializar(item) for item in registros]
-
-    pagina = page or 1
-    tamanho = page_size or 50
+    # A paginação é sempre aplicada: a fila completa pode ter milhares de itens.
+    pagina, tamanho = page, page_size
     total = consulta.order_by(None).with_entities(func.count(AuditoriaConteudo.id)).scalar() or 0
     registros = (
         consulta
@@ -819,13 +834,13 @@ def listar_pendentes(
     )
 
 
-@router.get("/status/{status_filtro}", response_model=list[CuradoriaResposta] | CuradoriaPaginaResposta)
+@router.get("/status/{status_filtro}", response_model=CuradoriaPaginaResposta)
 def listar_por_status(
     _: AdminDep,
     status_filtro: str,
     db: Session = Depends(get_db),
-    page: int | None = Query(default=None, ge=1),
-    page_size: int | None = Query(default=None, ge=1, le=100),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=100),
     motivo: str | None = Query(default=None, max_length=255),
     q: str | None = Query(default=None, max_length=255),
 ):
@@ -846,14 +861,9 @@ def listar_por_status(
     termo = (q or "").strip()
     consulta = _aplicar_busca_textual_auditoria(consulta, termo)
 
-    paginacao_solicitada = page is not None or page_size is not None or bool(motivo) or bool(termo)
+    # A paginação é sempre aplicada: a lista de excluídos passa de 28 mil itens.
     ordenacao = (AuditoriaConteudo.decidido_em.desc(), AuditoriaConteudo.id.desc())
-    if not paginacao_solicitada:
-        registros = consulta.order_by(*ordenacao).all()
-        return [_serializar(item) for item in registros]
-
-    pagina = page or 1
-    tamanho = page_size or 50
+    pagina, tamanho = page, page_size
     total = consulta.order_by(None).with_entities(func.count(AuditoriaConteudo.id)).scalar() or 0
     registros = (
         consulta
