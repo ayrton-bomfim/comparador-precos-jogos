@@ -7,6 +7,8 @@ import AvisoFlutuante from './curadoria/AvisoFlutuante'
 import BuscaCatalogo from './curadoria/BuscaCatalogo'
 import ListaFila from './curadoria/ListaFila'
 import PainelJogo from './curadoria/PainelJogo'
+import SecaoVitrine from './curadoria/SecaoVitrine'
+import { IconeAjuda, IconeAnterior, IconeCheck, IconeExterno, IconeFechar, IconeMais, IconeOlho, IconeProximo } from './curadoria/Icones'
 import {
   ABAS,
   ABAS_DECISAO,
@@ -35,19 +37,9 @@ function PaginacaoCompacta({ total, pagina, onMudar, rotulo = 'Paginação' }) {
   return (
     <nav className="cur-paginacao" aria-label={rotulo}>
       <span>{formatarNumero(inicio)}–{formatarNumero(fim)} de {formatarNumero(total)}</span>
-      <button type="button" onClick={() => onMudar(pagina - 1)} disabled={pagina <= 1} aria-label="Página anterior">‹</button>
-      <button type="button" onClick={() => onMudar(pagina + 1)} disabled={pagina >= totalPaginas} aria-label="Próxima página">›</button>
+      <button type="button" className="cur-btn cur-btn--icone cur-btn--p" onClick={() => onMudar(pagina - 1)} disabled={pagina <= 1} aria-label="Página anterior"><IconeAnterior /></button>
+      <button type="button" className="cur-btn cur-btn--icone cur-btn--p" onClick={() => onMudar(pagina + 1)} disabled={pagina >= totalPaginas} aria-label="Próxima página"><IconeProximo /></button>
     </nav>
-  )
-}
-
-function IconeOlho({ riscado }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M2.5 12C4.7 7.7 8.1 5.5 12 5.5C15.9 5.5 19.3 7.7 21.5 12C19.3 16.3 15.9 18.5 12 18.5C8.1 18.5 4.7 16.3 2.5 12Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="12" r="3.2" stroke="currentColor" strokeWidth="1.8" />
-      {riscado && <path d="M4 4L20 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />}
-    </svg>
   )
 }
 
@@ -114,15 +106,6 @@ function PainelCuradoria() {
   const [feedbackCarregando, setFeedbackCarregando] = useState(false)
   const [feedbackErro, setFeedbackErro] = useState('')
   const [feedbackAcaoId, setFeedbackAcaoId] = useState(null)
-
-  // Vitrine
-  const [itensVitrine, setItensVitrine] = useState([])
-  const [totalVitrineLista, setTotalVitrineLista] = useState(0)
-  const [paginaVitrine, setPaginaVitrine] = useState(1)
-  const [filtroVitrine, setFiltroVitrine] = useState('')
-  const [termoVitrine, setTermoVitrine] = useState('')
-  const [carregandoVitrine, setCarregandoVitrine] = useState(false)
-  const [erroVitrine, setErroVitrine] = useState('')
 
   const sequenciaFila = useRef(0)
   const ultimaDecisaoRef = useRef(null)
@@ -605,102 +588,6 @@ function PainelCuradoria() {
   }
 
   // ---------------------------------------------------------------------
-  // Vitrine
-  // ---------------------------------------------------------------------
-  const carregarVitrine = useCallback(async () => {
-    setCarregandoVitrine(true)
-    setErroVitrine('')
-    try {
-      const parametros = new URLSearchParams({ page: String(paginaVitrine), page_size: String(ITENS_POR_PAGINA) })
-      if (termoVitrine) parametros.set('q', termoVitrine)
-      const resposta = await fetch(`${API_BASE}/api/admin/curadoria/vitrine?${parametros}`, { headers: getHeaders() })
-      const dados = await resposta.json().catch(() => ({}))
-      if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível carregar a vitrine.')
-      const itens = Array.isArray(dados)
-        ? dados.filter((item) => ['jogo_brasileiro', 'oportunidade'].includes(item.tipo))
-        : (Array.isArray(dados.items) ? dados.items : [])
-      const total = Number(dados.total ?? itens.length)
-      setItensVitrine(itens)
-      setTotalVitrineLista(total)
-      const ultimaPagina = Math.max(1, Math.ceil(total / ITENS_POR_PAGINA))
-      if (paginaVitrine > ultimaPagina) setPaginaVitrine(ultimaPagina)
-    } catch (error) {
-      setErroVitrine(error.message || 'Falha ao carregar a vitrine.')
-    } finally {
-      setCarregandoVitrine(false)
-    }
-  }, [getHeaders, paginaVitrine, termoVitrine])
-
-  useEffect(() => {
-    if (aba === 'vitrine') carregarVitrine()
-  }, [aba, carregarVitrine])
-
-  const atualizarItemVitrine = async (item, alteracoes) => {
-    setAcaoId(`vitrine-${item.id}`)
-    setErroVitrine('')
-    try {
-      const resposta = await fetch(`${API_BASE}/api/admin/curadoria/vitrine/${item.id}`, {
-        method: 'PATCH',
-        headers: getHeaders(),
-        body: JSON.stringify(alteracoes),
-      })
-      const dados = await resposta.json().catch(() => ({}))
-      if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível atualizar o item.')
-      await carregarVitrine()
-    } catch (error) {
-      setErroVitrine(error.message || 'Falha ao atualizar item.')
-    } finally {
-      setAcaoId(null)
-    }
-  }
-
-  const removerItemVitrine = async (item) => {
-    if (!window.confirm(`Remover ${item.jogo_nome || item.nome || 'este item'} da vitrine?`)) return
-    setAcaoId(`vitrine-${item.id}`)
-    setErroVitrine('')
-    try {
-      const resposta = await fetch(`${API_BASE}/api/admin/curadoria/vitrine/${item.id}`, {
-        method: 'DELETE',
-        headers: getHeaders(),
-      })
-      const dados = await resposta.json().catch(() => ({}))
-      if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível remover o item.')
-      setItensVitrine((atuais) => atuais.filter((registro) => registro.id !== item.id))
-      notificar(`${item.jogo_nome || item.nome || 'Item'} removido da vitrine.`)
-      atualizarContadores()
-    } catch (error) {
-      setErroVitrine(error.message || 'Falha ao remover item.')
-    } finally {
-      setAcaoId(null)
-    }
-  }
-
-  const adicionarJogoVitrine = async (jogo, tipo) => {
-    setAcaoId(`${tipo}-${jogo.id}`)
-    setErroVitrine('')
-    try {
-      const resposta = await fetch(`${API_BASE}/api/admin/curadoria/vitrine/lote`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ tipo, jogo_ids: [jogo.id] }),
-      })
-      const dados = await resposta.json().catch(() => ({}))
-      if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível adicionar o jogo à vitrine.')
-      if (dados.adicionados?.length) {
-        notificar(`${jogo.nome} adicionado a ${tipo === 'jogo_brasileiro' ? 'Brasil em jogo' : 'Oportunidades de preço'}.`)
-        await carregarVitrine()
-        atualizarContadores()
-      } else {
-        setErroVitrine(`${jogo.nome}: ${dados.ignorados?.[0]?.motivo || 'o jogo não pôde ser adicionado.'}`)
-      }
-    } catch (error) {
-      setErroVitrine(error.message || 'Falha ao adicionar jogo à vitrine.')
-    } finally {
-      setAcaoId(null)
-    }
-  }
-
-  // ---------------------------------------------------------------------
   // Atalhos de teclado
   // ---------------------------------------------------------------------
   useEffect(() => {
@@ -775,17 +662,17 @@ function PainelCuradoria() {
             <h1>Curadoria do catálogo</h1>
           </div>
           <div className="cur-cabecalho-acoes">
-            <button type="button" className="cur-botao-primario" onClick={() => setMostrarAdicionar(true)}>
-              + Adicionar jogo
+            <button type="button" className="cur-btn cur-btn--primario" onClick={() => setMostrarAdicionar(true)}>
+              <IconeMais /> Adicionar jogo
             </button>
             <button
               type="button"
-              className="cur-botao-icone"
+              className="cur-btn cur-btn--icone"
               onClick={() => setMostrarAjuda(true)}
               aria-label="Como funciona e atalhos de teclado"
               title="Como funciona e atalhos (?)"
             >
-              ?
+              <IconeAjuda />
             </button>
           </div>
         </header>
@@ -826,9 +713,9 @@ function PainelCuradoria() {
               {itensSelecionados.size > 0 ? (
                 <div className="cur-lote">
                   <strong>{itensSelecionados.size} selecionado(s)</strong>
-                  <button type="button" className="cur-botao-aprovar" onClick={() => abrirAcaoLote('aprovar')}>Aprovar</button>
-                  <button type="button" className="cur-botao-excluir" onClick={() => abrirAcaoLote('excluir')}>Excluir</button>
-                  <button type="button" className="cur-botao-texto" onClick={() => setItensSelecionados(new Set())}>Limpar</button>
+                  <button type="button" className="cur-btn cur-btn--aprovar cur-btn--p" onClick={() => abrirAcaoLote('aprovar')}>Aprovar</button>
+                  <button type="button" className="cur-btn cur-btn--perigo cur-btn--p" onClick={() => abrirAcaoLote('excluir')}>Excluir</button>
+                  <button type="button" className="cur-btn cur-btn--discreto cur-btn--p" onClick={() => setItensSelecionados(new Set())}>Limpar seleção</button>
                 </div>
               ) : (
                 <>
@@ -837,7 +724,7 @@ function PainelCuradoria() {
                     className="cur-filtro-texto"
                     value={filtroTexto}
                     onChange={(event) => setFiltroTexto(event.target.value)}
-                    placeholder="Filtrar por nome, ID ou estúdio..."
+                    placeholder="Filtrar por nome, ID, estúdio ou gênero..."
                     aria-label="Filtrar esta lista"
                   />
                   {motivosFiltro.length > 0 && (
@@ -857,7 +744,7 @@ function PainelCuradoria() {
                   )}
                   <button
                     type="button"
-                    className={`cur-botao-borrar${imagensBorradas ? ' ativo' : ''}`}
+                    className={`cur-btn cur-btn--secundario cur-btn--alternar${imagensBorradas ? ' ativo' : ''}`}
                     onClick={() => setImagensBorradas((atual) => !atual)}
                     aria-pressed={imagensBorradas}
                     title="Ocultar imagens com possível conteúdo sensível"
@@ -879,7 +766,7 @@ function PainelCuradoria() {
               {erroFila && (
                 <div className="cur-erro-fila" role="alert">
                   {erroFila}
-                  <button type="button" onClick={carregarFila}>Tentar de novo</button>
+                  <button type="button" className="cur-btn cur-btn--discreto cur-btn--p" onClick={carregarFila}>Tentar de novo</button>
                 </div>
               )}
 
@@ -887,7 +774,7 @@ function PainelCuradoria() {
                 <div className="cur-vazio">Carregando a fila...</div>
               ) : !itensFila.length && !erroFila ? (
                 <div className="cur-vazio">
-                  <span aria-hidden="true">✓</span>
+                  <span className="cur-vazio-icone"><IconeCheck /></span>
                   <strong>{filtrosAtivos ? 'Nenhum jogo encontrado com esses filtros' : 'Nenhum jogo nesta lista'}</strong>
                   <p>{filtrosAtivos ? 'Ajuste o filtro de texto ou o motivo.' : podeDecidir ? 'A fila está limpa por enquanto.' : 'Ainda não há decisões registradas aqui.'}</p>
                 </div>
@@ -906,8 +793,8 @@ function PainelCuradoria() {
                     mostrarMotivo={aba !== 'sensivel'}
                   />
                   {pagina < totalPaginasFila && (
-                    <button type="button" className="cur-proxima-pagina" onClick={() => mudarPagina(pagina + 1)}>
-                      Próxima página ›
+                    <button type="button" className="cur-btn cur-btn--secundario cur-proxima-pagina" onClick={() => mudarPagina(pagina + 1)}>
+                      Próxima página <IconeProximo />
                     </button>
                   )}
                 </>
@@ -946,107 +833,7 @@ function PainelCuradoria() {
             )}
           </div>
         ) : aba === 'vitrine' ? (
-          <section className="cur-secao">
-            <div className="cur-secao-topo">
-              <div>
-                <h2>Vitrine da página inicial</h2>
-                <p>Escolha os jogos de “Brasil em jogo” e “Oportunidades de preço”. Cada seção valida seus próprios critérios.</p>
-              </div>
-              <button type="button" className="cur-botao-secundario" onClick={carregarVitrine} disabled={carregandoVitrine}>
-                {carregandoVitrine ? 'Atualizando...' : 'Atualizar lista'}
-              </button>
-            </div>
-
-            <BuscaCatalogo
-              getHeaders={getHeaders}
-              placeholder="Adicionar à vitrine: nome do jogo, estúdio ou publicadora..."
-              renderAcoes={(jogo) => (
-                <>
-                  <button
-                    type="button"
-                    disabled={!jogo.eh_brasileiro || acaoId !== null}
-                    title={jogo.eh_brasileiro ? '' : 'Não classificado como brasileiro'}
-                    onClick={() => adicionarJogoVitrine(jogo, 'jogo_brasileiro')}
-                  >
-                    {acaoId === `jogo_brasileiro-${jogo.id}` ? 'Adicionando...' : 'Brasil em jogo'}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!jogo.promocao_ativa || acaoId !== null}
-                    title={jogo.promocao_ativa ? '' : 'Sem promoção ativa confirmada'}
-                    onClick={() => adicionarJogoVitrine(jogo, 'oportunidade')}
-                  >
-                    {acaoId === `oportunidade-${jogo.id}` ? 'Adicionando...' : 'Oportunidade'}
-                  </button>
-                </>
-              )}
-            />
-
-            <div className="cur-vitrine-filtro">
-              <input
-                type="search"
-                value={filtroVitrine}
-                placeholder="Filtrar itens da vitrine..."
-                aria-label="Filtrar itens da vitrine"
-                onChange={(event) => setFiltroVitrine(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    setPaginaVitrine(1)
-                    setTermoVitrine(filtroVitrine.trim())
-                  }
-                }}
-              />
-              <PaginacaoCompacta total={totalVitrineLista} pagina={paginaVitrine} onMudar={setPaginaVitrine} rotulo="Paginação da vitrine" />
-            </div>
-
-            {erroVitrine && <div className="cur-erro-fila" role="alert">{erroVitrine}</div>}
-            {carregandoVitrine && !itensVitrine.length ? (
-              <div className="cur-vazio">Carregando itens da vitrine...</div>
-            ) : itensVitrine.length === 0 ? (
-              <div className="cur-vazio">
-                <strong>A vitrine ainda não possui itens.</strong>
-                <p>Pesquise um jogo acima e escolha a seção.</p>
-              </div>
-            ) : (
-              <ul className="cur-vitrine-lista">
-                {itensVitrine.map((item) => (
-                  <li key={item.id} className={item.ativo ? '' : 'inativo'}>
-                    {item.imagem ? <img src={item.imagem} alt="" loading="lazy" /> : <span className="cur-sem-imagem">JOGO</span>}
-                    <div className="cur-vitrine-info">
-                      <strong>{item.jogo_nome || item.nome || `Item #${item.id}`}</strong>
-                      <span>{item.tipo === 'jogo_brasileiro' ? 'Brasil em jogo' : 'Oportunidades de preço'}{item.ativo ? '' : ' · inativo'}</span>
-                    </div>
-                    <label className="cur-vitrine-prioridade">
-                      Prioridade
-                      <input
-                        type="number"
-                        min="0"
-                        max="100000"
-                        value={item.prioridade}
-                        disabled={acaoId === `vitrine-${item.id}`}
-                        onChange={(event) => {
-                          const valor = event.target.value
-                          setItensVitrine((atuais) => atuais.map((registro) => (registro.id === item.id ? { ...registro, prioridade: valor } : registro)))
-                        }}
-                        onBlur={(event) => {
-                          const prioridade = Number(event.target.value)
-                          if (Number.isInteger(prioridade) && prioridade >= 0) atualizarItemVitrine(item, { prioridade })
-                        }}
-                      />
-                    </label>
-                    <div className="cur-vitrine-acoes">
-                      <button type="button" className="cur-botao-secundario" disabled={acaoId === `vitrine-${item.id}`} onClick={() => atualizarItemVitrine(item, { ativo: !item.ativo })}>
-                        {item.ativo ? 'Desativar' : 'Ativar'}
-                      </button>
-                      <button type="button" className="cur-botao-excluir" disabled={acaoId === `vitrine-${item.id}`} onClick={() => removerItemVitrine(item)}>
-                        Remover
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          <SecaoVitrine getHeaders={getHeaders} notificar={notificar} atualizarContadores={atualizarContadores} />
         ) : (
           <section className="cur-secao">
             <div className="cur-secao-topo">
@@ -1071,7 +858,7 @@ function PainelCuradoria() {
               <div className="cur-vazio">Carregando feedbacks...</div>
             ) : feedbackItens.length === 0 ? (
               <div className="cur-vazio">
-                <span aria-hidden="true">✓</span>
+                <span className="cur-vazio-icone"><IconeCheck /></span>
                 <strong>Nenhum feedback nesta categoria</strong>
               </div>
             ) : (
@@ -1095,10 +882,14 @@ function PainelCuradoria() {
                             {formatarData(item.criada_em, true)}
                             {item.usuario_nome && ` · ${item.usuario_nome}`}
                           </span>
-                          {urlOrigem && <a href={urlOrigem} target="_blank" rel="noreferrer">Abrir página ↗</a>}
+                          {urlOrigem && (
+                            <a className="cur-btn cur-btn--discreto cur-btn--p" href={urlOrigem} target="_blank" rel="noreferrer">
+                              Abrir página <IconeExterno />
+                            </a>
+                          )}
                           <button
                             type="button"
-                            className={concluido ? 'cur-botao-secundario' : 'cur-botao-aprovar'}
+                            className={`cur-btn cur-btn--p ${concluido ? 'cur-btn--secundario' : 'cur-btn--aprovar'}`}
                             onClick={() => atualizarStatusFeedback(item)}
                             disabled={feedbackAcaoId === item.id}
                           >
@@ -1128,29 +919,34 @@ function PainelCuradoria() {
                 <span className="curadoria-status">CATÁLOGO</span>
                 <h2 id="cur-adicionar-titulo">Adicionar jogo para revisão</h2>
               </div>
-              <button type="button" className="curadoria-modal-fechar" onClick={() => setMostrarAdicionar(false)} aria-label="Fechar">×</button>
+              <button type="button" className="cur-btn cur-btn--icone" onClick={() => setMostrarAdicionar(false)} aria-label="Fechar"><IconeFechar /></button>
             </div>
-            <p>Pesquise qualquer jogo do catálogo e escolha para qual fila ele deve ir.</p>
+            <p>Pesquise qualquer jogo do catálogo (nome, ID, estúdio ou gênero) e escolha para qual fila ele deve ir.</p>
             <BuscaCatalogo
               getHeaders={getHeaders}
               autoFocus
               placeholder="Ex.: Cyberpunk, Hogwarts, nome do estúdio..."
-              renderAcoes={(jogo) => (
-                ['pendentes', 'sensivel'].map((destino) => {
+              renderAcoes={(jogo) => {
+                // Um jogo só pode estar numa fila por vez: se já está pendente, não oferece envio.
+                if (jogo.auditoria_status === 'pendente') {
+                  return <span className="cur-busca-aviso">Já está numa fila</span>
+                }
+                return ['pendentes', 'sensivel'].map((destino) => {
                   const chave = `${destino}-${jogo.id}`
                   const enviado = adicionadosIds.has(chave)
                   return (
                     <button
                       type="button"
                       key={destino}
+                      className="cur-btn cur-btn--secundario cur-btn--p"
                       onClick={() => adicionar(jogo, destino)}
                       disabled={enviado || acaoId !== null}
                     >
-                      {acaoId === chave ? 'Enviando...' : enviado ? 'Enviado ✓' : destino === 'sensivel' ? 'Conteúdo sensível' : 'Análise'}
+                      {acaoId === chave ? 'Enviando...' : enviado ? 'Enviado' : destino === 'sensivel' ? 'Fila sensível' : 'Fila de análise'}
                     </button>
                   )
                 })
-              )}
+              }}
             />
           </div>
         </div>
@@ -1168,7 +964,7 @@ function PainelCuradoria() {
                 <span className="curadoria-status">{acaoLote === 'aprovar' ? 'APROVAÇÃO EM LOTE' : 'EXCLUSÃO EM LOTE'}</span>
                 <h2 id="cur-lote-titulo">{acaoLote === 'aprovar' ? 'Aprovar' : 'Excluir'} {itensSelecionados.size} jogo(s)</h2>
               </div>
-              <button type="button" className="curadoria-modal-fechar" onClick={fecharAcaoLote} aria-label="Fechar" disabled={processandoLote}>×</button>
+              <button type="button" className="cur-btn cur-btn--icone" onClick={fecharAcaoLote} aria-label="Fechar" disabled={processandoLote}><IconeFechar /></button>
             </div>
 
             <div className="curadoria-modal-lista-selecao">
@@ -1211,10 +1007,10 @@ function PainelCuradoria() {
             )}
 
             <div className="curadoria-modal-acoes">
-              <button type="button" className="botao-modal-cancelar" onClick={fecharAcaoLote} disabled={processandoLote}>Cancelar</button>
+              <button type="button" className="cur-btn cur-btn--secundario" onClick={fecharAcaoLote} disabled={processandoLote}>Cancelar</button>
               <button
                 type="button"
-                className={`botao-modal-confirmar ${acaoLote === 'aprovar' ? 'botao-modal-aprovar' : ''}`}
+                className={`cur-btn ${acaoLote === 'aprovar' ? 'cur-btn--aprovar' : 'cur-btn--perigo'}`}
                 onClick={confirmarAcaoLote}
                 disabled={!motivoLote || (motivoLote === 'Outros' && !observacaoLote.trim()) || processandoLote}
               >

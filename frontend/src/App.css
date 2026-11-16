@@ -11377,3 +11377,34 @@ body:has(.app.tema-sistema) > .footer-modal-overlay .footer-copiar-email {
   position: relative;
   z-index: 2;
 }
+
+/* Selo sobre a capa do card do carrossel (ex.: origem da indicação na seção da
+   comunidade). Fica no canto inferior esquerdo da capa para não cobrir os botões
+   do topo (favoritar e auditar). A área acompanha a proporção da capa da Steam. */
+.item-carrossel { position: relative; }
+.selo-carrossel-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  aspect-ratio: 460 / 215;
+  z-index: 3;
+  pointer-events: none;
+}
+.selo-carrossel {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  max-width: calc(100% - 20px);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(16, 16, 20, 0.82);
+  color: #f5f5f7;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}

@@ -1,13 +1,13 @@
 """Rotas administrativas para curadoria e auditoria editorial do catálogo."""
 
-from datetime import date, datetime, timezone, timedelta
+from datetime import date, datetime
 from typing import Annotated
 
 import requests
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import String, bindparam, case, cast, func, or_, text
+from sqlalchemy import String, case, cast, func, or_, text
 from sqlalchemy.orm import Session
 
 from ..banco_dados import get_db
@@ -18,9 +18,12 @@ from ..modelos import (
     EpicCatalogo,
     EpicOferta,
     Usuario,
+    VitrineItem,
     now_brasilia,
 )
 from ..seguranca.autenticacao import obter_admin_atual
+from ..servicos.promocoes import detalhes_promocao, estado_promocao, jogos_em_promocao, limpar_vitrine_encerrada
+from .jogos import _jogo_visivel_catalogo
 
 
 router = APIRouter(
@@ -52,26 +55,35 @@ CONTEUDO_SENSIVEL_MOTIVO = MOTIVOS_AUDITORIA[0]
 FORA_DO_CATALOGO_MOTIVO = MOTIVOS_AUDITORIA[1]
 
 
-def _aplicar_busca_textual_auditoria(consulta, termo: str):
-    """Aplica os mesmos campos de busca às filas pendentes e decididas.
+def _filtro_texto_jogo(termo: str, incluir_observacao: bool = False):
+    """Condição de busca usada em todos os campos da Curadoria.
 
-    Mantém a pesquisa parcial e sem distinção de maiúsculas/minúsculas,
-    incluindo nome, IDs das lojas, desenvolvedora, publicadora e observação.
-    A função recebe uma consulta SQLAlchemy já filtrada pelo status/motivo.
+    Procura, sem diferenciar maiúsculas nem acentos, em: nome, IDs das lojas,
+    desenvolvedora, publicadora e gênero (e na observação da auditoria, nas filas).
+    Retorna None quando o termo está vazio.
     """
     termo_normalizado = (termo or "").strip()
     if not termo_normalizado:
-        return consulta
+        return None
 
-    padrao = f"%{termo_normalizado}%"
-    return consulta.filter(or_(
-        Jogo.nome.ilike(padrao),
-        Jogo.epic_id.ilike(padrao),
-        cast(Jogo.steam_id, String).ilike(padrao),
-        Jogo.desenvolvedor.ilike(padrao),
-        Jogo.publicadora.ilike(padrao),
-        AuditoriaConteudo.observacao.ilike(padrao),
-    ))
+    padrao = func.unaccent(f"%{termo_normalizado}%")
+    campos = [
+        Jogo.nome,
+        Jogo.epic_id,
+        cast(Jogo.steam_id, String),
+        Jogo.desenvolvedor,
+        Jogo.publicadora,
+        Jogo.genero,
+    ]
+    if incluir_observacao:
+        campos.append(AuditoriaConteudo.observacao)
+    return or_(*[func.unaccent(func.coalesce(campo, "")).ilike(padrao) for campo in campos])
+
+
+def _aplicar_busca_textual_auditoria(consulta, termo: str):
+    """Aplica a mesma busca a todas as filas (pendentes, sensível e decididas)."""
+    condicao = _filtro_texto_jogo(termo, incluir_observacao=True)
+    return consulta if condicao is None else consulta.filter(condicao)
 
 
 def validar_motivo_aprovacao(motivo: str | None) -> str | None:
@@ -388,118 +400,7 @@ def atualizar_midias(
     return _serializar(curadoria)
 
 
-def _avaliar_status_promocao(registros, agora=None) -> str:
-    """Classifica os últimos dados por loja sem tratar dados antigos como confirmação."""
-    agora = agora or datetime.now(timezone.utc)
-    if not registros:
-        return "desconhecida"
-
-    desconhecida = False
-    limite_recencia = agora - timedelta(hours=72)
-    for registro in registros:
-        coleta = registro["data_coleta"]
-        if coleta and coleta.tzinfo is None:
-            coleta = coleta.replace(tzinfo=timezone.utc)
-        fim = registro["promocao_fim"]
-        if fim and fim.tzinfo is None:
-            fim = fim.replace(tzinfo=timezone.utc)
-
-        if (registro["desconto"] or 0) > 0:
-            if fim is not None and fim > agora:
-                return "ativa"
-            if fim is not None and fim <= agora:
-                continue
-            if coleta and coleta >= limite_recencia:
-                return "ativa"
-            desconhecida = True
-        elif not coleta or coleta < limite_recencia:
-            desconhecida = True
-
-    return "desconhecida" if desconhecida else "inativa"
-
-
-def _vitrine_status_promocao(db: Session, jogo_id: int, agora=None) -> str:
-    """Retorna o estado de promoção de um jogo, preservando a regra dos 72 h."""
-    try:
-        registros = db.execute(text("""
-            SELECT plataforma_norm, desconto, promocao_fim, data_coleta
-            FROM (
-                SELECT DISTINCT ON (
-                    CASE WHEN lower(trim(plataforma)) IN
-                        ('epic', 'epic games', 'epic games store') THEN 'epic'
-                        ELSE lower(trim(plataforma)) END
-                )
-                    CASE WHEN lower(trim(plataforma)) IN
-                        ('epic', 'epic games', 'epic games store') THEN 'epic'
-                        ELSE lower(trim(plataforma)) END AS plataforma_norm,
-                    desconto, promocao_fim, data_coleta, id
-                FROM historico_precos
-                WHERE jogo_id = :jogo_id
-                  AND lower(trim(plataforma)) IN
-                    ('steam', 'epic', 'epic games', 'epic games store')
-                ORDER BY
-                    CASE WHEN lower(trim(plataforma)) IN
-                        ('epic', 'epic games', 'epic games store') THEN 'epic'
-                        ELSE lower(trim(plataforma)) END,
-                    data_coleta DESC, id DESC
-            ) ultimos
-        """), {"jogo_id": jogo_id}).mappings().all()
-    except Exception:
-        return "desconhecida"
-
-    return _avaliar_status_promocao(registros, agora)
-
-
-def _vitrine_status_promocao_lote(db: Session, jogo_ids: list[int], agora=None) -> dict[int, str]:
-    """Calcula os estados de promoção de vários jogos em uma única consulta."""
-    ids = list(dict.fromkeys(jogo_ids))
-    if not ids:
-        return {}
-
-    agora = agora or datetime.now(timezone.utc)
-    try:
-        registros = db.execute(
-            text("""
-                SELECT jogo_id, plataforma_norm, desconto, promocao_fim, data_coleta
-                FROM (
-                    SELECT DISTINCT ON (
-                        jogo_id,
-                        CASE WHEN lower(trim(plataforma)) IN
-                            ('epic', 'epic games', 'epic games store') THEN 'epic'
-                            ELSE lower(trim(plataforma)) END
-                    )
-                        jogo_id,
-                        CASE WHEN lower(trim(plataforma)) IN
-                            ('epic', 'epic games', 'epic games store') THEN 'epic'
-                            ELSE lower(trim(plataforma)) END AS plataforma_norm,
-                        desconto, promocao_fim, data_coleta, id
-                    FROM historico_precos
-                    WHERE jogo_id IN :jogo_ids
-                      AND lower(trim(plataforma)) IN
-                        ('steam', 'epic', 'epic games', 'epic games store')
-                    ORDER BY
-                        jogo_id,
-                        CASE WHEN lower(trim(plataforma)) IN
-                            ('epic', 'epic games', 'epic games store') THEN 'epic'
-                            ELSE lower(trim(plataforma)) END,
-                        data_coleta DESC, id DESC
-                ) ultimos
-                ORDER BY jogo_id, plataforma_norm
-            """).bindparams(bindparam("jogo_ids", expanding=True)),
-            {"jogo_ids": ids},
-        ).mappings().all()
-    except Exception:
-        # A busca manual continua disponível se a consulta de promoções falhar.
-        return {jogo_id: "desconhecida" for jogo_id in ids}
-
-    por_jogo: dict[int, list] = {jogo_id: [] for jogo_id in ids}
-    for registro in registros:
-        por_jogo.setdefault(registro["jogo_id"], []).append(registro)
-
-    return {
-        jogo_id: _avaliar_status_promocao(itens, agora)
-        for jogo_id, itens in por_jogo.items()
-    }
+LIMITE_BUSCA_CATALOGO = 40
 
 
 @router.get("/buscar", response_model=list[dict])
@@ -508,47 +409,51 @@ def buscar_jogos_para_curadoria(
     termo: str = Query(min_length=2, max_length=100),
     db: Session = Depends(get_db),
 ):
-    """Busca jogos por nome, desenvolvedora, publicadora ou identificador."""
+    """Busca jogos no catálogo e informa a situação de cada um na Curadoria."""
     termo_limpo = termo.strip()
-    termo_like = f"%{termo_limpo}%"
-
+    comeca_com = case((func.unaccent(Jogo.nome).ilike(func.unaccent(f"{termo_limpo}%")), 0), else_=1)
     jogos = (
         db.query(Jogo)
-        .filter(
-            or_(
-                Jogo.nome.ilike(termo_like),
-                Jogo.epic_id.ilike(termo_like),
-                cast(Jogo.steam_id, String).ilike(termo_like),
-                Jogo.desenvolvedor.ilike(termo_like),
-                Jogo.publicadora.ilike(termo_like),
-            )
-        )
-        .order_by(Jogo.nome.asc())
-        .limit(30)
+        .filter(_filtro_texto_jogo(termo_limpo))
+        .order_by(comeca_com, Jogo.visualizacoes.desc().nullslast(), Jogo.nome.asc())
+        .limit(LIMITE_BUSCA_CATALOGO)
         .all()
     )
+    ids = [jogo.id for jogo in jogos]
+    promocoes = detalhes_promocao(db, ids)
 
-    # Busca o estado de promoção em lote, evitando uma consulta por jogo.
-    estados_promocao = _vitrine_status_promocao_lote(
-        db, [jogo.id for jogo in jogos]
-    )
+    auditorias = {}
+    vitrine: dict[int, list[str]] = {}
+    if ids:
+        for jogo_id, status_auditoria, motivo in (
+            db.query(AuditoriaConteudo.jogo_id, AuditoriaConteudo.status, AuditoriaConteudo.motivo)
+            .filter(AuditoriaConteudo.jogo_id.in_(ids))
+            .all()
+        ):
+            auditorias[jogo_id] = {"status": status_auditoria, "motivo": motivo}
+        for jogo_id, tipo in db.query(VitrineItem.jogo_id, VitrineItem.tipo).filter(VitrineItem.jogo_id.in_(ids)).all():
+            vitrine.setdefault(int(jogo_id), []).append(tipo)
 
-    resultados = []
-    for jogo in jogos:
-        resultados.append({
+    return [
+        {
             "id": jogo.id,
             "nome": jogo.nome,
             "epic_id": jogo.epic_id,
             "steam_id": jogo.steam_id,
             "url_epic": jogo.url_epic,
+            "imagem_steam": jogo.url_imagem_steam,
             "imagem_epic": jogo.url_imagem_epic or jogo.url_imagem_steam,
             "desenvolvedor": jogo.desenvolvedor,
             "publicadora": jogo.publicadora,
-            "eh_brasileiro": bool(getattr(jogo, "eh_brasileiro", False)),
-            "promocao_ativa": estados_promocao.get(jogo.id) == "ativa",
-        })
-    return resultados
-
+            "eh_brasileiro": bool(jogo.eh_brasileiro),
+            "promocao_ativa": promocoes.get(jogo.id, {}).get("estado") == "ativa",
+            "desconto": promocoes.get(jogo.id, {}).get("desconto", 0),
+            "auditoria_status": auditorias.get(jogo.id, {}).get("status"),
+            "auditoria_motivo": auditorias.get(jogo.id, {}).get("motivo"),
+            "vitrine": vitrine.get(jogo.id, []),
+        }
+        for jogo in jogos
+    ]
 
 
 @router.post("/conteudo-sensivel", response_model=CuradoriaResposta, status_code=status.HTTP_201_CREATED)
@@ -632,17 +537,7 @@ def listar_conteudo_sensivel(
         )
     )
 
-    termo = (q or "").strip()
-    if termo:
-        padrao = f"%{termo}%"
-        consulta = consulta.filter(
-            or_(
-                Jogo.nome.ilike(padrao),
-                cast(Jogo.epic_id, String).ilike(padrao),
-                cast(Jogo.steam_id, String).ilike(padrao),
-                AuditoriaConteudo.observacao.ilike(padrao),
-            )
-        )
+    consulta = _aplicar_busca_textual_auditoria(consulta, q or "")
 
     total = consulta.order_by(None).with_entities(func.count(AuditoriaConteudo.id)).scalar() or 0
 
@@ -1240,6 +1135,22 @@ def reabrir(
     curadoria.decidido_em = None
 
     motivo_reabertura = validar_motivo_auditoria(dados.motivo)
+    if not motivo_reabertura:
+        # Sem motivo informado, volta com o motivo com que o jogo entrou na fila
+        # (a decisão sobrescreve curadoria.motivo com o motivo da aprovação/exclusão).
+        motivos_anteriores = (
+            db.query(AuditoriaConteudoHistorico.motivo)
+            .filter(
+                AuditoriaConteudoHistorico.auditoria_id == curadoria.id,
+                AuditoriaConteudoHistorico.status_novo == "pendente",
+            )
+            .order_by(AuditoriaConteudoHistorico.id.desc())
+            .all()
+        )
+        motivo_reabertura = next(
+            (motivo for (motivo,) in motivos_anteriores if validar_motivo_auditoria(motivo)),
+            None,
+        )
     if motivo_reabertura:
         curadoria.motivo = motivo_reabertura
     if dados.observacao:
@@ -1292,8 +1203,14 @@ def excluir(
 # o esquema. Todas as operações são protegidas por AdminDep.
 # ---------------------------------------------------------------------------
 
+TIPOS_VITRINE = ("jogo_brasileiro", "oportunidade", "curadoria_comunidade")
+TIPOS_VITRINE_PROMOCAO = ("oportunidade", "curadoria_comunidade")
+# Quantos jogos de cada seção aparecem na página inicial (igual a LIMITE_SECAO_INICIAL).
+LIMITE_SECAO_INICIAL = 12
+
+
 class VitrineLoteEntrada(BaseModel):
-    tipo: str = Field(pattern=r"^(jogo_brasileiro|oportunidade)$")
+    tipo: str = Field(pattern=r"^(jogo_brasileiro|oportunidade|curadoria_comunidade)$")
     jogo_ids: list[int] = Field(min_length=1, max_length=100)
 
 
@@ -1306,20 +1223,49 @@ class VitrineAtualizarEntrada(BaseModel):
     prioridade: int | None = Field(default=None, ge=0, le=100000)
 
 
-def _vitrine_item_dict(row):
+class VitrineMoverEntrada(BaseModel):
+    direcao: str = Field(pattern=r"^(cima|baixo)$")
+
+
+def _ids_ordenados_vitrine(db: Session, tipo: str) -> list[int]:
+    """IDs dos itens de uma seção na ordem em que aparecem na página inicial."""
+    return [
+        int(item_id)
+        for item_id in db.execute(text("""
+            SELECT id FROM vitrine_itens
+            WHERE tipo = :tipo
+            ORDER BY prioridade DESC, id DESC
+        """), {"tipo": tipo}).scalars()
+    ]
+
+
+def _renumerar_vitrine(db: Session, ids: list[int]) -> None:
+    """Grava a ordem informada: o primeiro da lista recebe a maior prioridade."""
+    total = len(ids)
+    for posicao, item_id in enumerate(ids):
+        db.execute(
+            text("UPDATE vitrine_itens SET prioridade = :prioridade WHERE id = :id"),
+            {"prioridade": (total - posicao) * 10, "id": item_id},
+        )
+
+
+def _ids_visiveis(db: Session, jogo_ids: list[int]) -> set[int]:
+    """Jogos que podem aparecer no catálogo público (mesma regra da página inicial)."""
+    if not jogo_ids:
+        return set()
     return {
-        "id": int(row["id"]),
-        "tipo": row["tipo"],
-        "nome": row["nome"],
-        "jogo_id": int(row["jogo_id"]) if row["jogo_id"] is not None else None,
-        "jogo_nome": row["jogo_nome"],
-        "desenvolvedor": row["desenvolvedor"],
-        "imagem": row["imagem"],
-        "prioridade": int(row["prioridade"] or 0),
-        "ativo": bool(row["ativo"]),
-        "inicio_em": row["inicio_em"].isoformat() if row["inicio_em"] else None,
-        "fim_em": row["fim_em"].isoformat() if row["fim_em"] else None,
-        "criado_em": row["criado_em"].isoformat() if row["criado_em"] else None,
+        jogo_id
+        for (jogo_id,) in (
+            db.query(Jogo.id)
+            .outerjoin(AuditoriaConteudo, AuditoriaConteudo.jogo_id == Jogo.id)
+            .filter(Jogo.id.in_(jogo_ids))
+            .filter(
+                (AuditoriaConteudo.id.is_(None))
+                | (~AuditoriaConteudo.status.in_(["pendente", "excluido"]))
+            )
+            .filter(_jogo_visivel_catalogo())
+            .all()
+        )
     }
 
 
@@ -1327,46 +1273,149 @@ def _vitrine_item_dict(row):
 def listar_itens_vitrine(
     _: AdminDep,
     db: Session = Depends(get_db),
+    tipo: str | None = Query(default=None, pattern=r"^(jogo_brasileiro|oportunidade|curadoria_comunidade)$"),
+    q: str | None = Query(default=None, max_length=200),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=100),
-    q: str | None = Query(default=None, max_length=200),
 ):
-    """Lista itens da vitrine com busca e paginação aplicadas no banco."""
+    """Lista a vitrine com a situação de cada item na página inicial.
+
+    Antes de listar, remove os itens cuja promoção terminou comprovadamente,
+    para que a lista mostre somente o que ainda pode aparecer no site.
+    """
     try:
-        filtros = "WHERE vi.tipo IN ('jogo_brasileiro', 'oportunidade')"
-        parametros: dict[str, object] = {}
-        termo = (q or '').strip()
-        if termo:
-            filtros += " AND (vi.nome ILIKE :termo OR j.nome ILIKE :termo OR j.desenvolvedor ILIKE :termo)"
-            parametros['termo'] = f"%{termo}%"
+        removidos = limpar_vitrine_encerrada(db)
+        if removidos:
+            db.commit()
 
-        total = db.execute(text(f"""
-            SELECT COUNT(*)
-            FROM vitrine_itens vi
-            LEFT JOIN jogos j ON j.id = vi.jogo_id
-            {filtros}
-        """), parametros).scalar() or 0
+        # Todas as seções são avaliadas para o resumo; o filtro de tipo vale só para a lista.
+        todos = (
+            db.query(VitrineItem, Jogo)
+            .join(Jogo, Jogo.id == VitrineItem.jogo_id)
+            .filter(VitrineItem.tipo.in_(TIPOS_VITRINE))
+            .order_by(VitrineItem.tipo.asc(), VitrineItem.prioridade.desc(), VitrineItem.id.desc())
+            .all()
+        )
 
-        consulta_parametros = {**parametros, 'limite': page_size, 'offset': (page - 1) * page_size}
-        rows = db.execute(text(f"""
-            SELECT vi.id, vi.tipo, vi.nome, vi.jogo_id, j.nome AS jogo_nome,
-                   j.desenvolvedor, COALESCE(j.url_imagem_epic, j.url_imagem_steam) AS imagem,
-                   vi.prioridade, vi.ativo, vi.inicio_em, vi.fim_em, vi.criado_em
-            FROM vitrine_itens vi
-            LEFT JOIN jogos j ON j.id = vi.jogo_id
-            {filtros}
-            ORDER BY vi.tipo ASC, vi.prioridade DESC, vi.id DESC
-            LIMIT :limite OFFSET :offset
-        """), consulta_parametros).mappings().all()
+        jogo_ids = [jogo.id for _, jogo in todos]
+        visiveis = _ids_visiveis(db, jogo_ids)
+        promocoes = detalhes_promocao(db, [jogo.id for item, jogo in todos if item.tipo in TIPOS_VITRINE_PROMOCAO])
+
+        # Calcula a situação de cada item seguindo as mesmas regras da página inicial.
+        exibidos_por_tipo: dict[str, int] = {}
+        resumo = {t: {"total": 0, "na_pagina_inicial": 0} for t in TIPOS_VITRINE}
+        itens = []
+        for item, jogo in todos:
+            resumo[item.tipo]["total"] += 1
+            if not item.ativo:
+                situacao = "pausado"
+            elif jogo.id not in visiveis:
+                situacao = "oculto_catalogo"
+            elif item.tipo == "jogo_brasileiro" and not jogo.eh_brasileiro:
+                situacao = "nao_brasileiro"
+            elif item.tipo in TIPOS_VITRINE_PROMOCAO and promocoes.get(jogo.id, {}).get("estado") != "ativa":
+                situacao = "aguardando_coleta"
+            else:
+                situacao = "exibido"
+                exibidos_por_tipo[item.tipo] = exibidos_por_tipo.get(item.tipo, 0) + 1
+                if exibidos_por_tipo[item.tipo] > LIMITE_SECAO_INICIAL:
+                    situacao = "fila"
+            if situacao == "exibido":
+                resumo[item.tipo]["na_pagina_inicial"] += 1
+            itens.append({
+                "id": item.id,
+                "tipo": item.tipo,
+                "jogo_id": jogo.id,
+                "jogo_nome": jogo.nome,
+                "desenvolvedor": jogo.desenvolvedor,
+                "imagem": jogo.url_imagem_steam or jogo.url_imagem_epic,
+                "prioridade": int(item.prioridade or 0),
+                "ativo": bool(item.ativo),
+                "desconto": promocoes.get(jogo.id, {}).get("desconto", 0),
+                "situacao": situacao,
+                "criado_em": item.criado_em.isoformat() if item.criado_em else None,
+            })
+
+        if tipo:
+            itens = [item for item in itens if item["tipo"] == tipo]
+        condicao = _filtro_texto_jogo(q or "")
+        if condicao is not None:
+            ids_filtrados = {jogo_id for (jogo_id,) in db.query(Jogo.id).filter(Jogo.id.in_(jogo_ids)).filter(condicao).all()}
+            itens = [item for item in itens if item["jogo_id"] in ids_filtrados]
+
+        total = len(itens)
+        inicio = (page - 1) * page_size
         return {
-            'items': [_vitrine_item_dict(row) for row in rows],
-            'total': int(total),
-            'page': page,
-            'page_size': page_size,
+            "items": itens[inicio:inicio + page_size],
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "resumo": resumo,
+            "limite_pagina_inicial": LIMITE_SECAO_INICIAL,
+            "removidos_encerrados": removidos,
         }
     except Exception as exc:
         db.rollback()
-        raise HTTPException(status_code=503, detail="Não foi possível consultar a tabela vitrine_itens.") from exc
+        raise HTTPException(status_code=503, detail="Não foi possível consultar a vitrine.") from exc
+
+
+@router.get("/vitrine/sugestoes")
+def sugerir_itens_vitrine(
+    _: AdminDep,
+    tipo: str = Query(pattern=r"^(jogo_brasileiro|oportunidade|curadoria_comunidade)$"),
+    db: Session = Depends(get_db),
+):
+    """Sugere jogos para uma seção da vitrine.
+
+    - Brasil em jogo: jogos brasileiros mais vistos.
+    - Oportunidades: promoções ativas entre os jogos mais vistos, maior desconto primeiro.
+    - Indicações para a comunidade: promoções ativas entre os mais vistos.
+    """
+    ja_cadastrados = {
+        int(jogo_id)
+        for jogo_id in db.execute(
+            text("SELECT jogo_id FROM vitrine_itens WHERE tipo = :tipo AND jogo_id IS NOT NULL"),
+            {"tipo": tipo},
+        ).scalars()
+    }
+    consulta = (
+        db.query(Jogo)
+        .outerjoin(AuditoriaConteudo, AuditoriaConteudo.jogo_id == Jogo.id)
+        .filter(
+            (AuditoriaConteudo.id.is_(None))
+            | (~AuditoriaConteudo.status.in_(["pendente", "excluido"]))
+        )
+        .filter(_jogo_visivel_catalogo())
+    )
+    descontos = {}
+    if tipo == "jogo_brasileiro":
+        consulta = consulta.filter(Jogo.eh_brasileiro.is_(True))
+    else:
+        # Parte de todos os jogos em promoção ativa (não só dos mais vistos).
+        descontos = jogos_em_promocao(db)
+        consulta = consulta.filter(Jogo.id.in_(list(descontos) or [0]))
+
+    candidatos = [
+        jogo
+        for jogo in consulta.order_by(Jogo.visualizacoes.desc().nullslast(), Jogo.id.asc()).limit(200).all()
+        if jogo.id not in ja_cadastrados
+    ]
+    if tipo == "oportunidade":
+        # Entre os mais vistos em promoção, os maiores descontos primeiro.
+        candidatos.sort(key=lambda jogo: (-descontos.get(jogo.id, 0), -(jogo.visualizacoes or 0)))
+    promocoes = {jogo_id: {"desconto": desconto} for jogo_id, desconto in descontos.items()}
+
+    return [
+        {
+            "id": jogo.id,
+            "nome": jogo.nome,
+            "desenvolvedor": jogo.desenvolvedor,
+            "imagem": jogo.url_imagem_steam or jogo.url_imagem_epic,
+            "desconto": promocoes.get(jogo.id, {}).get("desconto", 0),
+            "visualizacoes": jogo.visualizacoes or 0,
+        }
+        for jogo in candidatos[:24]
+    ]
 
 
 @router.post("/vitrine/estudios", status_code=status.HTTP_201_CREATED)
@@ -1409,54 +1458,56 @@ def adicionar_jogos_vitrine(
     _: AdminDep,
     db: Session = Depends(get_db),
 ):
-    """Adiciona jogos à seção selecionada, evitando duplicatas."""
+    """Adiciona jogos ao fim da seção escolhida, validando as regras de cada seção."""
     ids = list(dict.fromkeys(entrada.jogo_ids))
     adicionados = []
     ignorados = []
+    visiveis = _ids_visiveis(db, ids)
 
     try:
+        ordem = _ids_ordenados_vitrine(db, entrada.tipo)
         for jogo_id in ids:
-            jogo = db.execute(text("""
-                SELECT id, nome, desenvolvedor, eh_brasileiro
-                FROM jogos
-                WHERE id = :jogo_id
-            """), {"jogo_id": jogo_id}).mappings().first()
+            jogo = db.query(Jogo).filter(Jogo.id == jogo_id).first()
             if not jogo:
                 ignorados.append({"jogo_id": jogo_id, "motivo": "Jogo não encontrado."})
                 continue
-
-            if entrada.tipo == "jogo_brasileiro" and not bool(jogo["eh_brasileiro"]):
-                ignorados.append({"jogo_id": jogo_id, "motivo": "Este jogo não está classificado como brasileiro no catálogo."})
+            if jogo_id not in visiveis:
+                ignorados.append({"jogo_id": jogo_id, "motivo": "O jogo não aparece no catálogo público (pendente, excluído ou sem preço)."})
                 continue
-
-            if entrada.tipo == "oportunidade":
-                estado_promocao = _vitrine_status_promocao(db, jogo_id)
-                if estado_promocao != "ativa":
-                    motivo = (
-                        "Não há confirmação recente de promoção ativa para este jogo."
-                        if estado_promocao == "desconhecida"
-                        else "O jogo não possui promoção ativa na Steam ou na Epic."
-                    )
-                    ignorados.append({"jogo_id": jogo_id, "motivo": motivo})
+            if entrada.tipo == "jogo_brasileiro" and not jogo.eh_brasileiro:
+                ignorados.append({"jogo_id": jogo_id, "motivo": "O jogo não está classificado como brasileiro no catálogo."})
+                continue
+            if entrada.tipo in TIPOS_VITRINE_PROMOCAO:
+                estado = estado_promocao(db, jogo_id)
+                if estado != "ativa":
+                    ignorados.append({
+                        "jogo_id": jogo_id,
+                        "motivo": (
+                            "Ainda não há confirmação de promoção ativa para este jogo."
+                            if estado == "desconhecida"
+                            else "O jogo não está em promoção na Steam nem na Epic."
+                        ),
+                    })
                     continue
 
-            existente = db.execute(text("""
-                SELECT id
-                FROM vitrine_itens
-                WHERE tipo = :tipo AND jogo_id = :jogo_id
-                LIMIT 1
-            """), {"tipo": entrada.tipo, "jogo_id": jogo_id}).first()
+            existente = db.execute(
+                text("SELECT id FROM vitrine_itens WHERE tipo = :tipo AND jogo_id = :jogo_id LIMIT 1"),
+                {"tipo": entrada.tipo, "jogo_id": jogo_id},
+            ).first()
             if existente:
-                ignorados.append({"jogo_id": jogo_id, "motivo": "O jogo já está cadastrado nessa seção."})
+                ignorados.append({"jogo_id": jogo_id, "motivo": "O jogo já está nesta seção."})
                 continue
 
-            inserido = db.execute(text("""
+            item_id = db.execute(text("""
                 INSERT INTO vitrine_itens (tipo, jogo_id, prioridade, ativo)
                 VALUES (:tipo, :jogo_id, 0, TRUE)
                 RETURNING id
             """), {"tipo": entrada.tipo, "jogo_id": jogo_id}).scalar_one()
-            adicionados.append({"id": int(inserido), "jogo_id": jogo_id, "nome": jogo["nome"]})
+            ordem.append(int(item_id))
+            adicionados.append({"id": int(item_id), "jogo_id": jogo_id, "nome": jogo.nome})
 
+        if adicionados:
+            _renumerar_vitrine(db, ordem)
         db.commit()
         return {"adicionados": adicionados, "ignorados": ignorados}
     except HTTPException:
@@ -1467,6 +1518,28 @@ def adicionar_jogos_vitrine(
         raise HTTPException(status_code=500, detail="Falha ao atualizar os itens da vitrine.") from exc
 
 
+@router.post("/vitrine/{item_id}/mover")
+def mover_item_vitrine(
+    item_id: int,
+    entrada: VitrineMoverEntrada,
+    _: AdminDep,
+    db: Session = Depends(get_db),
+):
+    """Sobe ou desce um item dentro da sua seção."""
+    tipo = db.execute(text("SELECT tipo FROM vitrine_itens WHERE id = :id"), {"id": item_id}).scalar()
+    if not tipo:
+        raise HTTPException(status_code=404, detail="Item da vitrine não encontrado.")
+
+    ordem = _ids_ordenados_vitrine(db, tipo)
+    posicao = ordem.index(item_id)
+    destino = posicao - 1 if entrada.direcao == "cima" else posicao + 1
+    if 0 <= destino < len(ordem):
+        ordem[posicao], ordem[destino] = ordem[destino], ordem[posicao]
+        _renumerar_vitrine(db, ordem)
+        db.commit()
+    return {"ok": True, "id": item_id, "posicao": max(0, min(destino, len(ordem) - 1)) + 1}
+
+
 @router.patch("/vitrine/{item_id}")
 def atualizar_item_vitrine(
     item_id: int,
@@ -1474,25 +1547,16 @@ def atualizar_item_vitrine(
     _: AdminDep,
     db: Session = Depends(get_db),
 ):
-    atualizacoes = entrada.model_dump(exclude_unset=True)
+    atualizacoes = {campo: valor for campo, valor in entrada.model_dump(exclude_unset=True).items() if valor is not None}
     if not atualizacoes:
         raise HTTPException(status_code=422, detail="Informe ativo ou prioridade para atualizar.")
-    if "prioridade" in atualizacoes and atualizacoes["prioridade"] is None:
-        atualizacoes.pop("prioridade")
-    if "ativo" in atualizacoes and atualizacoes["ativo"] is None:
-        atualizacoes.pop("ativo")
-    if not atualizacoes:
-        raise HTTPException(status_code=422, detail="Nenhum campo válido informado.")
 
-    campos = []
-    parametros = {"item_id": item_id}
-    for campo, valor in atualizacoes.items():
-        campos.append(f"{campo} = :{campo}")
-        parametros[campo] = valor
+    campos = ", ".join(f"{campo} = :{campo}" for campo in atualizacoes)
     try:
-        resultado = db.execute(text(
-            f"UPDATE vitrine_itens SET {', '.join(campos)} WHERE id = :item_id"
-        ), parametros)
+        resultado = db.execute(
+            text(f"UPDATE vitrine_itens SET {campos} WHERE id = :item_id"),
+            {**atualizacoes, "item_id": item_id},
+        )
         if resultado.rowcount == 0:
             db.rollback()
             raise HTTPException(status_code=404, detail="Item da vitrine não encontrado.")
@@ -1512,10 +1576,7 @@ def remover_item_vitrine(
     db: Session = Depends(get_db),
 ):
     try:
-        resultado = db.execute(
-            text("DELETE FROM vitrine_itens WHERE id = :item_id"),
-            {"item_id": item_id},
-        )
+        resultado = db.execute(text("DELETE FROM vitrine_itens WHERE id = :item_id"), {"item_id": item_id})
         if resultado.rowcount == 0:
             db.rollback()
             raise HTTPException(status_code=404, detail="Item da vitrine não encontrado.")

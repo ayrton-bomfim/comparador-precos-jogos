@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import GaleriaCuradoria from './GaleriaCuradoria'
+import { IconeAnterior, IconeExterno, IconeProximo, IconeRelacionados, IconeVoltar } from './Icones'
 import {
   DESCRITORES_STEAM,
   MOTIVOS_APROVACAO,
@@ -22,6 +23,7 @@ function GrupoDecisao({ titulo, decisao, motivos, ativo, processando, onEscolher
           <button
             type="button"
             key={motivo}
+            className={`cur-chip cur-chip--${decisao}`}
             onClick={() => onEscolher(motivo)}
             disabled={processando}
             title={
@@ -33,7 +35,7 @@ function GrupoDecisao({ titulo, decisao, motivos, ativo, processando, onEscolher
             {ativo && <kbd>{posicao + 1}</kbd>}
             {motivo}
             {decisao === 'excluir' && MOTIVOS_COM_RELACIONADOS.includes(motivo) && (
-              <span className="cur-decisao-marca" aria-hidden="true">↪</span>
+              <IconeRelacionados titulo="Também encaminha jogos relacionados" />
             )}
           </button>
         ))}
@@ -87,13 +89,13 @@ function PainelJogo({
   return (
     <aside className="cur-painel" aria-label={`Detalhes de ${item.nome}`}>
       <div className="cur-painel-navegacao">
-        <button type="button" className="cur-painel-fechar" onClick={onFechar} aria-label="Voltar para a lista">
-          ← Lista
+        <button type="button" className="cur-btn cur-btn--discreto cur-btn--p cur-painel-fechar" onClick={onFechar} aria-label="Voltar para a lista">
+          <IconeVoltar /> Lista
         </button>
         <span>{posicao.indice + 1} de {posicao.total}</span>
         <div>
-          <button type="button" onClick={onAnterior} disabled={posicao.indice <= 0} aria-label="Jogo anterior">‹</button>
-          <button type="button" onClick={onProximo} disabled={posicao.indice >= posicao.total - 1} aria-label="Próximo jogo">›</button>
+          <button type="button" className="cur-btn cur-btn--icone cur-btn--p" onClick={onAnterior} disabled={posicao.indice <= 0} aria-label="Jogo anterior"><IconeAnterior /></button>
+          <button type="button" className="cur-btn cur-btn--icone cur-btn--p" onClick={onProximo} disabled={posicao.indice >= posicao.total - 1} aria-label="Próximo jogo"><IconeProximo /></button>
         </div>
       </div>
 
@@ -156,7 +158,7 @@ function PainelJogo({
             <h3>Observação</h3>
             <p className={observacaoLonga && !observacaoAberta ? 'recolhida' : ''}>{item.observacao}</p>
             {observacaoLonga && (
-              <button type="button" onClick={() => setObservacaoAberta((aberta) => !aberta)}>
+              <button type="button" className="cur-btn cur-btn--discreto cur-btn--p" onClick={() => setObservacaoAberta((aberta) => !aberta)}>
                 {observacaoAberta ? 'Mostrar menos' : 'Mostrar tudo'}
               </button>
             )}
@@ -165,8 +167,8 @@ function PainelJogo({
 
         <div className="cur-lojas">
           {linksDaLoja(item).map((link) => (
-            <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer">
-              {link.rotulo} ↗
+            <a key={link.url} className="cur-btn cur-btn--secundario cur-btn--p" href={link.url} target="_blank" rel="noopener noreferrer">
+              {link.rotulo} <IconeExterno />
             </a>
           ))}
         </div>
@@ -199,10 +201,10 @@ function PainelJogo({
                 placeholder="Descreva o motivo da decisão..."
               />
               <div>
-                <button type="button" onClick={onCancelarOutros} disabled={processando}>Cancelar</button>
+                <button type="button" className="cur-btn cur-btn--secundario" onClick={onCancelarOutros} disabled={processando}>Cancelar</button>
                 <button
                   type="submit"
-                  className={outros.decisao === 'aprovar' ? 'cur-botao-aprovar' : 'cur-botao-excluir'}
+                  className={`cur-btn ${outros.decisao === 'aprovar' ? 'cur-btn--aprovar' : 'cur-btn--perigo'}`}
                   disabled={processando || !outros.texto.trim()}
                 >
                   {outros.decisao === 'aprovar' ? 'Confirmar aprovação' : 'Confirmar exclusão'}
@@ -228,14 +230,18 @@ function PainelJogo({
                 onEscolher={escolher('excluir')}
               />
               <p className="cur-decisao-dica">
-                {modoAtalho
-                  ? 'Pressione o número do motivo · Esc cancela'
-                  : '↪ também encaminha jogos da mesma desenvolvedora/publicadora · Atalhos: A aprovar, E excluir'}
+                {modoAtalho ? (
+                  'Pressione o número do motivo · Esc cancela'
+                ) : (
+                  <>
+                    <IconeRelacionados /> também encaminha jogos da mesma desenvolvedora/publicadora · Atalhos: A aprovar, E excluir
+                  </>
+                )}
               </p>
             </>
           )
         ) : (
-          <button type="button" className="cur-botao-reabrir" onClick={onReabrir} disabled={processando}>
+          <button type="button" className="cur-btn cur-btn--secundario cur-btn--largo" onClick={onReabrir} disabled={processando}>
             {processando ? 'Reabrindo...' : 'Reabrir análise'}
           </button>
         )}

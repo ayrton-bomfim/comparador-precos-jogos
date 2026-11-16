@@ -8,6 +8,7 @@ function Inicio() {
   const navigate = useNavigate()
 
   const [secoesVitrine, setSecoesVitrine] = useState({ brasileiros: [], comunidade: [], em_alta: [], oportunidades: [] })
+  const [vitrineCarregada, setVitrineCarregada] = useState(false)
   const [jogosBuscaComparacao, setJogosBuscaComparacao] = useState([])
   const [buscaComparacao, setBuscaComparacao] = useState('')
   const [jogoComparacao, setJogoComparacao] = useState(null)
@@ -129,6 +130,8 @@ function Inicio() {
         })
       } catch (erro) {
         console.error('Erro ao carregar as seções da vitrine:', erro)
+      } finally {
+        if (ativo) setVitrineCarregada(true)
       }
     }
 
@@ -199,6 +202,14 @@ function Inicio() {
           titulo="Recomendados pela comunidade"
           jogos={secoesVitrine.comunidade}
           destino="/jogos?filtro=desconto"
+          ocultarSeVazia={vitrineCarregada}
+          selo={(jogo) => (
+            jogo.origem === 'curadoria'
+              ? 'Indicação da curadoria'
+              : jogo.total_recomendacoes > 0
+                ? `${jogo.total_recomendacoes} ${jogo.total_recomendacoes === 1 ? 'recomendação' : 'recomendações'}`
+                : null
+          )}
         />
 
         <SecaoJogos
@@ -206,6 +217,7 @@ function Inicio() {
           titulo="Em alta no DESCTRL"
           jogos={secoesVitrine.em_alta}
           destino="/jogos"
+          ocultarSeVazia={vitrineCarregada}
         />
 
         <SecaoJogos
@@ -214,6 +226,7 @@ function Inicio() {
           jogos={secoesVitrine.oportunidades}
           mostrarDesconto
           destino="/jogos?filtro=desconto"
+          ocultarSeVazia={vitrineCarregada}
         />
 
         <section className="secao secao-comparacao">
@@ -506,7 +519,12 @@ function SecaoJogos({
   mostrarDesconto = false,
   destino = '/jogos',
   classeExtra = '',
+  ocultarSeVazia = false,
+  selo = null,
 }) {
+  // Depois do carregamento, uma seção sem jogos some em vez de mostrar um carrossel vazio.
+  if (ocultarSeVazia && !jogos.length) return null
+
   return (
     <section className={`secao secao-catalogo ${classeExtra}`.trim()}>
       <div className="secao-cabecalho">
@@ -523,6 +541,7 @@ function SecaoJogos({
       <CarrosselJogos
         jogos={jogos}
         mostrarDesconto={mostrarDesconto}
+        selo={selo}
       />
     </section>
   )

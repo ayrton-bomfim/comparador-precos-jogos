@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { IconeFechar } from './Icones'
 
 const DURACAO_MS = 10000
 
@@ -32,7 +33,7 @@ function AvisoFlutuante({ aviso, onFechar }) {
           {aviso.acao.rotulo}
         </button>
       )}
-      <button type="button" className="cur-aviso-fechar" onClick={onFechar} aria-label="Fechar aviso">×</button>
+      <button type="button" className="cur-aviso-fechar" onClick={onFechar} aria-label="Fechar aviso"><IconeFechar /></button>
     </div>
   )
 }

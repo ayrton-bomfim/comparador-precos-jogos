@@ -1,8 +1,10 @@
+import { IconeFechar } from './Icones'
+
 const SECOES = [
   ['Aguardando análise', 'Jogos que entraram na fila por um motivo (fora do catálogo, duplicado, indisponível...). Aprove para mantê-los no catálogo público ou exclua para retirá-los.'],
   ['Conteúdo sensível', 'Fila separada para possíveis conteúdos adultos. A prioridade (P1 a P5) e os descritores da Steam ajudam a ordenar, mas não confirmam sozinhos o conteúdo.'],
   ['Aprovados e Excluídos', 'Histórico das decisões. Qualquer registro pode voltar para análise com “Reabrir análise”.'],
-  ['Vitrine', 'Define os jogos das seções “Brasil em jogo” e “Oportunidades de preço” da página inicial.'],
+  ['Vitrine', 'Escolhe os jogos de três seções da página inicial: “Oportunidades de preço”, “Brasil em jogo” e as indicações da curadoria, que completam “Recomendados pela comunidade” depois dos votos dos usuários. Itens com promoção encerrada saem sozinhos, e seções vazias não aparecem no site.'],
   ['Feedback', 'Sugestões enviadas pela comunidade. Marque como feito quando a melhoria for concluída.'],
 ]
 
@@ -30,7 +32,7 @@ function AjudaCuradoria({ onFechar }) {
             <span className="curadoria-status">AJUDA</span>
             <h2 id="cur-ajuda-titulo">Como funciona a curadoria</h2>
           </div>
-          <button type="button" className="curadoria-modal-fechar" onClick={onFechar} aria-label="Fechar" autoFocus>×</button>
+          <button type="button" className="cur-btn cur-btn--icone" onClick={onFechar} aria-label="Fechar" autoFocus><IconeFechar /></button>
         </div>
 
         <dl className="cur-ajuda-secoes">

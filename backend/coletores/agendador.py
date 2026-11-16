@@ -183,10 +183,10 @@ class AgendadorColeta:
         resultado_alertas = await asyncio.to_thread(avaliar_alertas_preco)
         print(f"Alertas avaliados: {resultado_alertas}")
 
-        print("\n[4/4] Encerramento de recomendações com promoções finalizadas")
+        print("\n[4/4] Limpeza de promoções encerradas (recomendações e vitrine)")
         from backend.servicos.expirar_recomendacoes_comunidade import expirar_recomendacoes
         resultado_recomendacoes = await asyncio.to_thread(expirar_recomendacoes)
-        print(f"Recomendações expiradas: {resultado_recomendacoes}")
+        print(f"Limpeza de promoções: {resultado_recomendacoes}")
 
         return {
             "steam": resultado_steam or {

@@ -12,7 +12,8 @@ from sqlalchemy import (
     Text,
     ForeignKey,
     Boolean,
-    UniqueConstraint
+    UniqueConstraint,
+    func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
@@ -697,3 +698,26 @@ class SugestaoUsuario(Base):
     concluida_em = Column(DateTime, nullable=True)
 
     usuario = relationship("Usuario")
+
+
+class VitrineItem(Base):
+    """Item escolhido para as seções da página inicial.
+
+    tipo: jogo_brasileiro (Brasil em jogo), oportunidade (Oportunidades de
+    preço), curadoria_comunidade (indicação da curadoria na seção da
+    comunidade) ou estudio_brasileiro (registro legado). A ordem de exibição
+    segue prioridade (maior primeiro). As restrições da tabela ficam em
+    backend/ferramentas/criar_tabelas.py.
+    """
+
+    __tablename__ = "vitrine_itens"
+
+    id = Column(BigInteger, primary_key=True)
+    tipo = Column(String(40), nullable=False)
+    nome = Column(String(255), nullable=True)
+    jogo_id = Column(Integer, ForeignKey("jogos.id", ondelete="CASCADE"), nullable=True)
+    inicio_em = Column(DateTime(timezone=True), nullable=True)
+    fim_em = Column(DateTime(timezone=True), nullable=True)
+    prioridade = Column(Integer, nullable=False, default=0)
+    ativo = Column(Boolean, nullable=False, default=True)
+    criado_em = Column(DateTime(timezone=True), nullable=False, server_default=func.now())

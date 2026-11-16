@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import CardJogo from './CardJogo'
 
-function CarrosselJogos({ jogos, mostrarDesconto = false }) {
+// `selo` (opcional) recebe o jogo e devolve um texto curto exibido sobre o card,
+// por exemplo a origem da indicação na seção da comunidade.
+function CarrosselJogos({ jogos, mostrarDesconto = false, selo = null }) {
   const listaRef = useRef(null)
   const viewportRef = useRef(null)
   const gestoRef = useRef(null)
@@ -249,6 +251,11 @@ function CarrosselJogos({ jogos, mostrarDesconto = false }) {
         >
           {jogos.map((jogo) => (
             <div className="item-carrossel" key={jogo.id}>
+              {selo && selo(jogo) && (
+                <span className="selo-carrossel-area" aria-hidden="true">
+                  <span className="selo-carrossel">{selo(jogo)}</span>
+                </span>
+              )}
               <CardJogo
                 jogo={jogo}
                 mostrarDesconto={mostrarDesconto}

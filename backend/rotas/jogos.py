@@ -7,7 +7,7 @@ e obter detalhes de um jogo específico.
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 import requests
 import time
 from sqlalchemy import case, func, or_, text
@@ -16,6 +16,7 @@ from ..banco_dados import get_db
 from ..modelos import Jogo, HistoricoPreco, AuditoriaConteudo, Usuario, NotificacaoUsuario
 from ..seguranca.autenticacao import obter_admin_atual, obter_usuario_atual
 from ..coletores.steam_coletor import SteamColetor
+from ..servicos.promocoes import em_promocao, estado_promocao, estados_promocao
 
 EGDATA_SEARCH_URL = "https://api.egdata.app/search/v2/search"
 EGDATA_COUNTRY = "BR"
@@ -23,6 +24,9 @@ EGDATA_LOCALE = "pt-BR"
 
 
 router = APIRouter(prefix="/api/jogos", tags=["jogos"])
+
+# Quantidade máxima de jogos por seção da página inicial.
+LIMITE_SECAO_INICIAL = 12
 
 # Métricas simples de desempenho da listagem, expostas apenas a administradores.
 _diagnostico_rotas_jogos = {
@@ -825,93 +829,12 @@ class RecomendacaoVitrinePayload(BaseModel):
 
 
 def _jogo_em_promocao(db: Session, jogo_id: int, agora=None) -> bool:
-    """Confirma promoção ativa a partir do último registro por loja."""
-    agora = agora or datetime.now(timezone.utc)
-    ultima_data = (
-        db.query(
-            HistoricoPreco.plataforma.label("plataforma"),
-            func.max(HistoricoPreco.data_coleta).label("ultima_data"),
-        )
-        .filter(HistoricoPreco.jogo_id == jogo_id)
-        .group_by(HistoricoPreco.plataforma)
-        .subquery()
-    )
-    registros = (
-        db.query(HistoricoPreco)
-        .join(
-            ultima_data,
-            (HistoricoPreco.plataforma == ultima_data.c.plataforma)
-            & (HistoricoPreco.data_coleta == ultima_data.c.ultima_data),
-        )
-        .filter(HistoricoPreco.jogo_id == jogo_id)
-        .filter(func.lower(HistoricoPreco.plataforma).in_(["steam", "epic", "epic games", "epic games store"]))
-        .all()
-    )
-    for registro in registros:
-        if (registro.desconto or 0) <= 0:
-            continue
-        fim = registro.promocao_fim
-        if fim is None:
-            return True
-        if fim.tzinfo is None:
-            fim = fim.replace(tzinfo=timezone.utc)
-        if fim > agora:
-            return True
-    return False
+    """Atalho para a regra única de promoção (backend/servicos/promocoes.py)."""
+    return em_promocao(db, jogo_id, agora)
 
 
 def _vitrine_status_promocao(db: Session, jogo_id: int, agora=None) -> str:
-    """Estado conservador da promoção: ativa, inativa ou desconhecida."""
-    agora = agora or datetime.now(timezone.utc)
-    try:
-        registros = db.execute(text("""
-            SELECT plataforma_norm, desconto, promocao_fim, data_coleta
-            FROM (
-                SELECT DISTINCT ON (
-                    CASE WHEN lower(trim(plataforma)) IN
-                        ('epic', 'epic games', 'epic games store') THEN 'epic'
-                        ELSE lower(trim(plataforma)) END
-                )
-                    CASE WHEN lower(trim(plataforma)) IN
-                        ('epic', 'epic games', 'epic games store') THEN 'epic'
-                        ELSE lower(trim(plataforma)) END AS plataforma_norm,
-                    desconto, promocao_fim, data_coleta, id
-                FROM historico_precos
-                WHERE jogo_id = :jogo_id
-                  AND lower(trim(plataforma)) IN
-                    ('steam', 'epic', 'epic games', 'epic games store')
-                ORDER BY
-                    CASE WHEN lower(trim(plataforma)) IN
-                        ('epic', 'epic games', 'epic games store') THEN 'epic'
-                        ELSE lower(trim(plataforma)) END,
-                    data_coleta DESC, id DESC
-            ) ultimos
-        """), {"jogo_id": jogo_id}).mappings().all()
-    except Exception:
-        return "desconhecida"
-    if not registros:
-        return "desconhecida"
-
-    desconhecida = False
-    limite_recencia = agora - timedelta(hours=72)
-    for registro in registros:
-        coleta = registro["data_coleta"]
-        if coleta and coleta.tzinfo is None:
-            coleta = coleta.replace(tzinfo=timezone.utc)
-        fim = registro["promocao_fim"]
-        if fim and fim.tzinfo is None:
-            fim = fim.replace(tzinfo=timezone.utc)
-        if (registro["desconto"] or 0) > 0:
-            if fim is not None and fim > agora:
-                return "ativa"
-            if fim is not None and fim <= agora:
-                continue
-            if coleta and coleta >= limite_recencia:
-                return "ativa"
-            desconhecida = True
-        elif not coleta or coleta < limite_recencia:
-            desconhecida = True
-    return "desconhecida" if desconhecida else "inativa"
+    return estado_promocao(db, jogo_id, agora)
 
 
 def _precos_atuais_vitrine(db: Session, jogos):
@@ -994,6 +917,11 @@ def _serializar_jogo_vitrine(jogo, precos_historico=None):
 
 @router.get("/vitrine/secoes")
 def obter_vitrine_secoes(db: Session = Depends(get_db)):
+    """Monta as seções da página inicial.
+
+    Somente leitura: itens com promoção encerrada são ignorados aqui e
+    removidos pela rotina diária (e ao abrir a vitrine na Curadoria).
+    """
     agora = datetime.now(timezone.utc)
     visiveis = (
         db.query(Jogo)
@@ -1005,61 +933,36 @@ def obter_vitrine_secoes(db: Session = Depends(get_db)):
         .filter(_jogo_visivel_catalogo())
     )
 
-    em_alta = visiveis.order_by(Jogo.visualizacoes.desc(), Jogo.id.asc()).limit(12).all()
+    def jogos_visiveis(ids):
+        if not ids:
+            return []
+        por_id = {jogo.id: jogo for jogo in visiveis.filter(Jogo.id.in_(ids)).all()}
+        return [por_id[jogo_id] for jogo_id in ids if jogo_id in por_id]
 
-    # Uma tabela guarda estúdios, jogos brasileiros e oportunidades.
-    # Tipos aceitos: estudio_brasileiro, jogo_brasileiro, oportunidade.
-    try:
-        # Brasil em jogo é estritamente manual e exige classificação brasileira.
-        jogos_manuais = db.execute(text("""
-            SELECT vi.jogo_id
-            FROM vitrine_itens vi
-            JOIN jogos j ON j.id = vi.jogo_id
-            WHERE vi.tipo = 'jogo_brasileiro' AND vi.ativo = TRUE
-              AND vi.jogo_id IS NOT NULL AND j.eh_brasileiro IS TRUE
-              AND (vi.inicio_em IS NULL OR vi.inicio_em <= :agora)
-              AND (vi.fim_em IS NULL OR vi.fim_em > :agora)
-            ORDER BY vi.prioridade DESC, vi.id DESC LIMIT 40
-        """), {"agora": agora}).scalars().all()
-        por_id_br = {j.id: j for j in visiveis.filter(Jogo.id.in_(jogos_manuais)).all()} if jogos_manuais else {}
-        brasileiros = [por_id_br[jogo_id] for jogo_id in jogos_manuais if jogo_id in por_id_br][:12]
+    def itens_da_vitrine(tipo):
+        try:
+            return [int(jogo_id) for jogo_id in db.execute(text("""
+                SELECT vi.jogo_id
+                FROM vitrine_itens vi
+                WHERE vi.tipo = :tipo AND vi.ativo = TRUE AND vi.jogo_id IS NOT NULL
+                  AND (vi.inicio_em IS NULL OR vi.inicio_em <= :agora)
+                  AND (vi.fim_em IS NULL OR vi.fim_em > :agora)
+                ORDER BY vi.prioridade DESC, vi.id DESC
+                LIMIT 100
+            """), {"tipo": tipo, "agora": agora}).scalars()]
+        except Exception as exc:
+            db.rollback()
+            raise HTTPException(status_code=503, detail="Não foi possível consultar a vitrine.") from exc
 
-        oportunidades_ids = db.execute(text("""
-            SELECT vi.id AS item_id, vi.jogo_id
-            FROM vitrine_itens vi
-            WHERE vi.tipo = 'oportunidade' AND vi.ativo = TRUE AND vi.jogo_id IS NOT NULL
-              AND (vi.inicio_em IS NULL OR vi.inicio_em <= :agora)
-              AND (vi.fim_em IS NULL OR vi.fim_em > :agora)
-            ORDER BY vi.prioridade DESC, vi.id DESC LIMIT 100
-        """), {"agora": agora}).mappings().all()
-        oportunidades = []
-        houve_limpeza_oportunidades = False
-        for registro in oportunidades_ids:
-            jogo_id = int(registro["jogo_id"])
-            estado = _vitrine_status_promocao(db, jogo_id, agora)
-            if estado == "inativa":
-                # Só desativa quando os dados disponíveis confirmam o fim; falhas
-                # ou dados antigos mantêm o cadastro para a próxima coleta.
-                db.execute(text("UPDATE vitrine_itens SET ativo = FALSE WHERE id = :id"), {"id": registro["item_id"]})
-                houve_limpeza_oportunidades = True
-                continue
-            if estado != "ativa":
-                continue
-            jogo = visiveis.filter(Jogo.id == jogo_id).first()
-            if jogo:
-                oportunidades.append(jogo)
-            if len(oportunidades) >= 12:
-                break
-        if houve_limpeza_oportunidades:
-            db.commit()
-    except Exception as exc:
-        db.rollback()
-        raise HTTPException(status_code=503, detail="A migração simplificada da vitrine ainda não foi aplicada.") from exc
+    em_alta = visiveis.order_by(Jogo.visualizacoes.desc(), Jogo.id.asc()).limit(LIMITE_SECAO_INICIAL).all()
 
-    # As recomendações são o campo atual de cada usuário, não um histórico.
-    # Jogos fora de promoção não entram na contagem mesmo que a limpeza do campo
-    # ainda não tenha ocorrido.
-    recomendados_ids = (
+    # Brasil em jogo: seleção editorial, sem depender de promoção.
+    brasileiros = [
+        jogo for jogo in jogos_visiveis(itens_da_vitrine("jogo_brasileiro")) if jogo.eh_brasileiro
+    ][:LIMITE_SECAO_INICIAL]
+
+    # Votos da comunidade (campo atual de cada usuário), do mais votado ao menos votado.
+    votos = (
         db.query(Usuario.jogo_recomendado_id, func.count(Usuario.id).label("total"))
         .filter(Usuario.jogo_recomendado_id.isnot(None))
         .group_by(Usuario.jogo_recomendado_id)
@@ -1067,31 +970,44 @@ def obter_vitrine_secoes(db: Session = Depends(get_db)):
         .limit(100)
         .all()
     )
-    totais_recomendacoes = {int(jogo_id): int(total) for jogo_id, total in recomendados_ids}
-    ids_validos = []
-    for jogo_id, _total in recomendados_ids:
-        if _jogo_em_promocao(db, jogo_id, agora):
-            ids_validos.append(jogo_id)
-    recomendados_visiveis = {
-        jogo.id: jogo for jogo in visiveis.filter(Jogo.id.in_(ids_validos)).all()
-    } if ids_validos else {}
-    comunidade = [recomendados_visiveis[jogo_id] for jogo_id in ids_validos if jogo_id in recomendados_visiveis][:15]
+    totais_recomendacoes = {int(jogo_id): int(total) for jogo_id, total in votos}
+    ids_oportunidades = itens_da_vitrine("oportunidade")
+    ids_indicacoes = itens_da_vitrine("curadoria_comunidade")
 
-    # Consulta os históricos uma única vez para todas as seções da página inicial.
-    jogos_vitrine = brasileiros + comunidade + em_alta + oportunidades
-    precos_por_jogo = _precos_atuais_vitrine(db, jogos_vitrine)
+    # Uma consulta só para saber o estado de promoção de todos os candidatos.
+    estados = estados_promocao(
+        db, list(totais_recomendacoes) + ids_oportunidades + ids_indicacoes, agora
+    )
+
+    def ativos(ids):
+        return [jogo_id for jogo_id in ids if estados.get(jogo_id) == "ativa"]
+
+    oportunidades = jogos_visiveis(ativos(ids_oportunidades))[:LIMITE_SECAO_INICIAL]
+
+    # Comunidade: votos primeiro; indicações da curadoria completam a seção.
+    comunidade = jogos_visiveis(ativos(list(totais_recomendacoes)))[:LIMITE_SECAO_INICIAL]
+    ja_incluidos = {jogo.id for jogo in comunidade}
+    indicacoes = [
+        jogo for jogo in jogos_visiveis(ativos(ids_indicacoes)) if jogo.id not in ja_incluidos
+    ][: max(0, LIMITE_SECAO_INICIAL - len(comunidade))]
+    ids_indicados = {jogo.id for jogo in indicacoes}
+    comunidade += indicacoes
+
+    # Consulta os preços uma única vez para todas as seções.
+    precos_por_jogo = _precos_atuais_vitrine(db, brasileiros + comunidade + em_alta + oportunidades)
 
     def serializar(jogo):
         return _serializar_jogo_vitrine(jogo, precos_por_jogo.get(jogo.id))
 
-    def serializar_recomendacao(jogo):
+    def serializar_comunidade(jogo):
         item = serializar(jogo)
         item["total_recomendacoes"] = totais_recomendacoes.get(jogo.id, 0)
+        item["origem"] = "curadoria" if jogo.id in ids_indicados else "comunidade"
         return item
 
     return {
         "brasileiros": [serializar(jogo) for jogo in brasileiros],
-        "comunidade": [serializar_recomendacao(jogo) for jogo in comunidade],
+        "comunidade": [serializar_comunidade(jogo) for jogo in comunidade],
         "em_alta": [serializar(jogo) for jogo in em_alta],
         "oportunidades": [serializar(jogo) for jogo in oportunidades],
     }

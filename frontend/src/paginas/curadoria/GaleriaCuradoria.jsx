@@ -1,15 +1,6 @@
 import { useMemo, useState } from 'react'
+import { IconeImagens, IconeOlho } from './Icones'
 import { normalizarImagens } from './utilidades'
-
-function IconeOlhoRiscado() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M2.5 12C4.7 7.7 8.1 5.5 12 5.5C15.9 5.5 19.3 7.7 21.5 12C19.3 16.3 15.9 18.5 12 18.5C8.1 18.5 4.7 16.3 2.5 12Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="12" r="3.2" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M4 4L20 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  )
-}
 
 // Galeria do jogo no painel de decisão. As imagens extras só são buscadas
 // quando o administrador pede, para não sobrecarregar as lojas.
@@ -40,7 +31,7 @@ function GaleriaCuradoria({
 
         {imagemBorrada && imagemPrincipal && (
           <div className="cur-galeria-aviso" aria-hidden="true">
-            <IconeOlhoRiscado />
+            <IconeOlho riscado />
             <strong>Imagem oculta</strong>
             <span>Possível conteúdo sensível</span>
           </div>
@@ -71,10 +62,11 @@ function GaleriaCuradoria({
       {typeof onCarregarMidias === 'function' && !midiasConsultadas && (
         <button
           type="button"
-          className="cur-galeria-carregar"
+          className="cur-btn cur-btn--discreto cur-btn--p cur-galeria-carregar"
           onClick={onCarregarMidias}
           disabled={midiasCarregando}
         >
+          <IconeImagens />
           {midiasCarregando ? 'Buscando imagens...' : erroMidias ? 'Tentar carregar a galeria de novo' : 'Carregar galeria'}
         </button>
       )}
