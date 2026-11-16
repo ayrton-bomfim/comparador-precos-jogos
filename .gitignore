@@ -97,6 +97,9 @@ steam_historico*.json
 # =============================================================================
 backend/diagnostico_preco_getitems.py
 backend/tests/egdata_promocao_etapa1/
+backend/desctrl_manager/build/
+backend/desctrl_manager/dist/
+backend/desctrl_manager/logs/
 
 coletar_historico_steamdb.py
 diagnostico_opengamestats.py
@@ -105,13 +108,6 @@ teste_getitems_promocao_detalhado.py
 teste_getitems_sem_promocao.py
 teste_opengamestats_promocoes.py
 teste_salvar_oferta_epic.py
-
-# Artes experimentais de mascotes
-/Conceitos de Mascote/*
-!/Conceitos de Mascote/Conceitos/
-/Conceitos de Mascote/Conceitos/*
-!/Conceitos de Mascote/Conceitos/**/*.png
-
 
 # =============================================================================
 # Arquivos de Configuração e Segurança

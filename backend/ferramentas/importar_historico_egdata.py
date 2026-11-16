@@ -4,7 +4,7 @@ Importa o histórico de preços da EGDATA para o histórico da aplicação.
 Execução:
     A partir da raiz do projeto:
 
-    python -m backend.scripts.importacao.importar_historico_egdata
+    python -m backend.ferramentas.importar_historico_egdata
 
 O script:
     1. Busca todos os jogos que possuem uma oferta Epic ativa.
@@ -20,8 +20,8 @@ from datetime import datetime, timezone
 
 import requests
 
-from ...banco_dados import SessionLocal
-from ...modelos import Jogo, EpicOferta, HistoricoPreco
+from ..banco_dados import SessionLocal
+from ..modelos import Jogo, EpicOferta, HistoricoPreco
 
 
 EGDATA_URL = "https://api.egdata.app/offers/{offer_id}/price-history"

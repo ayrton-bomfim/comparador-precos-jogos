@@ -11,7 +11,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from .seguranca.rate_limit import limiter
 import os
 from .rotas import (
-    jogos, comparador, auth, admin, curadoria, favoritos,
+    jogos, comparador, auth, curadoria, favoritos,
     conquistas, alertas_preco, notificacoes, seguranca_conta, feedback
 )
 
@@ -49,7 +49,6 @@ app.add_middleware(
 app.include_router(jogos.router)
 app.include_router(comparador.router)
 app.include_router(auth.router)
-app.include_router(admin.router)
 app.include_router(curadoria.router)
 app.include_router(favoritos.router)
 app.include_router(conquistas.router)

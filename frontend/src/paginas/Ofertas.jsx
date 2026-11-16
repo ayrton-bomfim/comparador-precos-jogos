@@ -3670,7 +3670,13 @@ function Ofertas() {
           }
 
           const dadosVitrine = await respostaVitrine.json()
-          const primeiroRecomendado = dadosVitrine.comunidade?.[0] || null
+          // Sem recomendações ativas da comunidade, usa as demais seções da
+          // vitrine para que a página nunca abra vazia.
+          const primeiroRecomendado = dadosVitrine.comunidade?.[0]
+            || dadosVitrine.oportunidades?.[0]
+            || dadosVitrine.em_alta?.[0]
+            || dadosVitrine.brasileiros?.[0]
+            || null
 
           if (primeiroRecomendado?.id != null) {
             // Busca os detalhes completos usados pelo comparador e pelo histórico.

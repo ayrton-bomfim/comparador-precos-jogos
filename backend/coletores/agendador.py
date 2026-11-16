@@ -29,8 +29,8 @@ try:
 except ImportError:
     load_dotenv = None
 
-from ..scripts.historico.coletar_historico import coletar_historico_precos
-from ..scripts.historico.coletar_historico_epic import coletar_historico_epic
+from .coletar_historico import coletar_historico_precos
+from .coletar_historico_epic import coletar_historico_epic
 
 
 HORARIO_PADRAO = "03:00"
@@ -184,7 +184,7 @@ class AgendadorColeta:
         print(f"Alertas avaliados: {resultado_alertas}")
 
         print("\n[4/4] Encerramento de recomendações com promoções finalizadas")
-        from backend.scripts.expirar_recomendacoes_comunidade import expirar_recomendacoes
+        from backend.servicos.expirar_recomendacoes_comunidade import expirar_recomendacoes
         resultado_recomendacoes = await asyncio.to_thread(expirar_recomendacoes)
         print(f"Recomendações expiradas: {resultado_recomendacoes}")
 

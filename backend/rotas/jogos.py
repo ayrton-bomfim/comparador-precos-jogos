@@ -10,12 +10,11 @@ from pydantic import BaseModel
 from datetime import datetime, timezone, timedelta
 import requests
 import time
-import json
 from sqlalchemy import case, func, or_, text
 from sqlalchemy.orm import Session
 from ..banco_dados import get_db
 from ..modelos import Jogo, HistoricoPreco, AuditoriaConteudo, Usuario, NotificacaoUsuario
-from ..seguranca.autenticacao import obter_usuario_atual
+from ..seguranca.autenticacao import obter_admin_atual, obter_usuario_atual
 from ..coletores.steam_coletor import SteamColetor
 
 EGDATA_SEARCH_URL = "https://api.egdata.app/search/v2/search"
@@ -25,10 +24,9 @@ EGDATA_LOCALE = "pt-BR"
 
 router = APIRouter(prefix="/api/jogos", tags=["jogos"])
 
-# Diagnóstico temporário de performance. Não altera a lógica dos endpoints.
+# Métricas simples de desempenho da listagem, expostas apenas a administradores.
 _diagnostico_rotas_jogos = {
     "listar_jogos": {"chamadas": 0, "etapas": {}},
-    "historico_lote": {"chamadas": 0, "etapas": {}},
 }
 
 
@@ -478,130 +476,9 @@ def listar_jogos(
     }
 
 
-@router.get("/lote/historicos")
-def obter_historico_lote(db: Session = Depends(get_db)):
-    inicio_diagnostico = time.perf_counter()
-    _diagnostico_rotas_jogos["historico_lote"]["chamadas"] += 1
-    """
-    Obtém o histórico de todos os jogos visíveis em uma única requisição.
-
-    A rota mantém o mesmo formato de cada registro usado pelo frontend,
-    mas elimina o N+1 de uma requisição HTTP por jogo.
-    """
-    # Mantém a mesma regra de visibilidade usada em /api/jogos/.
-    jogos = (
-        db.query(Jogo.id)
-        .outerjoin(
-            AuditoriaConteudo,
-            AuditoriaConteudo.jogo_id == Jogo.id,
-        )
-        .filter(
-            ~AuditoriaConteudo.status.in_(["pendente", "excluido"])
-            | (AuditoriaConteudo.id.is_(None))
-        )
-        .filter(_jogo_visivel_catalogo())
-        .all()
-    )
-    _diagnostico_rotas_jogos["historico_lote"]["etapas"]["consulta_jogos"] = round((time.perf_counter() - inicio_diagnostico) * 1000, 2)
-    inicio_etapa = time.perf_counter()
-
-    jogo_ids = [jogo.id for jogo in jogos]
-
-    historicos_por_jogo = {jogo_id: [] for jogo_id in jogo_ids}
-
-    if not jogo_ids:
-        _diagnostico_rotas_jogos["historico_lote"]["etapas"]["total"] = round((time.perf_counter() - inicio_diagnostico) * 1000, 2)
-        return historicos_por_jogo
-
-    _diagnostico_rotas_jogos["historico_lote"]["etapas"]["montagem_ids"] = round((time.perf_counter() - inicio_etapa) * 1000, 2)
-    inicio_etapa = time.perf_counter()
-
-    # Busca somente as colunas que o frontend realmente utiliza no
-    # analisarHistorico(), mantendo exatamente os mesmos nomes do endpoint
-    # individual /{jogo_id}/historico.
-    registros = (
-        db.query(
-            HistoricoPreco.id,
-            HistoricoPreco.jogo_id,
-            HistoricoPreco.nome_jogo,
-            HistoricoPreco.plataforma,
-            HistoricoPreco.preco_atual,
-            HistoricoPreco.preco_sem_desconto,
-            HistoricoPreco.desconto,
-            HistoricoPreco.data_coleta,
-            HistoricoPreco.promocao_id,
-            HistoricoPreco.promocao_nome,
-            HistoricoPreco.promocao_tipo,
-            HistoricoPreco.promocao_inicio,
-            HistoricoPreco.promocao_fim,
-        )
-        .filter(HistoricoPreco.jogo_id.in_(jogo_ids))
-        .order_by(
-            HistoricoPreco.jogo_id.asc(),
-            HistoricoPreco.data_coleta.asc(),
-        )
-        .all()
-    )
-    _diagnostico_rotas_jogos["historico_lote"]["etapas"]["consulta_historicos"] = round((time.perf_counter() - inicio_etapa) * 1000, 2)
-    _diagnostico_rotas_jogos["historico_lote"]["etapas"]["quantidade_registros"] = len(registros)
-    inicio_etapa = time.perf_counter()
-
-    for registro in registros:
-        historicos_por_jogo[registro.jogo_id].append(
-            {
-                "id": registro.id,
-                "jogo_id": registro.jogo_id,
-                "nome_jogo": registro.nome_jogo,
-                "plataforma": registro.plataforma,
-                "preco_atual": (
-                    float(registro.preco_atual)
-                    if registro.preco_atual is not None
-                    else None
-                ),
-                "preco_sem_desconto": (
-                    float(registro.preco_sem_desconto)
-                    if registro.preco_sem_desconto is not None
-                    else None
-                ),
-                "desconto": registro.desconto or 0,
-                "data_coleta": (
-                    registro.data_coleta.isoformat()
-                    if registro.data_coleta
-                    else None
-                ),
-                "promocao_id": registro.promocao_id,
-                "promocao_nome": registro.promocao_nome,
-                "promocao_tipo": registro.promocao_tipo,
-                "promocao_inicio": (
-                    registro.promocao_inicio.isoformat()
-                    if registro.promocao_inicio
-                    else None
-                ),
-                "promocao_fim": (
-                    registro.promocao_fim.isoformat()
-                    if registro.promocao_fim
-                    else None
-                ),
-            }
-        )
-
-    _diagnostico_rotas_jogos["historico_lote"]["etapas"]["processamento_registros"] = round((time.perf_counter() - inicio_etapa) * 1000, 2)
-    _diagnostico_rotas_jogos["historico_lote"]["etapas"]["total"] = round((time.perf_counter() - inicio_diagnostico) * 1000, 2)
-    _diagnostico_rotas_jogos["historico_lote"]["etapas"]["quantidade_jogos"] = len(jogo_ids)
-
-    # Diagnóstico temporário: mede apenas a serialização JSON do payload.
-    inicio_serializacao = time.perf_counter()
-    json.dumps(historicos_por_jogo)
-    _diagnostico_rotas_jogos["historico_lote"]["etapas"]["serializacao_json"] = round(
-        (time.perf_counter() - inicio_serializacao) * 1000,
-        2,
-    )
-
-    return historicos_por_jogo
-
-
 @router.get("/diagnostico/performance")
-async def diagnostico_performance():
+async def diagnostico_performance(_admin: Usuario = Depends(obter_admin_atual)):
+    """Métricas de tempo da listagem de jogos (somente administradores)."""
     return _diagnostico_rotas_jogos
 
 
@@ -1237,7 +1114,6 @@ def definir_recomendacao_vitrine(
     if not _jogo_em_promocao(db, jogo.id):
         raise HTTPException(status_code=400, detail="Você só pode recomendar um jogo que esteja em promoção.")
 
-    recomendacao_anterior = usuario.jogo_recomendado_id
     usuario.jogo_recomendado_id = jogo.id
     db.flush()
     total = db.query(func.count(Usuario.id)).filter(Usuario.jogo_recomendado_id == jogo.id).scalar() or 0

@@ -37,6 +37,7 @@ function Cabecalho({ tema: temaProp, setTema: setTemaProp }) {
 
   // Garante que o menu feche ao mudar de página (inclusive pelo botão "voltar").
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset intencional ao trocar de rota
     setMenuMobileAberto(false)
     setBuscaAberta(false)
     setTermoBusca('')
@@ -287,6 +288,7 @@ function Cabecalho({ tema: temaProp, setTema: setTemaProp }) {
   useEffect(() => {
     const termo = termoBusca.trim()
     if (!buscaAberta || termo.length < 3) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- limpa sugestões quando a busca fecha ou fica curta
       setJogosBusca([])
       return undefined
     }

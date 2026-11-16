@@ -10,7 +10,7 @@ Responsabilidade:
 Não altera banco de dados.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 import requests
 

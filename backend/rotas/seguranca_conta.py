@@ -4,10 +4,9 @@ import hashlib
 import logging
 import re
 import secrets
-from html import escape
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -15,7 +14,7 @@ from ..banco_dados import get_db
 from ..config import settings
 from ..modelos import Usuario, TokenSegurancaUsuario
 from ..seguranca.autenticacao import obter_usuario_atual, hash_password, verify_password
-from ..servicos.email_service import enviar_email, EmailServiceError
+from ..servicos.email_service import enviar_email
 from ..servicos.email_templates_seguranca import renderizar_email_seguranca
 from ..seguranca.rate_limit import limiter
 

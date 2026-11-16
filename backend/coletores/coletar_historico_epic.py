@@ -24,9 +24,8 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import and_
 
-from ...banco_dados import SessionLocal
-from ...modelos import Jogo, EpicOferta, HistoricoPreco
-from ...servicos.egdata import buscar_preco_atual
+from ..banco_dados import SessionLocal
+from ..modelos import Jogo, EpicOferta, HistoricoPreco
 
 
 # Um preço zero sem promoção e sem atualização recente pode ser um dado
@@ -333,7 +332,7 @@ class _BuscaCatalogoEpic:
         Converte o bloco de preço da busca para o mesmo contrato usado por
         buscar_preco_atual().
         """
-        from ...servicos.egdata import (
+        from ..servicos.egdata import (
             _encontrar_promocao,
             calcular_desconto,
             converter_data,

@@ -1,13 +1,31 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-psycopg2-binary
-python-dotenv
-requests
-playwright
-schedule
-PyJWT
-python-multipart
-google-auth
-resend
-slowapi
+# Dependências do backend (API, coleta diária e ferramentas).
+# Instale a partir da raiz do projeto:
+#   python -m venv venv
+#   venv\Scripts\activate
+#   pip install -r backend/requirements.txt
+#   playwright install chromium
+
+# API
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.3
+python-multipart==0.0.32
+slowapi==0.1.10
+
+# Banco de dados
+SQLAlchemy==2.0.36
+psycopg2-binary==2.9.9
+
+# Autenticação e e-mail
+PyJWT==2.15.1
+google-auth==2.62.0
+resend==2.50.0
+
+# Coleta de dados
+requests==2.32.3
+playwright==1.48.0
+schedule==1.2.2
+beautifulsoup4==4.12.3
+
+# Configuração
+python-dotenv==1.0.1

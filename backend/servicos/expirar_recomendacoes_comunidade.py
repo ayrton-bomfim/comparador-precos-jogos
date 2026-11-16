@@ -1,7 +1,7 @@
 """Limpa recomendações comunitárias somente quando o fim da promoção é confirmado.
 
 Executar na raiz do projeto:
-    python -m backend.scripts.expirar_recomendacoes_comunidade
+    python -m backend.servicos.expirar_recomendacoes_comunidade
 
 Agende a execução periódica (por exemplo, a cada hora) no Agendador de Tarefas
  do Windows ou no scheduler utilizado pelo ambiente de produção.

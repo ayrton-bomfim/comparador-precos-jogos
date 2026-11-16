@@ -2,7 +2,7 @@
 Coleta o catálogo público de estúdios do Indústria de Jogos (IDJ).
 
 Modo padrão: somente simulação, sem gravar no banco.
-Para persistir: python -m backend.scripts.importar_estudios_idj --apply
+Para persistir: python -m backend.ferramentas.importar_estudios_idj --apply
 
 A rotina coleta os registros das páginas de listagem. Não importa jogos e
 não altera a tabela `jogos`.
@@ -16,7 +16,7 @@ import time
 import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import urljoin, urlparse, parse_qs, urlencode, urlunparse
+from urllib.parse import urljoin, urlparse, parse_qs
 
 import requests
 from bs4 import BeautifulSoup

@@ -8,16 +8,16 @@ ADMIN_EMAIL=admin@exemplo.com
 ADMIN_PASSWORD=troque-esta-senha
 
 Execução:
-    python -m backend.scripts.usuarios.criar_admin
+    python -m backend.ferramentas.criar_admin
 """
 
 from __future__ import annotations
 
 import os
 
-from ...banco_dados import SessionLocal
-from ...modelos import Usuario
-from ...seguranca.autenticacao import hash_password
+from ..banco_dados import SessionLocal
+from ..modelos import Usuario
+from ..seguranca.autenticacao import hash_password
 
 
 def main() -> None:

@@ -1,1 +1,0 @@
-"""Scripts relacionados a usuários."""

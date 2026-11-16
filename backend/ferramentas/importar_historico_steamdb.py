@@ -8,7 +8,7 @@ Arquivo esperado:
 Execução:
     A partir da raiz do projeto:
 
-    python -m backend.scripts.importacao.importar_historico_steamdb
+    python -m backend.ferramentas.importar_historico_steamdb
 
 Formato do backup do localStorage:
 
@@ -39,8 +39,8 @@ from datetime import datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
-from ...banco_dados import SessionLocal
-from ...modelos import Jogo, HistoricoPreco
+from ..banco_dados import SessionLocal
+from ..modelos import Jogo, HistoricoPreco
 
 
 # ============================================================
@@ -48,7 +48,7 @@ from ...modelos import Jogo, HistoricoPreco
 # ============================================================
 
 ARQUIVO_JSON = (
-    Path(__file__).resolve().parent.parent.parent
+    Path(__file__).resolve().parent.parent
     / "steam_historico_backup_54_jogos.json"
 )
 
@@ -240,7 +240,7 @@ def carregar_historico():
 
     print()
     print(
-        f"📂 Lendo arquivo:"
+        "📂 Lendo arquivo:"
     )
 
     print(

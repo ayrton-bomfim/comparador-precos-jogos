@@ -84,6 +84,7 @@ export default function Favoritos() {
     requisicaoAtual.current += 1
     // Limpa os dados apenas ao encerrar a sessão, não quando o JWT é renovado.
     if (!authCarregando && !autenticado) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- limpa os dados ao encerrar a sessão
       setFavoritos([]); favoritosCarregadosRef.current = false; setErro(''); setRemovendo(null); setCarregando(false)
     } else if (!authCarregando && autenticado) {
       carregar()

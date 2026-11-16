@@ -23,7 +23,7 @@ echo [OK] Frontend encerrado.
 echo.
 
 echo [3/3] Fechando abas dos terminais...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ws=New-Object -ComObject WScript.Shell; if($ws.AppActivate('Comparador - Backend FastAPI')){$ws.SendKeys('exit{ENTER}');Start-Sleep -Milliseconds 300}; if($ws.AppActivate('Comparador - Backend FastAI')){$ws.SendKeys('exit{ENTER}');Start-Sleep -Milliseconds 300}; if($ws.AppActivate('Comparador - Frontend Vite')){$ws.SendKeys('exit{ENTER}');Start-Sleep -Milliseconds 300}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ws=New-Object -ComObject WScript.Shell; if($ws.AppActivate('Comparador - Backend FastAPI')){$ws.SendKeys('exit{ENTER}');Start-Sleep -Milliseconds 300}; if($ws.AppActivate('Comparador - Frontend Vite')){$ws.SendKeys('exit{ENTER}');Start-Sleep -Milliseconds 300}"
 echo [OK] Terminais tratados.
 echo.
 

@@ -3,11 +3,9 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import Cabecalho from '../componentes/Cabecalho'
 import CarrosselJogos from '../componentes/CarrosselJogos'
 import { API_JOGOS_URL } from '../servicos/api'
-import { useTema } from '../contextos/TemaContext'
 
 function Inicio() {
   const navigate = useNavigate()
-  const { tema } = useTema()
 
   const [secoesVitrine, setSecoesVitrine] = useState({ brasileiros: [], comunidade: [], em_alta: [], oportunidades: [] })
   const [jogosBuscaComparacao, setJogosBuscaComparacao] = useState([])

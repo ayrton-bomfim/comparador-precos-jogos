@@ -1,62 +1,30 @@
-# Comparador de Preços de Jogos Digitais
+# Frontend — DESCTRL
 
-Frontend da aplicação web desenvolvida para o Trabalho de Curso II em Ciência da Computação.
+Interface web em React + Vite + React Router.
 
-O projeto apresenta comparação de preços entre Steam e Epic Games Store, histórico de preços e análise de comportamento promocional.
+## Configuração
 
-## Tecnologias
+```bash
+cp .env.example .env    # informe VITE_API_URL e, se usar login Google, VITE_GOOGLE_CLIENT_ID
+npm install
+npm run dev             # http://localhost:5173
+```
 
-- React
-- Vite
-- React Router
-- JavaScript
-- CSS
+## Validação
+
+```bash
+npm run lint
+npm run build
+```
 
 ## Estrutura
 
 ```text
 src/
-├── componentes/
-├── paginas/
-├── servicos/
-├── App.jsx
-├── App.css
-├── index.css
+├── paginas/       # uma página por rota (Início, Jogos, Detalhes, Ofertas, Perfil, Favoritos, Curadoria...)
+├── componentes/   # cabeçalho, rodapé, card de jogo, carrossel, notificações
+├── contextos/     # AuthContext (sessão/JWT) e TemaContext (claro/escuro)
+├── servicos/      # URL base da API e chamadas reutilizadas
+├── App.jsx        # rotas
 └── main.jsx
 ```
-
-## Configuração
-
-Crie um arquivo `.env` a partir de `.env.example` e informe a URL da API:
-
-```env
-VITE_API_URL=http://localhost:8000
-```
-
-## Execução
-
-```bash
-npm install
-npm run dev
-```
-
-Para verificar o código:
-
-```bash
-npm run lint
-```
-
-Para gerar a versão de produção:
-
-```bash
-npm run build
-```
-
-## Rotas
-
-- `/` — página inicial
-- `/jogos` — catálogo de jogos
-- `/jogos/:id` — detalhes e histórico
-- `/ofertas` — análise de promoções
-- `/sobre` — informações do projeto
-- `/arquitetura` — visões da arquitetura da solução

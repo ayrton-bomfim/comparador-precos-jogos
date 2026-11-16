@@ -45,11 +45,11 @@ A disponibilidade e o comportamento de cada fluxo dependem da configuração do 
 
 ## 🏗️ Arquitetura
 
-
-Steam / Epic Games Store
+```text
+Steam / Epic Games Store / EGDATA
           │
           ▼
-Coletores e rotinas de atualização
+Coletores + agendador diário
           │
           ▼
 PostgreSQL
@@ -60,7 +60,7 @@ API REST com FastAPI
           │
           ▼
 Interface React + Vite
-
+```
 
 O backend concentra as regras de negócio, autenticação, acesso aos dados, rotinas de coleta e serviços auxiliares. O frontend disponibiliza as páginas e os componentes com os quais o usuário interage.
 
@@ -102,105 +102,116 @@ As integrações dependem da disponibilidade, das credenciais e dos limites defi
 ```text
 comparador-precos-jogos/
 ├── backend/
-│   ├── coletores/
-│   ├── rotas/
-│   ├── seguranca/
-│   ├── scripts/
-│   │   ├── cadastro/
-│   │   ├── historico/
-│   │   ├── importacao/
-│   │   └── usuarios/
-│   ├── servicos/
-│   ├── templates/
-│   ├── testes/
-│   ├── tools/
-│   ├── app.py
-│   ├── banco_dados.py
-│   ├── config.py
-│   ├── modelos.py
+│   ├── app.py                 # cria a API FastAPI e registra as rotas
+│   ├── config.py              # lê o .env da raiz
+│   ├── banco_dados.py         # conexão SQLAlchemy com o PostgreSQL
+│   ├── modelos.py             # tabelas (ORM)
+│   ├── rotas/                 # endpoints REST (jogos, comparador, auth, favoritos...)
+│   ├── seguranca/             # JWT, permissões e rate limiting
+│   ├── servicos/              # e-mail, EGDATA, alertas de preço, rotinas auxiliares
+│   ├── coletores/             # coleta de preços
+│   │   ├── agendador.py           # orquestra a coleta diária (Steam → Epic → alertas)
+│   │   ├── coletar_historico.py   # histórico diário da Steam (GetItems em lote)
+│   │   ├── coletar_historico_epic.py  # histórico diário da Epic (EGDATA)
+│   │   ├── coletar_dados_steam.py # AppDetails + disponibilidade no Brasil
+│   │   ├── steam_coletor.py / epic_coletor.py  # consulta sob demanda usada pela API
+│   │   └── epic_catalogo.py       # descoberta do catálogo da Epic
+│   ├── ferramentas/           # rotinas manuais e pontuais (ver backend/README.md)
+│   ├── templates/             # layout HTML dos e-mails
+│   ├── desctrl_manager/       # painel desktop de monitoramento (beta)
 │   └── requirements.txt
 ├── frontend/
-│   ├── public/
 │   └── src/
-│       ├── componentes/
-│       ├── contextos/
-│       ├── paginas/
-│       └── servicos/
-├── Conceitos de Mascote/
-├── executar_coleta_agora.bat
+│       ├── paginas/           # uma página por rota
+│       ├── componentes/       # cabeçalho, rodapé, cards, carrossel...
+│       ├── contextos/         # autenticação e tema
+│       └── servicos/          # URL da API e chamadas comuns
+├── logs/                      # logs da coleta (não versionado)
+├── .env.example
 ├── iniciar_projeto.bat
 ├── parar_projeto.bat
-├── .gitignore
-└── README.md
+└── executar_coleta_agora.bat
 ```
-
-A estrutura acima resume as principais pastas. Os arquivos podem mudar conforme a evolução do projeto.
 
 ## ⚙️ Pré-requisitos
 
-- Python compatível com as dependências do backend.
+- Python 3.10 ou superior.
 - Node.js e npm.
-- Uma instância do PostgreSQL.
-- Variáveis de ambiente para backend e frontend.
-- Credenciais para integrações externas que forem utilizadas, como Google Sign-In e envio de e-mails.
+- PostgreSQL.
+- Credenciais das integrações que forem usadas (Steam, Google Sign-In, Resend).
 
 ## 🚀 Como executar localmente
 
-### 1. Configurar o backend
+### 1. Backend
 
-Na raiz do repositório, crie e ative um ambiente virtual e instale as dependências:
+Na raiz do repositório:
 
 ```bat
-cd backend
 python -m venv venv
 venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r backend\requirements.txt
+playwright install chromium
 ```
 
-Configure as variáveis de ambiente usando `backend/.env.example` como referência. Preencha os dados de conexão com o PostgreSQL e as credenciais necessárias para as integrações desejadas. Não copie credenciais reais para o repositório.
+Copie `.env.example` para `.env` **na raiz do projeto** e preencha ao menos `DATABASE_URL` e `JWT_SECRET_KEY`.
 
-Inicie a API a partir da raiz do projeto:
+Crie as tabelas (só cria o que não existe; não altera dados) e o administrador inicial:
 
 ```bat
-python -m uvicorn backend.app:app --reload --host 127.0.0.1 --port 8001
+python -m backend.ferramentas.criar_tabelas
+python -m backend.ferramentas.criar_admin
 ```
 
-Com a configuração local usada durante o desenvolvimento, a API fica disponível em `http://127.0.0.1:8001`. A documentação interativa pode ser acessada em `http://127.0.0.1:8001/docs` quando os recursos externos necessários estiverem acessíveis. O esquema OpenAPI fica em `http://127.0.0.1:8001/openapi.json`.
+Inicie a API:
 
-Se o projeto for executado com outro host ou porta, ajuste os endereços de acordo.
+```bat
+python -m uvicorn backend.app:app --reload --host 127.0.0.1 --port 8000
+```
 
-### 2. Configurar o frontend
+A API fica em `http://127.0.0.1:8000`, com documentação interativa em `http://127.0.0.1:8000/docs`.
+
+### 2. Frontend
 
 Em outro terminal:
 
 ```bat
 cd frontend
+copy .env.example .env
 npm install
 npm run dev
 ```
 
-O Vite exibirá no terminal o endereço local da interface. Configure `frontend/.env.example` conforme as instruções do arquivo e a URL em que a API estiver sendo executada.
+A interface abre em `http://localhost:5173`.
 
 ### 3. Inicialização por script
 
-O repositório também contém arquivos `.bat` para facilitar a inicialização, a parada do ambiente e a execução da coleta. Confira a configuração local desses arquivos antes de utilizá-los, especialmente em outra máquina.
+`iniciar_projeto.bat` faz os passos acima automaticamente (detecta o `venv`, instala as dependências do frontend se faltarem, sobe API e Vite e abre o navegador). `parar_projeto.bat` encerra os dois processos.
 
 ## 🔄 Coleta de dados
 
-A aplicação possui rotinas separadas para as lojas:
+A coleta diária é orquestrada por `backend/coletores/agendador.py`:
 
-- **Steam:** coleta de informações de catálogo e preços usando os mecanismos implementados no projeto, incluindo consultas em lote e rotinas incrementais.
-- **Epic Games Store:** coleta de informações de catálogo e preços, com integração à EGDATA em rotinas relacionadas a preços e histórico.
+1. **Steam:** consulta os preços em lote pela API `IStoreBrowseService/GetItems` e grava no histórico apenas quando o preço muda. Casos sem conclusão passam pelo AppDetails para classificar a disponibilidade no Brasil.
+2. **Epic Games Store:** consulta as ofertas pela EGDATA e grava as mudanças de preço e promoções.
+3. **Pós-coleta:** avalia os alertas de preço dos usuários (envio por e-mail) e expira recomendações antigas da comunidade.
 
-Existem scripts para cadastro de catálogo, atualização de metadados, coleta de preços e processamento de histórico. Alguns scripts podem ter pré-requisitos específicos; não os execute indiscriminadamente contra um banco de produção.
+Formas de executar:
 
-A coleta manual pode ser iniciada por `executar_coleta_agora.bat`, de acordo com a configuração local. A execução automática pode ser organizada pelo Agendador de Tarefas do Windows. Confira os parâmetros e o comportamento do script antes de programar execuções recorrentes.
+```bat
+:: uma coleta imediata (também disponível em executar_coleta_agora.bat)
+python -m backend.coletores.agendador --agora
 
-Os dados coletados dependem das fontes externas, da disponibilidade delas e dos limites aplicados por cada serviço. O histórico disponível pode variar de jogo para jogo.
+:: processo residente que roda todo dia no horário de COLETA_HORARIO
+python -m backend.coletores.agendador
+```
+
+Cada execução é registrada em `logs/execucoes_coleta.jsonl`, e o diagnóstico de disponibilidade da Steam em `logs/coleta_disponibilidade_br_diaria.csv`.
+
+As cargas iniciais de catálogo e de histórico antigo (ITAD, EGDATA, SteamDB) foram feitas com as rotinas de `backend/ferramentas/`, descritas em `backend/README.md`.
 
 ## 🔐 Configuração e segurança
 
-- Use `backend/.env.example` e `frontend/.env.example` como referência.
+- Use `.env.example` (raiz) e `frontend/.env.example` como referência.
 - **Nunca publique arquivos `.env` reais, senhas, tokens, chaves de API, certificados ou outras credenciais.**
 - Não inclua cópias locais do banco de dados, dumps, backups ou arquivos com dados privados no Git.
 - Use credenciais próprias para cada ambiente e mantenha as permissões administrativas restritas.

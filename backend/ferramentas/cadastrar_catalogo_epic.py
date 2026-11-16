@@ -7,19 +7,19 @@ canonização, deduplicação e classificação dos jogos.
 
 Execução, a partir da raiz do projeto:
 
-    python -m backend.scripts.cadastro.cadastrar_catalogo_epic
+    python -m backend.ferramentas.cadastrar_catalogo_epic
 
 Teste sem gravar:
 
-    python -m backend.scripts.cadastro.cadastrar_catalogo_epic --limite 10 --dry-run
+    python -m backend.ferramentas.cadastrar_catalogo_epic --limite 10 --dry-run
 
 Teste gravando somente 10 jogos:
 
-    python -m backend.scripts.cadastro.cadastrar_catalogo_epic --limite 10
+    python -m backend.ferramentas.cadastrar_catalogo_epic --limite 10
 
 Cadastro completo:
 
-    python -m backend.scripts.cadastro.cadastrar_catalogo_epic
+    python -m backend.ferramentas.cadastrar_catalogo_epic
 """
 
 from __future__ import annotations
@@ -31,14 +31,14 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from ...banco_dados import SessionLocal
-from ...modelos import (
+from ..banco_dados import SessionLocal
+from ..modelos import (
     EpicCatalogo as EpicCatalogoModel,
     EpicOferta,
     Jogo,
 )
 
-from ...coletores.epic_catalogo import (
+from ..coletores.epic_catalogo import (
     EpicCatalogo as EpicCatalogoColetor,
 )
 
@@ -669,8 +669,6 @@ def cadastrar_catalogo(
     itens_processados = []
 
     for indice, dados in enumerate(jogos, 1):
-        nome = dados.get("nome") or dados.get("epic_id") or "N/A"
-
         jogo, origem = _buscar_jogo_existente_indices(indices, dados)
 
         if jogo is None:

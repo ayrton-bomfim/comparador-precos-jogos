@@ -128,6 +128,7 @@ function Jogos() {
   useEffect(() => {
     // Ao apagar até 2 caracteres, a URL é limpa, mas o texto digitado permanece.
     if (buscaDigitada.trim().length < 3 && !busca) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza o campo com a URL (voltar/avançar)
     setBuscaDigitada(busca)
   }, [busca])
 

@@ -13,9 +13,9 @@ Regras:
 - O checkpoint registra somente consultas válidas concluídas em modo de gravação.
 
 Execute na raiz do projeto:
-    python coletar_metadados_steam_pt_v5.py --limite 10 --simular
-    python coletar_metadados_steam_pt_v5.py --limite 10
-    python coletar_metadados_steam_pt_v5.py
+    python -m backend.ferramentas.coletar_metadados_steam --limite 10 --simular
+    python -m backend.ferramentas.coletar_metadados_steam --limite 10
+    python -m backend.ferramentas.coletar_metadados_steam
 """
 
 import argparse
@@ -26,16 +26,15 @@ import re
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-from types import SimpleNamespace
 
-ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 from sqlalchemy import case, func, or_
 from backend.banco_dados import SessionLocal
 from backend.modelos import Jogo
-from coletar_dados_steam_completo_v10 import (
+from backend.coletores.coletar_dados_steam import (
     buscar_appdetails,
     normalizar_texto,
     parse_data_lancamento,
@@ -50,7 +49,7 @@ from coletar_dados_steam_completo_v10 import (
     extrair_requisitos,
 )
 
-CHECKPOINT = os.path.join(ROOT_DIR, "coleta_metadados_steam_checkpoint.csv")
+CHECKPOINT = os.path.join(ROOT_DIR, "logs", "coleta_metadados_steam_checkpoint.csv")
 WORKERS_PADRAO = 4
 LOTE_CONSULTAS = 40
 LOTE_BANCO = 25
@@ -120,6 +119,7 @@ def carregar_concluidos():
 
 
 def salvar_checkpoint(resultado, campos_atualizados):
+    os.makedirs(os.path.dirname(CHECKPOINT), exist_ok=True)
     existe = os.path.exists(CHECKPOINT) and os.path.getsize(CHECKPOINT) > 0
     with open(CHECKPOINT, "a", encoding="utf-8-sig", newline="") as arquivo:
         escritor = csv.DictWriter(arquivo, fieldnames=CAMPOS_CHECKPOINT)

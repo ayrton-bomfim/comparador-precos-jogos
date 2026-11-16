@@ -691,7 +691,7 @@ def main():
             print("\nSIMULAÇÃO CONCLUÍDA.")
             print(
                 "Para gravar, somente depois de conferirmos esta saída, "
-                "use: python -m importar_historico_itad_v3_continuar --executar"
+                "use: python -m backend.ferramentas.importar_historico_itad --executar"
             )
 
     except Exception:

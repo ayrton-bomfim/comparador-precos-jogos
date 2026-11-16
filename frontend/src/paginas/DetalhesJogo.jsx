@@ -1168,7 +1168,7 @@ function DetalhesJogo() {
         ) {
           await screen.orientation.lock('landscape')
         }
-      } catch (erroOrientacao) {
+      } catch {
         // NotSupportedError e SecurityError são resultados esperados em alguns
         // navegadores. Não relançar: o modo expandido continua utilizável.
       }

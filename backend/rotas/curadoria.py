@@ -1401,7 +1401,6 @@ def adicionar_jogos_vitrine(
 ):
     """Adiciona jogos à seção selecionada, evitando duplicatas."""
     ids = list(dict.fromkeys(entrada.jogo_ids))
-    agora = datetime.now().astimezone()
     adicionados = []
     ignorados = []
 

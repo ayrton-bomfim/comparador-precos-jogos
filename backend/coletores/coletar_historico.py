@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Cópia temporária do coletor diário da Steam.
+Script de coleta de histórico de preços da Steam.
 
-Com --todos-null-disponibilidade-br, executa o mesmo fluxo completo de preços,
-promoções, disponibilidade e histórico para todos os jogos cujo status de
-disponibilidade BR está NULL. O coletor diário oficial permanece intocado.
+Este script percorre todos os jogos cadastrados, consulta seus preços
+atuais na Steam e registra as variações na tabela de histórico.
 """
 
 import sys
@@ -20,7 +19,6 @@ ROOT_DIR = os.path.abspath(
         os.path.dirname(__file__),
         "..",
         "..",
-        "..",
     )
 )
 
@@ -32,19 +30,13 @@ from sqlalchemy import func, and_, cast, Date
 from dotenv import load_dotenv
 from backend.coletores.steam_coletor import SteamColetor
 from backend.banco_dados import SessionLocal
-from backend.modelos import Jogo, HistoricoPreco
+from backend.modelos import Jogo, HistoricoPreco, AuditoriaConteudo
 
-# Reutiliza a classificação regional corrigida do coletor v10.
-# O v10 não executa sua rotina principal ao ser importado.
-try:
-    from coletar_dados_steam_completo_v10 import (
-        processar_jogo as processar_disponibilidade_steam_br,
-    )
-except ImportError as erro_import:
-    raise ImportError(
-        "Não foi possível importar o coletor v10. Salve "
-        "coletar_dados_steam_completo_v10.py na raiz do projeto."
-    ) from erro_import
+# Reutiliza a classificação de disponibilidade regional do coletor de dados
+# Steam. O módulo não executa sua rotina principal ao ser importado.
+from backend.coletores.coletar_dados_steam import (
+    processar_jogo as processar_disponibilidade_steam_br,
+)
 
 load_dotenv()
 
@@ -65,7 +57,7 @@ COMMIT_PROGRESSO_A_CADA = 100
 # reutiliza steam_dados_atualizados_em como intervalo mínimo de revisão.
 DISPONIBILIDADE_BR_REVALIDAR_APOS_DIAS = 30
 ARQUIVO_DISPONIBILIDADE_BR = os.path.join(
-    ROOT_DIR, "coleta_disponibilidade_br_diaria.csv"
+    ROOT_DIR, "logs", "coleta_disponibilidade_br_diaria.csv"
 )
 STATUS_DISPONIBILIDADE_BR_VALIDOS = {
     "DISPONIVEL", "GRATUITO", "INDISPONIVEL", "INDETERMINADO"
@@ -311,6 +303,7 @@ def _disponibilidade_precisa_de_verificacao(jogo, forcar=False):
 
 def _registrar_diagnostico_disponibilidade(linha):
     """Acrescenta o resultado da verificação ao CSV para auditoria manual."""
+    os.makedirs(os.path.dirname(ARQUIVO_DISPONIBILIDADE_BR), exist_ok=True)
     existe = os.path.exists(ARQUIVO_DISPONIBILIDADE_BR)
     campos = [
         "data_verificacao", "modo_execucao", "jogo_id", "steam_id", "nome",
@@ -331,16 +324,9 @@ def _registrar_diagnostico_disponibilidade(linha):
 
 
 def _verificar_disponibilidade_br_diaria(
-    db,
-    jogo,
-    tentados,
-    resumo,
-    motivo,
-    forcar=False,
-    simular=False,
-    forcar_null=False,
+    db, jogo, tentados, resumo, motivo, forcar=False, simular=False
 ):
-    """Aplica a mesma classificação regional do coletor v10 sem mexer no histórico.
+    """Aplica a mesma classificação regional do coletor de dados Steam sem mexer no histórico.
 
     Só grava status se AppDetails e a eventual verificação da página da loja
     retornarem uma classificação válida. Erros/429 preservam o estado existente.
@@ -348,18 +334,13 @@ def _verificar_disponibilidade_br_diaria(
     if jogo.id in tentados:
         return False
 
-    # Na varredura especial, todos os registros selecionados começaram com
-    # disponibilidade NULL. Esses casos devem passar pelo classificador v10
-    # mesmo que steam_dados_atualizados_em seja recente.
-    status_atual = getattr(jogo, "steam_disponibilidade_br", None)
-    if not (forcar_null and status_atual is None):
-        if not _disponibilidade_precisa_de_verificacao(jogo, forcar=forcar):
-            return False
+    if not _disponibilidade_precisa_de_verificacao(jogo, forcar=forcar):
+        return False
 
     tentados.add(jogo.id)
     status_anterior = getattr(jogo, "steam_disponibilidade_br", None)
     print(
-        f"  Verificando disponibilidade BR via v10 ({motivo})..."
+        f"  Verificando disponibilidade BR via AppDetails ({motivo})..."
     )
 
     resultado = processar_disponibilidade_steam_br(jogo)
@@ -510,6 +491,54 @@ def _preco_from_verificacao_disponibilidade(resultado):
     }
 
 
+def _carregar_ultimos_historicos_steam_todos_disponiveis(db, jogo_ids):
+    """Carrega apenas o histórico Steam mais recente de cada jogo informado."""
+    if not jogo_ids:
+        return {}
+
+    ultima_data = (
+        db.query(
+            HistoricoPreco.jogo_id.label("jogo_id"),
+            func.max(HistoricoPreco.data_coleta).label("ultima_data"),
+        )
+        .filter(
+            HistoricoPreco.jogo_id.in_(jogo_ids),
+            HistoricoPreco.plataforma == "Steam",
+        )
+        .group_by(HistoricoPreco.jogo_id)
+        .subquery()
+    )
+    registros = (
+        db.query(HistoricoPreco)
+        .join(
+            ultima_data,
+            and_(
+                HistoricoPreco.jogo_id == ultima_data.c.jogo_id,
+                HistoricoPreco.data_coleta == ultima_data.c.ultima_data,
+                HistoricoPreco.plataforma == "Steam",
+            ),
+        )
+        .all()
+    )
+    ultimos = {}
+    for registro in registros:
+        if registro.jogo_id not in ultimos:
+            ultimos[registro.jogo_id] = registro
+    return ultimos
+
+
+def _promocao_ainda_ativa(historico, agora_utc):
+    """Indica se o último histórico informa uma promoção com fim futuro."""
+    if historico is None or historico.promocao_fim is None:
+        return False
+    fim = historico.promocao_fim
+    if fim.tzinfo is None:
+        fim = fim.replace(tzinfo=timezone.utc)
+    else:
+        fim = fim.astimezone(timezone.utc)
+    return fim > agora_utc
+
+
 def _carregar_ultimos_historicos_steam(db, jogo_ids):
     """
     Carrega de uma vez o último histórico Steam de cada jogo.
@@ -548,7 +577,6 @@ async def coletar_historico_precos(
     limite_jogos=None,
     somente_disponibilidade_br=False,
     simular_disponibilidade_br=False,
-    todos_null_disponibilidade_br=False,
 ):
     """
     Coleta preços/promoções da Steam em lote e salva somente mudanças reais.
@@ -568,11 +596,8 @@ async def coletar_historico_precos(
     print("COLETANDO HISTÓRICO DE PREÇOS (STEAM)")
     print("Consulta principal: IStoreBrowseService/GetItems em lote")
     print("Fallback: AppDetails -> página individual Steam, somente quando necessário")
-    print("Disponibilidade BR: classificação do v10 para status ausente e casos suspeitos")
-    print("INDETERMINADO/INDISPONIVEL: não reconsultados automaticamente; ficam para revisão manual")
-    if todos_null_disponibilidade_br:
-        print("MODO ESPECIAL: processar todos os jogos com steam_disponibilidade_br = NULL")
-        print("Mantém o fluxo completo de preço, promoção e histórico; ignora o filtro GetAppList")
+    print("Disponibilidade BR: classificação do coletor de dados Steam para status ausente e casos suspeitos")
+    print("Coleta diária: somente DISPONIVEL; promoções com fim futuro são adiadas")
     print("Novo registro: mudança de estado do preço/promoção")
     print("=" * 60)
     print(f"Início: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
@@ -581,13 +606,10 @@ async def coletar_historico_precos(
     coletor = SteamColetor()
 
     try:
-        if todos_null_disponibilidade_br:
-            # Não consulta GetAppList neste modo: a ideia é incluir TODOS os
-            # jogos locais com status regional NULL, independentemente de
-            # quando a Steam diz que o AppID foi modificado.
-            apps_modificados = set()
-            print("\nFiltro incremental GetAppList ignorado nesta varredura especial.")
-        else:
+        # A lista incremental da Steam fica restrita ao modo de verificação
+        # de disponibilidade. A coleta diária de preços não depende mais dela.
+        apps_modificados = set()
+        if somente_disponibilidade_br:
             inicio_janela = _obter_janela_incremental(db, primeira_coleta)
             apps_modificados = _buscar_apps_steam_modificados(inicio_janela)
 
@@ -597,18 +619,10 @@ async def coletar_historico_precos(
             .all()
         )
 
-        ids_catalogo = {str(jogo.steam_id) for jogo in jogos_catalogo}
-
-        if todos_null_disponibilidade_br:
-            # Seleção exata de NULL no banco, sem excluir jogos gratuitos:
-            # o preço/status real deles será determinado pelo mesmo fluxo diário.
-            jogos = [
-                jogo
-                for jogo in jogos_catalogo
-                if getattr(jogo, "steam_disponibilidade_br", None) is None
-            ]
-        else:
-            # Fluxo diário original, preservado sem alteração.
+        if somente_disponibilidade_br:
+            ids_catalogo = {str(jogo.steam_id) for jogo in jogos_catalogo}
+            # Mantém o modo separado de diagnóstico de disponibilidade
+            # baseado na lista incremental de aplicativos modificados.
             jogos = [
                 jogo
                 for jogo in jogos_catalogo
@@ -616,25 +630,55 @@ async def coletar_historico_precos(
                 and (getattr(jogo, "steam_disponibilidade_br", None) or "").upper()
                 != "GRATUITO"
             ]
-
-        total_candidatos_diarios = len(jogos)
-        if somente_disponibilidade_br:
-            # O modo separado usa apenas os candidatos sem status regional
-            # recente. Não consulta GetItems nem cria registros de histórico.
+            total_candidatos_diarios = len(jogos)
             jogos = [
                 jogo for jogo in jogos
                 if _disponibilidade_precisa_de_verificacao(jogo, forcar=False)
             ]
+        else:
+            # Na coleta diária de preços, exclui jogos com auditoria explicitamente
+            # EXCLUIDA. PENDENTE não é excluído e continua dependendo do status
+            # regional para entrar na coleta.
+            auditorias_excluidas = {
+                registro.jogo_id
+                for registro in db.query(AuditoriaConteudo.jogo_id)
+                .filter(AuditoriaConteudo.status == "excluido")
+                .all()
+            }
+            jogos_catalogo_precos = [
+                jogo for jogo in jogos_catalogo
+                if jogo.id not in auditorias_excluidas
+            ]
+            ids_catalogo = {str(jogo.steam_id) for jogo in jogos_catalogo_precos}
+
+            # A tabela jogos é a fonte principal: somente DISPONIVEL é elegível.
+            jogos_disponiveis = [
+                jogo for jogo in jogos_catalogo_precos
+                if (getattr(jogo, "steam_disponibilidade_br", None) or "").upper()
+                == "DISPONIVEL"
+            ]
+            ultimos_historicos_selecao = (
+                _carregar_ultimos_historicos_steam_todos_disponiveis(
+                    db, [jogo.id for jogo in jogos_disponiveis]
+                )
+            )
+            agora_utc = datetime.now(timezone.utc)
+            # Promoção com fim futuro: adiar. Sem fim conhecido ou fim atingido:
+            # consultar normalmente na coleta diária.
+            jogos = [
+                jogo for jogo in jogos_disponiveis
+                if not _promocao_ainda_ativa(
+                    ultimos_historicos_selecao.get(jogo.id), agora_utc
+                )
+            ]
+            total_candidatos_diarios = len(jogos)
 
         if limite_jogos is not None:
             jogos = jogos[:limite_jogos]
 
         print(f"\nJogos com Steam no banco: {len(jogos_catalogo):,}")
-        if todos_null_disponibilidade_br:
-            print(f"Jogos com steam_disponibilidade_br NULL: {total_candidatos_diarios:,}")
-        else:
-            print(f"Jogos candidatos encontrados no catálogo: {total_candidatos_diarios:,}")
-            print(f"Apps Steam fora do catálogo: {len(apps_modificados - ids_catalogo):,}")
+        print(f"Jogos elegíveis para esta execução: {total_candidatos_diarios:,}")
+        print(f"Apps Steam fora do catálogo: {len(apps_modificados - ids_catalogo):,}")
         if limite_jogos is not None:
             print(f"Limite desta execução: {limite_jogos}")
 
@@ -646,9 +690,19 @@ async def coletar_historico_precos(
                 else:
                     db.commit()
             else:
-                print("Nenhum jogo do catálogo foi modificado na janela consultada.")
+                print("Nenhum jogo elegível para coleta diária nesta execução.")
                 db.commit()
-            return
+            return {
+                "status": "sem_itens",
+                "fonte": "Steam",
+                "total_catalogo": len(jogos_catalogo),
+                "total_candidatos": total_candidatos_diarios,
+                "total_processado": 0,
+                "novos_registros": 0,
+                "ignorados": 0,
+                "erros": 0,
+                "modo": "somente_disponibilidade_br" if somente_disponibilidade_br else "historico_precos",
+            }
 
         if somente_disponibilidade_br:
             print("\nMODO SOMENTE DISPONIBILIDADE BR")
@@ -698,7 +752,17 @@ async def coletar_historico_precos(
                 f"erros={resumo_disponibilidade['erros_disponibilidade']}, "
                 f"não classificáveis={resumo_disponibilidade['nao_classificados_com_sucesso']}"
             )
-            return
+            erros_disponibilidade = resumo_disponibilidade["erros_disponibilidade"]
+            return {
+                "status": "parcial" if erros_disponibilidade else "concluida",
+                "fonte": "Steam",
+                "modo": "somente_disponibilidade_br",
+                "total_processado": len(jogos),
+                "novos_registros": 0,
+                "ignorados": resumo_disponibilidade["nao_classificados_com_sucesso"],
+                "erros": erros_disponibilidade,
+                "resumo_disponibilidade": resumo_disponibilidade,
+            }
 
         ids = [jogo.steam_id for jogo in jogos]
         dados_lote = await coletor.coletar_precos_lote(ids)
@@ -747,7 +811,7 @@ async def coletar_historico_precos(
                     resumo_disponibilidade,
                 )
 
-                # Sem evidência positiva no lote, aplica o classificador v10.
+                # Sem evidência positiva no lote, aplica o classificador de disponibilidade.
                 # INDETERMINADO/INDISPONIVEL continuam reservados para revisão.
                 resultado_disponibilidade = _verificar_disponibilidade_br_diaria(
                     db,
@@ -756,7 +820,6 @@ async def coletar_historico_precos(
                     resumo_disponibilidade,
                     motivo="status ausente/desatualizado",
                     forcar=False,
-                    forcar_null=todos_null_disponibilidade_br,
                 )
 
                 # GetItems continua sendo a fonte principal.
@@ -777,7 +840,7 @@ async def coletar_historico_precos(
                         ignorados += 1
                         continue
 
-                    # Se o v10 já consultou AppDetails e obteve preço, reutiliza-o.
+                    # Se o classificador já consultou AppDetails e obteve preço, reutiliza-o.
                     dados_fallback = _preco_from_verificacao_disponibilidade(
                         resultado_disponibilidade
                     )
@@ -803,7 +866,6 @@ async def coletar_historico_precos(
                             resumo_disponibilidade,
                             motivo="preço não confirmado pelo GetItems/fallback",
                             forcar=True,
-                            forcar_null=todos_null_disponibilidade_br,
                         )
                         print(
                             "  Fallback não conseguiu determinar o preço. "
@@ -1116,11 +1178,27 @@ async def coletar_historico_precos(
             f"  Fim: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         )
 
+        erros_totais = erros + resumo_disponibilidade["erros_disponibilidade"]
+        return {
+            "status": "parcial" if erros_totais else "concluida",
+            "fonte": "Steam",
+            "modo": "historico_precos",
+            "total_catalogo": len(jogos_catalogo),
+            "total_candidatos": total_candidatos_diarios,
+            "total_processado": len(jogos),
+            "novos_registros": alterados,
+            "ignorados": ignorados,
+            "erros": erros,
+            "resumo_disponibilidade": resumo_disponibilidade,
+            "erros_disponibilidade": resumo_disponibilidade["erros_disponibilidade"],
+        }
+
     except Exception as erro:
         db.rollback()
         print(f"\nErro geral: {erro}")
         import traceback
         traceback.print_exc()
+        raise
 
     finally:
         db.close()
@@ -1138,7 +1216,7 @@ async def verificar_historico():
             func.count(HistoricoPreco.id).label("total")
         ).group_by("data").order_by("data").all()
 
-        print(f"\nHISTORICO ATUAL:")
+        print("\nHISTORICO ATUAL:")
         print(f"  Total de registros: {count}")
         print(f"  Dias com registros: {len(por_dia)}")
 
@@ -1262,25 +1340,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Com --somente-disponibilidade-br, não grava as alterações no PostgreSQL.",
     )
-    parser.add_argument(
-        "--todos-null-disponibilidade-br",
-        action="store_true",
-        help=(
-            "Executa a coleta completa de preço/promoção/histórico para todos "
-            "os jogos Steam com steam_disponibilidade_br NULL, sem filtro GetAppList."
-        ),
-    )
     args = parser.parse_args()
 
     if args.limite_jogos is not None and args.limite_jogos <= 0:
         parser.error("--limite-jogos deve ser maior que zero.")
     if args.simular_disponibilidade_br and not args.somente_disponibilidade_br:
         parser.error("--simular-disponibilidade-br exige --somente-disponibilidade-br.")
-    if args.todos_null_disponibilidade_br and args.somente_disponibilidade_br:
-        parser.error(
-            "--todos-null-disponibilidade-br executa a coleta completa; "
-            "não use junto com --somente-disponibilidade-br."
-        )
 
     asyncio.run(
         coletar_historico_precos(
@@ -1288,6 +1353,5 @@ if __name__ == "__main__":
             limite_jogos=args.limite_jogos,
             somente_disponibilidade_br=args.somente_disponibilidade_br,
             simular_disponibilidade_br=args.simular_disponibilidade_br,
-            todos_null_disponibilidade_br=args.todos_null_disponibilidade_br,
         )
     )

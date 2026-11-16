@@ -1,138 +1,67 @@
-# Backend — Comparador de Preços de Jogos
+# Backend — DESCTRL
 
-Backend da aplicação web de comparação de preços entre Steam e Epic Games Store.
+API REST (FastAPI + SQLAlchemy + PostgreSQL) e rotinas de coleta de preços da Steam e da Epic Games Store.
 
-## Stack
-
-- Python
-- FastAPI
-- SQLAlchemy
-- PostgreSQL
-- Requests
-- Playwright
-- Uvicorn
+A instalação e a execução estão descritas no [README principal](../README.md). Todos os comandos abaixo são executados **a partir da raiz do projeto**, com o `venv` ativo.
 
 ## Estrutura
 
-```text
-backend/
-├── app.py
-├── banco_dados.py
-├── config.py
-├── lista_jogos.py
-├── modelos.py
-├── coletores/
-│   ├── coletor_base.py
-│   ├── steam_coletor.py
-│   ├── epic_coletor.py
-│   └── agendador.py
-├── rotas/
-│   ├── jogos.py
-│   └── comparador.py
-├── scripts/
-│   ├── cadastro/
-│   ├── historico/
-│   └── importacao/
-├── tests/manual/
-└── tools/
-```
+| Pasta / arquivo | Papel |
+| --- | --- |
+| `app.py` | Cria a aplicação FastAPI, configura CORS, GZip e rate limiting e registra as rotas. |
+| `config.py` | Lê o `.env` da raiz e centraliza as configurações. |
+| `banco_dados.py` | Engine e sessões do SQLAlchemy. |
+| `modelos.py` | Modelos ORM das tabelas. |
+| `lista_jogos.py` | Lista inicial de jogos e mapeamento Steam → slug da Epic, usada pelos coletores sob demanda. |
+| `rotas/` | Endpoints REST: jogos, comparador, autenticação, segurança da conta, favoritos, conquistas, alertas, notificações, comunidade e curadoria. |
+| `seguranca/` | Hash de senha, JWT, dependências de usuário/admin e rate limiting. |
+| `servicos/` | Integração EGDATA, envio de e-mails (Resend), avaliação de alertas de preço e expiração de recomendações. |
+| `coletores/` | Coleta diária (`agendador.py`) e coletores usados pela API. |
+| `ferramentas/` | Rotinas manuais e pontuais (tabela abaixo). |
+| `templates/` | Layout HTML do e-mail de alerta de preço. |
+| `desctrl_manager/` | Painel desktop de monitoramento do servidor (versão beta). |
 
-## Configuração
-
-1. Crie um ambiente virtual.
-2. Instale as dependências:
+## Coleta diária
 
 ```bash
-pip install -r requirements.txt
+python -m backend.coletores.agendador --agora   # executa uma vez
+python -m backend.coletores.agendador           # residente, no horário de COLETA_HORARIO
 ```
 
-3. Instale os navegadores do Playwright:
+Etapas: (1) histórico da Steam via `GetItems` em lote → (2) histórico da Epic via EGDATA → (3) avaliação dos alertas de preço e envio de e-mails → (4) expiração das recomendações da comunidade cujas promoções terminaram.
+
+Também é possível rodar cada loja isoladamente:
 
 ```bash
-playwright install chromium
+python -m backend.coletores.coletar_historico
+python -m backend.coletores.coletar_historico_epic
 ```
 
-4. Copie `.env.example` para `.env` e ajuste a conexão do PostgreSQL.
+## Ferramentas (`ferramentas/`)
 
-## Executar a API
+Rotinas que não fazem parte do fluxo diário. Foram usadas na montagem inicial do banco ou servem para manutenção. Algumas gravam no banco assim que são executadas; quando houver modo de teste, use-o antes:
 
-A partir da raiz do projeto, no diretório que contém a pasta `backend`:
+- só simulam, a menos que se passe a flag: `importar_historico_itad` (`--executar`) e `importar_estudios_idj` (`--apply`);
+- aceitam teste sem gravar: `cadastrar_catalogo_epic` (`--dry-run`) e `coletar_metadados_steam` (`--simular`);
+- gravam direto: `sincronizar_catalogo_steam`, `importar_historico_egdata` e `importar_historico_steamdb`.
 
-```bash
-python -m uvicorn backend.app:app --host 0.0.0.0 --port 8000 --reload
-```
+| Comando | O que faz |
+| --- | --- |
+| `python -m backend.ferramentas.criar_tabelas` | Cria as tabelas que ainda não existem (instalação nova). Não altera dados. |
+| `python -m backend.ferramentas.criar_admin` | Cria ou atualiza o administrador inicial a partir de `ADMIN_*` no `.env`. |
+| `python -m backend.ferramentas.sincronizar_catalogo_steam` | Baixa o catálogo de jogos da Steam (`IStoreService/GetAppList`) para `steam_catalogo` e `jogos`. |
+| `python -m backend.ferramentas.cadastrar_catalogo_epic` | Descobre, deduplica e cadastra o catálogo de jogos base da Epic (via EGDATA). |
+| `python -m backend.ferramentas.coletar_metadados_steam` | Enriquece metadados (gêneros, desenvolvedora, requisitos...) dos jogos disponíveis na Steam. |
+| `python -m backend.ferramentas.importar_historico_itad` | Backfill do histórico antigo de preços da Steam/BR a partir da IsThereAnyDeal. |
+| `python -m backend.ferramentas.importar_historico_egdata` | Importa o histórico de preços da Epic a partir da EGDATA. |
+| `python -m backend.ferramentas.importar_historico_steamdb` | Importa um backup JSON de histórico capturado do SteamDB. |
+| `python -m backend.ferramentas.importar_estudios_idj` | Coleta a lista pública de estúdios brasileiros da Indústria de Jogos (vitrine "brasileiros"). |
 
-A documentação fica disponível em:
+Arquivos auxiliares gerados (checkpoints, CSVs de diagnóstico) ficam em `logs/` ou na pasta onde o comando foi executado e não são versionados.
 
-- `http://localhost:8000/docs`
-- `http://localhost:8000/redoc`
+## Autenticação
 
-## Scripts principais
-
-Cadastro inicial:
-
-```bash
-python -m backend.scripts.cadastro.salvar_jogos_steam
-python -m backend.scripts.cadastro.salvar_jogos_epic
-```
-
-Atualização do histórico:
-
-```bash
-python -m backend.scripts.historico.coletar_historico
-python -m backend.scripts.historico.coletar_historico_epic
-```
-
-Os scripts de importação em `scripts/importacao/` são auxiliares para cargas históricas específicas e não fazem parte do fluxo normal da API.
-
-## Testes manuais
-
-Os arquivos em `tests/manual/` são testes e diagnósticos manuais utilizados durante o desenvolvimento dos coletores e do banco. Eles não são executados automaticamente pela API.
-
-## Ferramentas auxiliares
-
-`tools/` reúne utilitários de diagnóstico e manutenção, como verificação de slugs da Epic e diagnóstico da tela de verificação de idade.
-
-## Variáveis de ambiente
-
-Nunca versionar `.env`. Use `.env.example` como referência para a configuração local.
-
-## Autenticação e administrador
-
-A Etapa 1 adiciona a base de autenticação da aplicação:
-
-- usuário com papel (`user` ou `admin`);
-- senha armazenada somente como hash;
-- login com JWT Bearer;
-- endpoint `/api/auth/me`;
-- dependência de autorização para endpoints exclusivos de administrador;
-- script de criação/atualização do primeiro administrador.
-
-### 1. Instalar as novas dependências
-
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Criar a tabela de usuários
-
-A tabela `usuarios` deve existir no PostgreSQL do projeto com as colunas `id`, `username`, `email`, `senha_hash`, `role`, `ativo` e `criado_em`.
-
-### 3. Configurar o `.env`
-
-Defina uma `JWT_SECRET_KEY` forte e as credenciais iniciais do administrador.
-Não versione o arquivo `.env`.
-
-### 4. Criar o administrador
-
-```bash
-python -m backend.scripts.usuarios.criar_admin
-```
-
-### 5. Testar a autenticação
-
-```bash
-python backend/tests/testar_autenticacao_etapa1.py
-```
-
-O teste valida hash de senha, verificação, geração de JWT e a estrutura das rotas sem alterar o banco.
+- Senhas armazenadas apenas como hash; login por usuário/senha ou Google.
+- JWT Bearer com expiração configurável (`ACCESS_TOKEN_EXPIRE_MINUTES`) e invalidação após troca de credenciais.
+- Rotas administrativas protegidas por papel (`admin`).
+- Rate limiting com SlowAPI.

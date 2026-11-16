@@ -36,16 +36,25 @@ echo Log: %LOG_FILE%
 echo.
 
 echo Verificando o Python...
-where python >nul 2>nul
-if errorlevel 1 (
-    echo ERRO: Python não encontrado no PATH.
-    echo ERRO: Python não encontrado no PATH.>> "%LOG_FILE%"
-    echo.
-    pause
-    exit /b 1
+REM Usa o mesmo ambiente virtual da API; cai para o Python do PATH se não houver venv.
+set "PYTHON_CMD="
+if exist "%~dp0venv\Scripts\python.exe" set "PYTHON_CMD=%~dp0venv\Scripts\python.exe"
+if not defined PYTHON_CMD if exist "%~dp0.venv\Scripts\python.exe" set "PYTHON_CMD=%~dp0.venv\Scripts\python.exe"
+if not defined PYTHON_CMD if exist "%~dp0backend\venv\Scripts\python.exe" set "PYTHON_CMD=%~dp0backend\venv\Scripts\python.exe"
+if not defined PYTHON_CMD (
+    where python >nul 2>nul
+    if errorlevel 1 (
+        echo ERRO: Python não encontrado.
+        echo ERRO: Python não encontrado.>> "%LOG_FILE%"
+        echo.
+        pause
+        exit /b 1
+    )
+    set "PYTHON_CMD=python"
 )
+>> "%LOG_FILE%" echo Python: %PYTHON_CMD%
 
-python --version
+"%PYTHON_CMD%" --version
 if errorlevel 1 (
     echo ERRO: não foi possível executar o Python.
     echo ERRO: não foi possível executar o Python.>> "%LOG_FILE%"
@@ -59,7 +68,7 @@ echo Iniciando a coleta completa...
 echo.
 
 REM Exibe no terminal e grava o mesmo texto em UTF-8 no arquivo de log.
-powershell -NoProfile -Command "& { [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); & python -X utf8 -u -m backend.coletores.agendador --agora 2>&1 | ForEach-Object { [Console]::WriteLine($_); Add-Content -LiteralPath '%LOG_FILE%' -Value $_ -Encoding UTF8 }; exit $LASTEXITCODE }"
+powershell -NoProfile -Command "& { [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); & '%PYTHON_CMD%' -X utf8 -u -m backend.coletores.agendador --agora 2>&1 | ForEach-Object { [Console]::WriteLine($_); Add-Content -LiteralPath '%LOG_FILE%' -Value $_ -Encoding UTF8 }; exit $LASTEXITCODE }"
 set "EXIT_CODE=%ERRORLEVEL%"
 
 >> "%LOG_FILE%" echo.

@@ -1595,6 +1595,7 @@ function ConquistasPanel({ dados, carregando, erro, dicasVisiveis, alternarDicas
   // Se o progresso mudar e o grupo selecionado deixar de estar liberado,
   // volta para o primeiro grupo, sem manter conteúdo bloqueado visível.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- volta ao primeiro grupo se o atual ficar bloqueado
     if (grupoBloqueado) setGrupoSelecionadoId(1)
   }, [grupoBloqueado])
 

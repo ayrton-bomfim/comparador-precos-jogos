@@ -172,10 +172,7 @@ function App() {
   const location = useLocation()
 
   useEffect(() => {
-    if (Date.now() >= DATA_LANCAMENTO) {
-      setAgora(Date.now())
-      return undefined
-    }
+    if (Date.now() >= DATA_LANCAMENTO) return undefined
 
     const intervalo = window.setInterval(() => {
       const instanteAtual = Date.now()
