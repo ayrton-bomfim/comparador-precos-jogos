@@ -16,7 +16,7 @@ from ..banco_dados import get_db
 from ..modelos import Jogo, HistoricoPreco, AuditoriaConteudo, Usuario, NotificacaoUsuario
 from ..seguranca.autenticacao import obter_admin_atual, obter_usuario_atual
 from ..coletores.steam_coletor import SteamColetor
-from ..servicos.promocoes import em_promocao, estado_promocao, estados_promocao
+from ..servicos.promocoes import em_promocao, estado_promocao, estados_promocao, jogos_em_promocao
 
 EGDATA_SEARCH_URL = "https://api.egdata.app/search/v2/search"
 EGDATA_COUNTRY = "BR"
@@ -870,10 +870,14 @@ def _precos_atuais_vitrine(db: Session, jogos):
         plataforma = _normalizar_plataforma(registro.plataforma)
         if plataforma not in {"steam", "epic"}:
             continue
+        fim = registro.promocao_fim
+        if fim is not None and fim.tzinfo is None:
+            fim = fim.replace(tzinfo=timezone.utc)
         resultado.setdefault(registro.jogo_id, {})[plataforma] = {
             "preco_atual": float(registro.preco_atual)
             if registro.preco_atual is not None else None,
             "desconto": registro.desconto or 0,
+            "promocao_fim": fim if fim and fim > datetime.now(timezone.utc) and (registro.desconto or 0) > 0 else None,
         }
     return resultado
 
@@ -911,8 +915,186 @@ def _serializar_jogo_vitrine(jogo, precos_historico=None):
         "desconto": max(int(steam.get("desconto", 0) or 0), int(epic.get("desconto", 0) or 0)),
         "desconto_steam": int(steam.get("desconto", 0) or 0),
         "desconto_epic": int(epic.get("desconto", 0) or 0),
+        "preco_steam": preco_steam,
+        "preco_epic": preco_epic,
+        "promocao_fim": min(
+            (fim for fim in (steam.get("promocao_fim"), epic.get("promocao_fim")) if fim),
+            default=None,
+        ),
         "visualizacoes": jogo.visualizacoes or 0,
+        "desenvolvedor": (jogo.desenvolvedor or "").split(",")[0].strip() or None,
+        "genero": (jogo.genero or "").split(",")[0].strip() or None,
+        "metacritic": jogo.steam_metacritic_score,
     }
+
+
+def _consulta_catalogo_visivel(db: Session):
+    """Jogos que aparecem no catálogo público (sem fila de auditoria nem exclusão)."""
+    return (
+        db.query(Jogo)
+        .outerjoin(AuditoriaConteudo, AuditoriaConteudo.jogo_id == Jogo.id)
+        .filter(
+            (AuditoriaConteudo.id.is_(None))
+            | (~AuditoriaConteudo.status.in_(["pendente", "excluido"]))
+        )
+        .filter(_jogo_visivel_catalogo())
+    )
+
+
+# Publicadoras conhecidas do público; ajudam a escolher ofertas que as pessoas procuram.
+PUBLICADORAS_RELEVANTES = (
+    "ubisoft", "2k", "sega", "rockstar", "capcom", "square enix", "bandai namco",
+    "electronic arts", "warner bros", "bethesda", "cd projekt", "devolver", "paradox",
+    "koei tecmo", "team17", "annapurna", "focus entertainment", "xbox game studios",
+    "playstation", "thq nordic", "deep silver", "konami", "activision", "raw fury",
+    "hooded horse", "kepler", "tinybuild", "505 games", "frontier", "firaxis", "valve",
+    "plaion", "nacon", "dotemu", "humble games", "curve", "private division", "the arcade crew",
+)
+LIMITE_DESTAQUES_TOPO = 8
+_cache_destaques = {"momento": 0.0, "valor": None}
+_cache_brasil = {"momento": 0.0, "valor": None}
+_CACHE_DESTAQUES_SEGUNDOS = 600
+
+
+def _publicadora_relevante(jogo):
+    texto = f"{jogo.publicadora or ''} {jogo.desenvolvedor or ''}".lower()
+    return any(nome in texto for nome in PUBLICADORAS_RELEVANTES)
+
+
+def _relevancia_oferta(jogo, desconto):
+    """Pontuação simples: nota da crítica, publicadora conhecida, interesse no DESCTRL,
+    presença nas duas lojas, tamanho do desconto e faixa de preço."""
+    pontos = float(jogo.steam_metacritic_score or 0)
+    if _publicadora_relevante(jogo):
+        pontos += 40
+    pontos += min(jogo.visualizacoes or 0, 2500) ** 0.5 * 2
+    if jogo.epic_id and jogo.epic_id != "EXCLUSIVO_STEAM" and jogo.steam_id:
+        pontos += 10
+    pontos += (desconto or 0) / 4
+    preco_base = max(float(jogo.preco_base_steam or 0), float(jogo.preco_base_epic or 0))
+    if preco_base >= 50:
+        pontos += 15
+    return pontos
+
+
+@router.get("/vitrine/destaques")
+def obter_destaques_topo(db: Session = Depends(get_db)):
+    """Ofertas que giram no topo da página inicial.
+
+    Só entram jogos em promoção ativa com algum sinal de relevância (nota da crítica,
+    publicadora conhecida ou procura no DESCTRL); no máximo um por publicadora.
+    """
+    if _cache_destaques["valor"] is None or time.monotonic() - _cache_destaques["momento"] > _CACHE_DESTAQUES_SEGUNDOS:
+        descontos = jogos_em_promocao(db)
+        candidatos = []
+        ids = list(descontos)
+        for inicio in range(0, len(ids), 5000):
+            candidatos += (
+                _consulta_catalogo_visivel(db)
+                .filter(Jogo.id.in_(ids[inicio:inicio + 5000]))
+                .filter(Jogo.steam_conteudo_adulto.is_(False))
+                .all()
+            )
+        relevantes = [
+            jogo for jogo in candidatos
+            if (jogo.steam_metacritic_score or 0) >= 70
+            or _publicadora_relevante(jogo)
+            or (jogo.visualizacoes or 0) >= 50
+        ]
+        relevantes.sort(key=lambda jogo: _relevancia_oferta(jogo, descontos.get(jogo.id)), reverse=True)
+
+        escolhidos, publicadoras = [], set()
+        for jogo in relevantes:
+            chave = (jogo.publicadora or jogo.desenvolvedor or f"#{jogo.id}").split(",")[0].strip().lower()
+            if chave in publicadoras:
+                continue
+            publicadoras.add(chave)
+            escolhidos.append(jogo)
+            if len(escolhidos) >= LIMITE_DESTAQUES_TOPO:
+                break
+
+        precos = _precos_atuais_vitrine(db, escolhidos)
+        _cache_destaques["valor"] = [_serializar_jogo_vitrine(jogo, precos.get(jogo.id)) for jogo in escolhidos]
+        _cache_destaques["momento"] = time.monotonic()
+    return _cache_destaques["valor"]
+
+
+@router.get("/vitrine/brasil")
+def obter_panorama_brasil(db: Session = Depends(get_db)):
+    """Números e atalhos da seção Brasil em jogo: quantos jogos nacionais existem no
+    catálogo, quais estão em promoção agora e os estúdios com mais jogos."""
+    if _cache_brasil["valor"] is None or time.monotonic() - _cache_brasil["momento"] > _CACHE_DESTAQUES_SEGUNDOS:
+        brasileiros = _consulta_catalogo_visivel(db).filter(Jogo.eh_brasileiro.is_(True))
+        total = brasileiros.count()
+
+        descontos = jogos_em_promocao(db)
+        em_promocao = brasileiros.filter(Jogo.id.in_(list(descontos) or [0])).all()
+        em_promocao.sort(key=lambda jogo: _relevancia_oferta(jogo, descontos.get(jogo.id)), reverse=True)
+        vitrine_promocao = em_promocao[:LIMITE_DESTAQUES_TOPO]
+        precos = _precos_atuais_vitrine(db, vitrine_promocao)
+
+        # Estúdios em destaque: os de jogos mais bem avaliados e mais procurados,
+        # não os que simplesmente lançaram mais títulos.
+        estudios = (
+            db.query(Jogo.desenvolvedor, func.count(Jogo.id).label("total"))
+            .filter(Jogo.id.in_(brasileiros.with_entities(Jogo.id)))
+            .filter(Jogo.desenvolvedor.isnot(None), Jogo.desenvolvedor != "")
+            .group_by(Jogo.desenvolvedor)
+            .order_by(
+                func.coalesce(func.max(Jogo.steam_metacritic_score), 0).desc(),
+                func.coalesce(func.sum(Jogo.visualizacoes), 0).desc(),
+                func.count(Jogo.id).desc(),
+            )
+            .limit(8)
+            .all()
+        )
+        total_estudios = (
+            db.query(func.count(func.distinct(Jogo.desenvolvedor)))
+            .filter(Jogo.id.in_(brasileiros.with_entities(Jogo.id)))
+            .filter(Jogo.desenvolvedor.isnot(None), Jogo.desenvolvedor != "")
+            .scalar()
+        )
+        _cache_brasil["valor"] = {
+            "jogos_catalogo": total,
+            "estudios_total": int(total_estudios or 0),
+            "jogos_em_promocao": len(em_promocao),
+            "estudios": [{"nome": nome, "jogos": int(qtd)} for nome, qtd in estudios],
+            "em_promocao": [_serializar_jogo_vitrine(jogo, precos.get(jogo.id)) for jogo in vitrine_promocao],
+        }
+        _cache_brasil["momento"] = time.monotonic()
+    return _cache_brasil["valor"]
+
+
+# Números públicos da página inicial; contar o catálogo é caro, então fica em cache.
+_cache_resumo = {"momento": 0.0, "valor": None}
+_CACHE_RESUMO_SEGUNDOS = 3600
+
+
+@router.get("/vitrine/resumo")
+def obter_resumo_catalogo(db: Session = Depends(get_db)):
+    """Quantidade de jogos visíveis no catálogo e quantos estão em promoção."""
+    if _cache_resumo["valor"] is None or time.monotonic() - _cache_resumo["momento"] > _CACHE_RESUMO_SEGUNDOS:
+        visiveis = (
+            db.query(Jogo.id)
+            .outerjoin(AuditoriaConteudo, AuditoriaConteudo.jogo_id == Jogo.id)
+            .filter(
+                (AuditoriaConteudo.id.is_(None))
+                | (~AuditoriaConteudo.status.in_(["pendente", "excluido"]))
+            )
+            .filter(_jogo_visivel_catalogo())
+        )
+        total = visiveis.count()
+        ids_promocao = list(jogos_em_promocao(db))
+        em_promocao_visiveis = 0
+        for inicio in range(0, len(ids_promocao), 5000):
+            em_promocao_visiveis += visiveis.filter(Jogo.id.in_(ids_promocao[inicio:inicio + 5000])).count()
+        _cache_resumo["valor"] = {
+            "jogos_catalogo": total,
+            "jogos_em_promocao": em_promocao_visiveis,
+            "lojas": ["Steam", "Epic Games Store"],
+        }
+        _cache_resumo["momento"] = time.monotonic()
+    return _cache_resumo["valor"]
 
 
 @router.get("/vitrine/secoes")

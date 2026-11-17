@@ -1,0 +1,509 @@
+/* Brasil em jogo: painel com identidade própria (verde e amarelo sobre fundo escuro)
+   nos dois temas, para se destacar do resto da página. */
+.brasil {
+  --br-verde: #1f9d57;
+  --br-verde-claro: #5bdd91;
+  --br-amarelo: #f1d34b;
+  --br-azul: #3a86d1;
+  --br-texto: #f4f6f3;
+  --br-texto-2: #b9c4bd;
+  --br-borda: rgba(91, 221, 145, 0.18);
+  --br-cartao: rgba(255, 255, 255, 0.04);
+  position: relative;
+  width: min(1200px, 92%);
+  margin: 40px auto;
+  padding: 28px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid rgba(39, 150, 83, 0.45);
+  border-radius: 20px;
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(17, 130, 68, 0.24), transparent 45%),
+    radial-gradient(ellipse at 100% 100%, rgba(241, 211, 75, 0.1), transparent 40%),
+    #111814;
+  color: var(--br-texto);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.18);
+}
+
+.brasil::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--br-amarelo), var(--br-verde), var(--br-azul));
+}
+
+/* Cabeçalho e números */
+.brasil-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+
+.brasil-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--br-verde-claro);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+}
+
+.brasil-faixa {
+  width: 22px;
+  height: 14px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, var(--br-verde) 0 40%, var(--br-amarelo) 40% 60%, var(--br-azul) 60%);
+}
+
+.brasil-cabecalho h2 {
+  margin: 8px 0 6px;
+  font-size: clamp(28px, 3vw, 38px);
+  line-height: 1.05;
+  letter-spacing: -1px;
+  color: var(--br-texto);
+}
+
+.brasil-cabecalho h2 span {
+  color: var(--br-amarelo);
+}
+
+.brasil-cabecalho p {
+  margin: 0;
+  max-width: 460px;
+  color: var(--br-texto-2);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.brasil-numeros {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+}
+
+.brasil-numeros div {
+  min-width: 112px;
+  padding: 12px 14px;
+  border: 1px solid var(--br-borda);
+  border-radius: 12px;
+  background: var(--br-cartao);
+}
+
+.brasil-numeros dd {
+  margin: 0;
+  color: var(--br-amarelo);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.brasil-numeros dt {
+  margin-top: 2px;
+  color: var(--br-texto-2);
+  font-size: 12px;
+}
+
+/* Painel principal */
+.brasil-painel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.brasil-principal {
+  position: relative;
+  display: block;
+  min-height: 340px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #0b100d;
+  color: inherit;
+  text-decoration: none;
+  touch-action: pan-y;
+}
+
+.brasil-principal img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: brasil-entrar 0.5s ease;
+  transition: transform 0.6s ease;
+}
+
+.brasil-principal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 25%, rgba(5, 10, 7, 0.65) 55%, rgba(5, 10, 7, 0.95) 100%);
+}
+
+.brasil-principal-conteudo {
+  position: absolute;
+  z-index: 1;
+  inset: auto 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 22px;
+}
+
+.brasil-etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.brasil-etiqueta {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--br-texto);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.brasil-etiqueta--destaque {
+  background: var(--br-amarelo);
+  color: #2b2505;
+  font-weight: 800;
+}
+
+.brasil-principal-nome {
+  font-size: clamp(24px, 2.6vw, 34px);
+  line-height: 1.1;
+  letter-spacing: -0.6px;
+}
+
+.brasil-estudio {
+  color: var(--br-texto-2);
+  font-size: 14px;
+}
+
+.brasil-principal-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.brasil-cta {
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: var(--br-verde);
+  color: #fff;
+  font-weight: 800;
+}
+
+@keyframes brasil-entrar {
+  from { opacity: 0.25; transform: scale(1.02); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Preço */
+.brasil-preco {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brasil-preco strong {
+  font-size: 20px;
+}
+
+.brasil-preco small {
+  color: var(--br-texto-2);
+}
+
+.brasil-preco--compacto strong {
+  font-size: 14px;
+}
+
+.brasil-preco--vazio {
+  color: var(--br-texto-2);
+  font-size: 13px;
+}
+
+.brasil-desconto {
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #4c9a2a;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* Lista lateral */
+.brasil-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.brasil-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  width: 100%;
+  padding: 8px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--br-cartao);
+  color: var(--br-texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.brasil-item img,
+.brasil-item-vazio {
+  grid-row: span 2;
+  width: 92px;
+  height: 43px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.brasil-item-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.brasil-item-texto strong,
+.brasil-item-texto span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.brasil-item-texto strong {
+  font-size: 14px;
+}
+
+.brasil-item-texto span {
+  color: var(--br-texto-2);
+  font-size: 12px;
+}
+
+.brasil-item .brasil-preco {
+  margin-top: 2px;
+}
+
+.brasil-item.ativo {
+  border-color: rgba(91, 221, 145, 0.55);
+  background: rgba(31, 157, 87, 0.16);
+}
+
+.brasil-item-progresso {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--br-amarelo);
+  transform-origin: left;
+  animation: brasil-progresso 7s linear forwards;
+}
+
+@keyframes brasil-progresso {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* Promoções nacionais */
+.brasil-bloco {
+  margin-top: 24px;
+}
+
+.brasil-bloco h3 {
+  margin: 0 0 12px;
+  color: var(--br-texto);
+  font-size: 16px;
+}
+
+.brasil-promocoes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.brasil-promocao {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--br-borda);
+  border-radius: 12px;
+  background: var(--br-cartao);
+  color: var(--br-texto);
+  text-decoration: none;
+}
+
+.brasil-promocao-capa {
+  display: block;
+  aspect-ratio: 460 / 215;
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.brasil-promocao-capa img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.brasil-promocao strong {
+  overflow: hidden;
+  font-size: 14px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Rodapé */
+.brasil-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--br-borda);
+}
+
+.brasil-estudios {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--br-texto-2);
+  font-size: 13px;
+}
+
+.brasil-estudios a {
+  padding: 4px 10px;
+  border: 1px solid var(--br-borda);
+  border-radius: 999px;
+  color: var(--br-texto);
+  text-decoration: none;
+}
+
+.brasil-ver-todos {
+  color: var(--br-amarelo);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.brasil-vazio {
+  padding: 40px;
+  border: 1px dashed var(--br-borda);
+  border-radius: 14px;
+  color: var(--br-texto-2);
+  text-align: center;
+}
+
+@media (hover: hover) {
+  .brasil-principal:hover img {
+    transform: scale(1.03);
+  }
+
+  .brasil-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .brasil-promocao:hover,
+  .brasil-estudios a:hover {
+    border-color: var(--br-verde-claro);
+  }
+
+  .brasil-ver-todos:hover {
+    text-decoration: underline;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brasil-principal img,
+  .brasil-item-progresso {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (max-width: 960px) {
+  .brasil-cabecalho {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .brasil-painel {
+    grid-template-columns: 1fr;
+  }
+
+  .brasil-promocoes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .brasil {
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
+
+  .brasil-numeros {
+    width: 100%;
+  }
+
+  .brasil-numeros div {
+    flex: 1;
+    min-width: 0;
+    padding: 10px;
+  }
+
+  .brasil-numeros dd {
+    font-size: 19px;
+  }
+
+  .brasil-principal {
+    min-height: 260px;
+  }
+
+  .brasil-principal-conteudo {
+    padding: 16px;
+  }
+
+  .brasil-principal-rodape {
+    flex-wrap: wrap;
+  }
+
+  /* No celular, a lista lateral vira uma faixa horizontal de miniaturas. */
+  .brasil-lista {
+    flex-direction: row;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 4px;
+  }
+
+  .brasil-lista li {
+    flex: 0 0 78%;
+    scroll-snap-align: start;
+  }
+}
