@@ -1,0 +1,259 @@
+/* Controles do catálogo: abas de origem, busca e filtros combináveis. */
+.catalogo-controles {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.catalogo-abas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.catalogo-aba {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--borda-forte);
+  border-radius: 12px;
+  background: var(--fundo-card);
+  color: var(--texto-secundario);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.catalogo-aba-total {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--texto) 8%, transparent);
+  font-size: 12px;
+}
+
+.catalogo-aba.ativa {
+  border-color: var(--roxo-tema);
+  background: color-mix(in srgb, var(--roxo-tema) 14%, var(--fundo-card));
+  color: var(--texto);
+}
+
+.catalogo-aba--brasileiros.ativa {
+  border-color: #1f9d57;
+  background: color-mix(in srgb, #1f9d57 16%, var(--fundo-card));
+}
+
+.catalogo-aba--brasileiros.ativa .catalogo-aba-total {
+  background: #1f9d57;
+  color: #fff;
+}
+
+.catalogo-aba-bandeira {
+  width: 20px;
+  height: 13px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #1f9d57 0 40%, #f1d34b 40% 60%, #3a86d1 60%);
+}
+
+.catalogo-busca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--borda-forte);
+  border-radius: 12px;
+  background: var(--fundo-card);
+}
+
+.catalogo-busca:focus-within {
+  border-color: var(--roxo-tema);
+}
+
+.catalogo-busca svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  fill: none;
+  stroke: var(--texto-suave);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.catalogo-busca input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  font-size: 16px;
+}
+
+.catalogo-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.catalogo-filtro {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+}
+
+.catalogo-filtro span {
+  color: var(--texto-suave);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.catalogo-filtro select {
+  height: 42px;
+  padding: 0 36px 0 12px;
+  border: 1px solid var(--borda-forte);
+  border-radius: 10px;
+  background-color: var(--fundo-card);
+  color: var(--texto);
+  font: inherit;
+  cursor: pointer;
+}
+
+.catalogo-filtro select:focus-visible {
+  outline: 2px solid var(--roxo-tema);
+  outline-offset: 1px;
+}
+
+.catalogo-filtro--ordem {
+  margin-left: auto;
+}
+
+/* Resumo dos resultados e etiquetas removíveis */
+.catalogo-resumo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.catalogo-resumo-total {
+  margin-right: 4px;
+  color: var(--texto);
+  font-weight: 700;
+}
+
+.catalogo-etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--roxo-tema) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--roxo-tema) 12%, transparent);
+  color: var(--texto);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.catalogo-etiqueta svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.catalogo-limpar,
+.catalogo-buscar-todos {
+  border: 0;
+  background: none;
+  color: var(--roxo-tema);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.catalogo-buscar-todos {
+  margin-top: 10px;
+  font-size: 15px;
+}
+
+/* Selo nacional nos cards */
+.selo-brasil-card {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(10, 20, 14, 0.82);
+  color: #f4f6f3;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.selo-brasil-card span {
+  width: 14px;
+  height: 9px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #1f9d57 0 40%, #f1d34b 40% 60%, #3a86d1 60%);
+}
+
+@media (hover: hover) {
+  .catalogo-aba:hover {
+    border-color: var(--roxo-tema);
+    color: var(--texto);
+  }
+
+  .catalogo-etiqueta:hover {
+    border-color: var(--roxo-tema);
+  }
+}
+
+@media (max-width: 700px) {
+  .catalogo-abas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .catalogo-aba {
+    justify-content: center;
+    gap: 6px;
+    padding: 0 8px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .catalogo-aba-bandeira {
+    display: none;
+  }
+
+  .catalogo-aba-total {
+    padding: 2px 6px;
+    font-size: 11px;
+  }
+
+  .catalogo-filtros {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .catalogo-filtro {
+    min-width: 0;
+  }
+
+  .catalogo-filtro--ordem {
+    grid-column: 1 / -1;
+    margin-left: 0;
+  }
+}

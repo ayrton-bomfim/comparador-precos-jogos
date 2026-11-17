@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from datetime import datetime, timezone
 import requests
 import time
+from types import SimpleNamespace
 from sqlalchemy import case, func, or_, text
 from sqlalchemy.orm import Session
 from ..banco_dados import get_db
@@ -17,6 +18,7 @@ from ..modelos import Jogo, HistoricoPreco, AuditoriaConteudo, Usuario, Notifica
 from ..seguranca.autenticacao import obter_admin_atual, obter_usuario_atual
 from ..coletores.steam_coletor import SteamColetor
 from ..servicos.promocoes import em_promocao, estado_promocao, estados_promocao, jogos_em_promocao
+from ..servicos.precos_atuais import garantir_precos_recentes, precos_atuais
 
 EGDATA_SEARCH_URL = "https://api.egdata.app/search/v2/search"
 EGDATA_COUNTRY = "BR"
@@ -155,6 +157,9 @@ def listar_jogos(
     busca: str = "",
     filtro: str = "todos",
     ordenacao: str = "mais-vistos",
+    origem: str = "",
+    loja: str = "",
+    preco: str = "",
     legado: bool = False,
     db: Session = Depends(get_db),
 ):
@@ -165,6 +170,12 @@ def listar_jogos(
     montamos as subconsultas de histórico de todo o catálogo. Os históricos
     são consultados somente depois que os 20 jogos da página foram definidos.
     Isso evita que uma página simples tenha de varrer ~190 mil jogos/históricos.
+
+    Filtros combináveis (usados pelo catálogo):
+    - origem: todos | brasileiros
+    - loja: todas | steam | epic | ambas
+    - preco: qualquer | promocao | gratis | ate-20 | ate-50
+    O parâmetro antigo `filtro` continua aceito e é convertido para eles.
     """
     inicio = time.perf_counter()
 
@@ -173,6 +184,14 @@ def listar_jogos(
     busca = (busca or "").strip()
     filtro = filtro if filtro in {"brasileiros", "todos", "steam", "epic", "desconto", "gratis"} else "todos"
     ordenacao = ordenacao if ordenacao in {"nome", "menor-preco", "maior-preco", "desconto", "mais-vistos"} else "mais-vistos"
+
+    # Converte o filtro antigo (escolha única) para os filtros combináveis.
+    origem = origem or ("brasileiros" if filtro == "brasileiros" else "todos")
+    loja = loja or (filtro if filtro in {"steam", "epic"} else "todas")
+    preco = preco or {"desconto": "promocao", "gratis": "gratis"}.get(filtro, "qualquer")
+    origem = origem if origem in {"todos", "brasileiros"} else "todos"
+    loja = loja if loja in {"todas", "steam", "epic", "ambas"} else "todas"
+    preco = preco if preco in {"qualquer", "promocao", "gratis", "ate-20", "ate-50"} else "qualquer"
 
     # Regra de visibilidade atual da curadoria Epic.
     query_base = (
@@ -185,7 +204,7 @@ def listar_jogos(
         .filter(_jogo_visivel_catalogo())
     )
 
-    if filtro == "brasileiros":
+    if origem == "brasileiros":
         # A classificação é pré-calculada e mantida no banco.
         # Isso evita recalcular a correspondência com estudios_brasileiros
         # tanto na contagem quanto na consulta paginada.
@@ -201,17 +220,25 @@ def listar_jogos(
             )
         )
 
-    if filtro == "steam":
-        query_base = query_base.filter(Jogo.steam_id.isnot(None))
-    elif filtro == "epic":
+    tem_steam = Jogo.steam_id.isnot(None)
+    tem_epic = Jogo.epic_id.isnot(None) & (Jogo.epic_id != "EXCLUSIVO_STEAM")
+    if loja == "steam":
+        query_base = query_base.filter(tem_steam)
+    elif loja == "epic":
+        query_base = query_base.filter(tem_epic)
+    elif loja == "ambas":
+        query_base = query_base.filter(tem_steam, tem_epic)
+
+    if preco == "gratis":
         query_base = query_base.filter(
-            Jogo.epic_id.isnot(None),
-            Jogo.epic_id != "EXCLUSIVO_STEAM",
+            or_(
+                Jogo.steam_is_free.is_(True),
+                func.lower(func.coalesce(Jogo.genero, "")).like("%grátis para jogar%"),
+            )
         )
-    elif filtro == "gratis":
-        query_base = query_base.filter(
-            func.lower(func.coalesce(Jogo.genero, "")).like("%grátis para jogar%")
-        )
+    elif preco == "promocao":
+        # Mesma regra de promoção usada no restante do site.
+        query_base = query_base.filter(Jogo.id.in_(list(jogos_em_promocao(db)) or [0]))
 
     # ------------------------------------------------------------------
     # Modo legado: somente páginas que realmente precisam do catálogo
@@ -286,7 +313,7 @@ def listar_jogos(
     # Só precisamos das subconsultas de preço quando o filtro/ordenação
     # realmente depende de preço/desconto.
     # ------------------------------------------------------------------
-    precisa_preco = filtro == "desconto" or ordenacao in {
+    precisa_preco = preco in {"ate-20", "ate-50"} or ordenacao in {
         "desconto",
         "menor-preco",
         "maior-preco",
@@ -296,65 +323,25 @@ def listar_jogos(
     epic_preco = None
 
     if precisa_preco:
-        ultima_data = (
-            db.query(
-                HistoricoPreco.jogo_id.label("jogo_id"),
-                HistoricoPreco.plataforma.label("plataforma"),
-                func.max(HistoricoPreco.data_coleta).label("ultima_data"),
-            )
-            .group_by(HistoricoPreco.jogo_id, HistoricoPreco.plataforma)
-            .cte("ultima_data_historico")
-        )
-
-        steam_preco = (
-            db.query(
-                HistoricoPreco.jogo_id.label("jogo_id"),
-                HistoricoPreco.preco_atual.label("preco"),
-                HistoricoPreco.desconto.label("desconto"),
-            )
-            .join(
-                ultima_data,
-                (HistoricoPreco.jogo_id == ultima_data.c.jogo_id)
-                & (HistoricoPreco.plataforma == ultima_data.c.plataforma)
-                & (HistoricoPreco.data_coleta == ultima_data.c.ultima_data),
-            )
-            .filter(func.lower(HistoricoPreco.plataforma) == "steam")
-            .subquery()
-        )
-
-        epic_preco = (
-            db.query(
-                HistoricoPreco.jogo_id.label("jogo_id"),
-                HistoricoPreco.preco_atual.label("preco"),
-                HistoricoPreco.desconto.label("desconto"),
-            )
-            .join(
-                ultima_data,
-                (HistoricoPreco.jogo_id == ultima_data.c.jogo_id)
-                & (HistoricoPreco.plataforma == ultima_data.c.plataforma)
-                & (HistoricoPreco.data_coleta == ultima_data.c.ultima_data),
-            )
-            .filter(
-                func.lower(HistoricoPreco.plataforma).in_(
-                    ["epic", "epic games", "epic games store"]
-                )
-            )
-            .subquery()
-        )
-
-        query_base = query_base.outerjoin(
-            steam_preco, steam_preco.c.jogo_id == Jogo.id
-        )
-        query_base = query_base.outerjoin(
-            epic_preco, epic_preco.c.jogo_id == Jogo.id
-        )
+        # Preço atual por loja vem da visão materializada (ver servicos/precos_atuais.py).
+        garantir_precos_recentes()
+        query_base = query_base.outerjoin(precos_atuais, precos_atuais.c.jogo_id == Jogo.id)
+        steam_preco = SimpleNamespace(c=SimpleNamespace(
+            preco=precos_atuais.c.preco_steam, desconto=precos_atuais.c.desconto_steam))
+        epic_preco = SimpleNamespace(c=SimpleNamespace(
+            preco=precos_atuais.c.preco_epic, desconto=precos_atuais.c.desconto_epic))
 
         desconto_steam = func.coalesce(steam_preco.c.desconto, 0)
         desconto_epic = func.coalesce(epic_preco.c.desconto, 0)
         maior_desconto = func.greatest(desconto_steam, desconto_epic)
 
-        if filtro == "desconto":
-            query_base = query_base.filter(maior_desconto > 0)
+        if preco in {"ate-20", "ate-50"}:
+            limite = 20 if preco == "ate-20" else 50
+            menor_preco_atual = func.least(
+                func.coalesce(steam_preco.c.preco, Jogo.preco_base_steam, 999999999),
+                func.coalesce(epic_preco.c.preco, Jogo.preco_base_epic, 999999999),
+            )
+            query_base = query_base.filter(menor_preco_atual <= limite)
 
         if ordenacao == "desconto":
             query_base = query_base.order_by(
@@ -459,6 +446,7 @@ def listar_jogos(
             "desconto_steam": ultimos_dados.get((jogo.id, "steam"), {}).get("desconto", 0),
             "desconto_epic": ultimos_dados.get((jogo.id, "epic"), {}).get("desconto", 0),
             "visualizacoes": jogo.visualizacoes,
+            "eh_brasileiro": bool(jogo.eh_brasileiro),
         }
         for jogo in jogos
     ]
@@ -477,6 +465,7 @@ def listar_jogos(
         "pagina": pagina,
         "por_pagina": por_pagina,
         "total_paginas": total_paginas,
+        "filtros": {"origem": origem, "loja": loja, "preco": preco, "ordenacao": ordenacao},
     }
 
 

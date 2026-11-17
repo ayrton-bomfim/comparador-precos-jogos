@@ -171,22 +171,30 @@ class AgendadorColeta:
         Epic:
             coletar_historico_epic() usa EGDATA e é assíncrona.
         """
-        print("\n[1/4] Coleta histórica da Steam")
+        print("\n[1/5] Coleta histórica da Steam")
         resultado_steam = await coletar_historico_precos()
         print(f"Resultado Steam: {resultado_steam}")
 
-        print("\n[2/4] Coleta histórica da Epic (EGDATA)")
+        print("\n[2/5] Coleta histórica da Epic (EGDATA)")
         resultado_epic = await coletar_historico_epic()
 
-        print("\n[3/4] Avaliação dos alertas de preço e envio de e-mails")
+        print("\n[3/5] Avaliação dos alertas de preço e envio de e-mails")
         from backend.servicos.avaliador_alertas_preco import avaliar_alertas_preco
         resultado_alertas = await asyncio.to_thread(avaliar_alertas_preco)
         print(f"Alertas avaliados: {resultado_alertas}")
 
-        print("\n[4/4] Limpeza de promoções encerradas (recomendações e vitrine)")
+        print("\n[4/5] Limpeza de promoções encerradas (recomendações e vitrine)")
         from backend.servicos.expirar_recomendacoes_comunidade import expirar_recomendacoes
         resultado_recomendacoes = await asyncio.to_thread(expirar_recomendacoes)
         print(f"Limpeza de promoções: {resultado_recomendacoes}")
+
+        print("\n[5/5] Atualização dos preços atuais usados no catálogo")
+        from backend.servicos.precos_atuais import atualizar_precos_atuais
+        try:
+            resultado_precos = await asyncio.to_thread(atualizar_precos_atuais)
+        except Exception as erro:
+            resultado_precos = {"status": "falha", "erro": str(erro)}
+        print(f"Preços atuais: {resultado_precos}")
 
         return {
             "steam": resultado_steam or {
@@ -199,6 +207,7 @@ class AgendadorColeta:
             },
             "alertas_preco": resultado_alertas,
             "recomendacoes_comunidade": resultado_recomendacoes,
+            "precos_atuais": resultado_precos,
         }
 
 

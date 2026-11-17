@@ -5,6 +5,7 @@ import Cabecalho from '../componentes/Cabecalho'
 import CardJogo from '../componentes/CardJogo'
 import { useAuth } from '../contextos/AuthContext'
 import { API_JOGOS_URL, API_URL } from '../servicos/api'
+import './Catalogo.css'
 
 function formatarPreco(preco, gratuito = false, plataformaDisponivel = false) {
   if (preco === null || preco === undefined) {
@@ -17,6 +18,42 @@ function formatarPreco(preco, gratuito = false, plataformaDisponivel = false) {
     style: 'currency',
     currency: 'BRL',
   })
+}
+
+const ORIGENS = [
+  ['brasileiros', 'Feitos no Brasil'],
+  ['todos', 'Todos os jogos'],
+]
+
+const LOJAS = [
+  ['todas', 'Todas as lojas'],
+  ['steam', 'Steam'],
+  ['epic', 'Epic Games Store'],
+  ['ambas', 'Nas duas lojas'],
+]
+
+const PRECOS = [
+  ['qualquer', 'Qualquer preço'],
+  ['promocao', 'Em promoção'],
+  ['gratis', 'Grátis'],
+  ['ate-20', 'Até R$ 20'],
+  ['ate-50', 'Até R$ 50'],
+]
+
+const ORDENACOES = [
+  ['mais-vistos', 'Mais vistos'],
+  ['desconto', 'Maior desconto'],
+  ['menor-preco', 'Menor preço'],
+  ['maior-preco', 'Maior preço'],
+  ['nome', 'Nome (A–Z)'],
+]
+
+function rotuloDe(lista, valor) {
+  return lista.find(([chave]) => chave === valor)?.[1] || valor
+}
+
+function escolherValido(valor, lista, padrao) {
+  return lista.some(([chave]) => chave === valor) ? valor : padrao
 }
 
 function adaptarJogo(jogo) {
@@ -77,6 +114,7 @@ function adaptarJogo(jogo) {
     ),
 
     desconto: Math.max(descontoSteam, descontoEpic),
+    brasileiro: Boolean(jogo.eh_brasileiro),
   }
 }
 
@@ -119,7 +157,6 @@ function Jogos() {
   const [tipoVitrine, setTipoVitrine] = useState('oportunidade')
   const [processandoVitrine, setProcessandoVitrine] = useState(false)
   const [resultadoVitrine, setResultadoVitrine] = useState(null)
-  const [filtrosAbertos, setFiltrosAbertos] = useState(false)
 
   const busca = searchParams.get('busca') || ''
   const [buscaDigitada, setBuscaDigitada] = useState(busca)
@@ -158,54 +195,38 @@ function Jogos() {
     return () => window.clearTimeout(timeout)
   }, [buscaDigitada, setSearchParams])
 
-  const filtrosValidos = [
-    'brasileiros',
-    'todos',
-    'steam',
-    'epic',
-    'desconto',
-    'gratis',
-  ]
+  // Filtros combináveis: origem (abas), loja e faixa de preço, mais a ordenação.
+  // Links antigos com ?filtro=... continuam funcionando.
+  const filtroLegado = searchParams.get('filtro')
 
-  const ordenacoesValidas = [
-    'nome',
-    'menor-preco',
-    'maior-preco',
-    'desconto',
-    'mais-vistos',
-  ]
-
-  // Os filtros escolhidos ficam guardados apenas durante a sessão do navegador.
-  // Ao encerrar a sessão, o catálogo volta aos padrões do DESCTRL.
-  const [filtroInicialSessao] = useState(() => {
+  const [preferenciasSessao] = useState(() => {
     try {
-      const salvo = sessionStorage.getItem('desctrl-catalogo-filtro')
-      return filtrosValidos.includes(salvo) ? salvo : 'brasileiros'
+      return JSON.parse(sessionStorage.getItem('desctrl-catalogo') || '{}') || {}
     } catch {
-      return 'brasileiros'
+      return {}
     }
   })
 
-  const [ordenacaoInicialSessao] = useState(() => {
-    try {
-      const salva = sessionStorage.getItem('desctrl-catalogo-ordenacao')
-      return ordenacoesValidas.includes(salva) ? salva : 'mais-vistos'
-    } catch {
-      return 'mais-vistos'
-    }
-  })
-
-  const filtroParam = searchParams.get('filtro')
-
-  const filtro = filtrosValidos.includes(filtroParam)
-    ? filtroParam
-    : filtroInicialSessao
-
-  const ordenacaoParam = searchParams.get('ordenacao')
-
-  const ordenacao = ordenacoesValidas.includes(ordenacaoParam)
-    ? ordenacaoParam
-    : ordenacaoInicialSessao
+  const origem = escolherValido(
+    searchParams.get('origem') || (filtroLegado === 'brasileiros' ? 'brasileiros' : filtroLegado ? 'todos' : null),
+    ORIGENS,
+    escolherValido(preferenciasSessao.origem, ORIGENS, 'brasileiros')
+  )
+  const loja = escolherValido(
+    searchParams.get('loja') || (['steam', 'epic'].includes(filtroLegado) ? filtroLegado : null),
+    LOJAS,
+    'todas'
+  )
+  const preco = escolherValido(
+    searchParams.get('preco') || { desconto: 'promocao', gratis: 'gratis' }[filtroLegado],
+    PRECOS,
+    'qualquer'
+  )
+  const ordenacao = escolherValido(
+    searchParams.get('ordenacao'),
+    ORDENACOES,
+    escolherValido(preferenciasSessao.ordenacao, ORDENACOES, 'mais-vistos')
+  )
 
   const paginaParam = Number(searchParams.get('pagina'))
 
@@ -220,14 +241,31 @@ function Jogos() {
     localStorage.setItem('tema-comparador', tema)
   }, [tema])
 
+  // As escolhas valem só durante a sessão do navegador.
   useEffect(() => {
     try {
-      sessionStorage.setItem('desctrl-catalogo-filtro', filtro)
-      sessionStorage.setItem('desctrl-catalogo-ordenacao', ordenacao)
+      sessionStorage.setItem('desctrl-catalogo', JSON.stringify({ origem, ordenacao }))
     } catch (erro) {
       console.warn('Não foi possível guardar os filtros desta sessão.', erro)
     }
-  }, [filtro, ordenacao])
+  }, [origem, ordenacao])
+
+  // Totais das abas, reaproveitando os números já calculados para a página inicial.
+  const [totaisOrigem, setTotaisOrigem] = useState({})
+  useEffect(() => {
+    let ativo = true
+    Promise.all([
+      fetch(`${API_JOGOS_URL}/vitrine/resumo`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch(`${API_JOGOS_URL}/vitrine/brasil`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ]).then(([resumo, brasil]) => {
+      if (!ativo) return
+      setTotaisOrigem({
+        ...(resumo ? { todos: resumo.jogos_catalogo } : {}),
+        ...(brasil ? { brasileiros: brasil.jogos_catalogo } : {}),
+      })
+    })
+    return () => { ativo = false }
+  }, [])
 
   useEffect(() => {
     let ativo = true
@@ -304,7 +342,7 @@ function Jogos() {
     // Uma seleção nunca deve sobreviver à mudança da lista visível.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setJogosSelecionados(new Set())
-  }, [pagina, busca, filtro, ordenacao])
+  }, [pagina, busca, origem, loja, preco, ordenacao])
 
   useEffect(() => {
     let ativo = true
@@ -318,7 +356,9 @@ function Jogos() {
           pagina: String(pagina),
           por_pagina: String(porPagina),
           busca,
-          filtro,
+          origem,
+          loja,
+          preco,
           ordenacao,
         })
 
@@ -370,7 +410,7 @@ function Jogos() {
       ativo = false
       controller.abort()
     }
-  }, [pagina, porPagina, busca, filtro, ordenacao])
+  }, [pagina, porPagina, busca, origem, loja, preco, ordenacao])
 
   /*
    * A filtragem e a ordenação agora são feitas pelo backend.
@@ -429,11 +469,20 @@ function Jogos() {
     })
   }
 
-  const alterarFiltro = (novoFiltro) => {
-    atualizarParametros({
-      filtro: novoFiltro,
-      pagina: 1,
-    })
+  // Sempre remove o ?filtro= antigo ao mudar qualquer filtro novo.
+  const alterarFiltros = (alteracoes) => {
+    atualizarParametros({ ...alteracoes, filtro: null, pagina: 1 })
+  }
+
+  const filtrosExtras = [
+    loja !== 'todas' && { chave: 'loja', rotulo: rotuloDe(LOJAS, loja) },
+    preco !== 'qualquer' && { chave: 'preco', rotulo: rotuloDe(PRECOS, preco) },
+    busca && { chave: 'busca', rotulo: `“${busca}”` },
+  ].filter(Boolean)
+
+  const limparFiltros = () => {
+    setBuscaDigitada('')
+    alterarFiltros({ loja: null, preco: null, busca: null })
   }
 
   const pesquisar = (evento) => {
@@ -667,168 +716,85 @@ function Jogos() {
           </div>
         </section>
 
-        <section className="controles-jogos">
-          <form
-            className="pesquisa-jogos"
-            onSubmit={pesquisar}
-          >
-            <span className="icone-pesquisa">⌕</span>
+        <section className="catalogo-controles" aria-label="Filtros do catálogo">
+          <div className="catalogo-abas" role="tablist" aria-label="Origem dos jogos">
+            {ORIGENS.map(([valor, rotulo]) => (
+              <button
+                key={valor}
+                type="button"
+                role="tab"
+                aria-selected={origem === valor}
+                className={`catalogo-aba catalogo-aba--${valor}${origem === valor ? ' ativa' : ''}`}
+                onClick={() => alterarFiltros({ origem: valor })}
+              >
+                {valor === 'brasileiros' && <span className="catalogo-aba-bandeira" aria-hidden="true" />}
+                {rotulo}
+                {totaisOrigem[valor] !== undefined && (
+                  <span className="catalogo-aba-total">{totaisOrigem[valor].toLocaleString('pt-BR')}</span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          <form className="catalogo-busca" onSubmit={pesquisar} role="search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
             <input
-              type="text"
+              type="search"
               value={buscaDigitada}
               onChange={(evento) => setBuscaDigitada(evento.target.value)}
-              placeholder="Pesquisar por nome do jogo..."
+              placeholder={origem === 'brasileiros' ? 'Busque por jogo ou estúdio brasileiro...' : 'Busque por jogo, estúdio ou publicadora...'}
               aria-label="Pesquisar jogo"
             />
-            <button type="submit">Pesquisar</button>
           </form>
 
-          <div className="atalho-filtros-jogos">
-            <div className="resumo-filtros-ativos" aria-live="polite">
-              <div className="titulo-resumo-filtros">
-                <span className="icone-resumo-filtros" aria-hidden="true">☷</span>
-                <strong>Filtros ativos</strong>
-              </div>
-              <div className="etiquetas-resumo-filtros">
-                {filtro !== 'todos' && (
-                  <span className="etiqueta-filtro-ativo">
-                    <span aria-hidden="true">✓</span>
-                    {filtro === 'brasileiros' ? 'Estúdios brasileiros' :
-                      filtro === 'steam' ? 'Steam' :
-                      filtro === 'epic' ? 'Epic Games' :
-                      filtro === 'desconto' ? 'Com desconto' : 'Grátis'}
-                  </span>
-                )}
-                <span className="etiqueta-ordenacao-ativa">
-                  <span aria-hidden="true">↕</span>
-                  {ordenacao === 'mais-vistos' ? 'Mais vistos' :
-                    ordenacao === 'nome' ? 'Nome' :
-                    ordenacao === 'menor-preco' ? 'Menor preço' :
-                    ordenacao === 'maior-preco' ? 'Maior preço' : 'Maior desconto'}
-                </span>
-                {filtro === 'todos' && (
-                  <span className="texto-sem-restricao">Sem filtro de loja ou origem</span>
-                )}
-              </div>
-              <p className="descricao-resumo-filtros">
-                {filtro === 'brasileiros'
-                  ? 'Exibindo jogos de estúdios brasileiros.'
-                  : filtro === 'todos'
-                    ? 'Exibindo jogos de todas as origens disponíveis no catálogo.'
-                    : filtro === 'steam'
-                      ? 'Exibindo jogos disponíveis na Steam.'
-                      : filtro === 'epic'
-                        ? 'Exibindo jogos disponíveis na Epic Games Store.'
-                        : filtro === 'desconto'
-                          ? 'Exibindo jogos que estão com desconto.'
-                          : 'Exibindo jogos gratuitos.'}
-              </p>
-            </div>
-            <button
-              type="button"
-              className="botao-abrir-filtros"
-              onClick={() => setFiltrosAbertos(true)}
-              aria-haspopup="dialog"
-              aria-expanded={filtrosAbertos}
-            >
-              ⚙ Filtros e ordenação
-            </button>
+          <div className="catalogo-filtros">
+            <label className="catalogo-filtro">
+              <span>Loja</span>
+              <select value={loja} onChange={(evento) => alterarFiltros({ loja: evento.target.value === 'todas' ? null : evento.target.value })}>
+                {LOJAS.map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
+              </select>
+            </label>
+            <label className="catalogo-filtro">
+              <span>Preço</span>
+              <select value={preco} onChange={(evento) => alterarFiltros({ preco: evento.target.value === 'qualquer' ? null : evento.target.value })}>
+                {PRECOS.map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
+              </select>
+            </label>
+            <label className="catalogo-filtro catalogo-filtro--ordem">
+              <span>Ordenar por</span>
+              <select value={ordenacao} onChange={(evento) => alterarFiltros({ ordenacao: evento.target.value })}>
+                {ORDENACOES.map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
+              </select>
+            </label>
           </div>
         </section>
 
-        {filtrosAbertos && (
-          <div
-            className="camada-filtros-jogos"
-            onMouseDown={(evento) => {
-              if (evento.target === evento.currentTarget) setFiltrosAbertos(false)
-            }}
-          >
-            <section
-              className="painel-filtros-jogos"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="titulo-filtros-jogos"
-            >
-              <header className="topo-filtros-jogos">
-                <div>
-                  <span className="eyebrow">PERSONALIZE SUA BUSCA</span>
-                  <h2 id="titulo-filtros-jogos">Filtros e ordenação</h2>
-                </div>
-                <button
-                  type="button"
-                  className="fechar-filtros-jogos"
-                  onClick={() => setFiltrosAbertos(false)}
-                  aria-label="Fechar filtros"
-                >×</button>
-              </header>
-
-              <div className="conteudo-filtros-jogos">
-                <div className="grupo-filtros grupo-filtros-modal">
-                  <span>Filtrar jogos</span>
-                  {[
-                    ['brasileiros', 'Estúdios brasileiros'],
-                    ['todos', 'Todos os jogos'],
-                    ['steam', 'Steam'],
-                    ['epic', 'Epic Games'],
-                    ['desconto', 'Com desconto'],
-                    ['gratis', 'Grátis'],
-                  ].map(([valor, texto]) => (
-                    <button
-                      key={valor}
-                      type="button"
-                      className={filtro === valor ? 'filtro-ativo' : ''}
-                      aria-pressed={filtro === valor}
-                      onClick={() => alterarFiltro(valor)}
-                    >{texto}</button>
-                  ))}
-                </div>
-
-                <label className="ordenacao-jogos ordenacao-modal">
-                  <span>Ordenar por</span>
-                  <select
-                    value={ordenacao}
-                    onChange={(evento) => atualizarParametros({
-                      ordenacao: evento.target.value,
-                      pagina: 1,
-                    })}
-                  >
-                    <option value="mais-vistos">Mais vistos</option>
-                    <option value="nome">Nome</option>
-                    <option value="menor-preco">Menor preço</option>
-                    <option value="maior-preco">Maior preço</option>
-                    <option value="desconto">Maior desconto</option>
-                  </select>
-                </label>
-              </div>
-
-              <footer className="rodape-filtros-jogos">
-                <button
-                  type="button"
-                  className="limpar-filtros-jogos"
-                  onClick={() => atualizarParametros({ filtro: 'brasileiros', ordenacao: 'mais-vistos', pagina: 1 })}
-                >Restaurar padrão</button>
-                <button
-                  type="button"
-                  className="aplicar-filtros-jogos"
-                  onClick={() => setFiltrosAbertos(false)}
-                >Ver resultados</button>
-              </footer>
-            </section>
-          </div>
-        )}
-
         <section className="resultado-jogos">
 
-          <div className="resultado-cabecalho">
-            <span>
+          <div className="resultado-cabecalho catalogo-resumo" aria-live="polite">
+            <span className="catalogo-resumo-total">
               {carregando
                 ? 'Carregando jogos...'
-                : `${totalJogos} ${
-                    totalJogos === 1
-                      ? 'jogo encontrado'
-                      : 'jogos encontrados'
-                  }`}
+                : `${totalJogos.toLocaleString('pt-BR')} ${totalJogos === 1 ? 'jogo' : 'jogos'}${origem === 'brasileiros' ? (totalJogos === 1 ? ' brasileiro' : ' brasileiros') : ''}`}
             </span>
+            {filtrosExtras.map((item) => (
+              <button
+                key={item.chave}
+                type="button"
+                className="catalogo-etiqueta"
+                onClick={() => {
+                  if (item.chave === 'busca') setBuscaDigitada('')
+                  alterarFiltros({ [item.chave]: null })
+                }}
+                aria-label={`Remover filtro ${item.rotulo}`}
+              >
+                {item.rotulo}
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+              </button>
+            ))}
+            {filtrosExtras.length > 1 && (
+              <button type="button" className="catalogo-limpar" onClick={limparFiltros}>Limpar filtros</button>
+            )}
           </div>
 
           {isAdmin && token && !erro && jogosPagina.length > 0 && (
@@ -897,7 +863,7 @@ function Jogos() {
               {jogosPagina.map((jogo) => (
                 <CardJogo
                   key={jogo.id}
-                  jogo={jogo}
+                  jogo={origem === 'brasileiros' ? { ...jogo, brasileiro: false } : jogo}
                   mostrarDesconto
                   modoSelecao={isAdmin && Boolean(token)}
                   selecionado={jogosSelecionados.has(jogo.id)}
@@ -921,6 +887,12 @@ function Jogos() {
               <span>
                 Tente alterar a busca ou remover algum filtro.
               </span>
+
+              {origem === 'brasileiros' && (
+                <button type="button" className="catalogo-buscar-todos" onClick={() => alterarFiltros({ origem: 'todos' })}>
+                  Procurar em todos os jogos
+                </button>
+              )}
 
             </div>
 

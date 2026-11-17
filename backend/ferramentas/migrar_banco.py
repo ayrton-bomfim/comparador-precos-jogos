@@ -29,6 +29,31 @@ MIGRACOES = [
         );
         """,
     ),
+    (
+        "2026-11-17: visão materializada com o preço atual de cada jogo por loja",
+        """
+        CREATE MATERIALIZED VIEW IF NOT EXISTS precos_atuais AS
+        WITH ultimo AS (
+            SELECT DISTINCT ON (jogo_id, loja)
+                jogo_id,
+                CASE WHEN lower(plataforma) = 'steam' THEN 'steam' ELSE 'epic' END AS loja,
+                preco_atual,
+                desconto
+            FROM historico_precos
+            WHERE lower(plataforma) IN ('steam', 'epic', 'epic games', 'epic games store')
+            ORDER BY jogo_id, loja, data_coleta DESC
+        )
+        SELECT
+            jogo_id,
+            max(preco_atual) FILTER (WHERE loja = 'steam') AS preco_steam,
+            max(desconto) FILTER (WHERE loja = 'steam') AS desconto_steam,
+            max(preco_atual) FILTER (WHERE loja = 'epic') AS preco_epic,
+            max(desconto) FILTER (WHERE loja = 'epic') AS desconto_epic
+        FROM ultimo
+        GROUP BY jogo_id;
+        CREATE UNIQUE INDEX IF NOT EXISTS precos_atuais_jogo_id ON precos_atuais (jogo_id);
+        """,
+    ),
 ]
 
 

@@ -249,6 +249,13 @@ function CardJogo({
           </span>
         )}
 
+        {jogo.brasileiro && (
+          <span className="selo-brasil-card" title="Jogo de estúdio brasileiro">
+            <span aria-hidden="true" />
+            Feito no Brasil
+          </span>
+        )}
+
         {isAdmin && (
           <button
             type="button"
