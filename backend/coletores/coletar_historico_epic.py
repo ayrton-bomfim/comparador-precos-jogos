@@ -22,10 +22,11 @@ import time
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import and_, insert, text, update
+from sqlalchemy import and_, insert, text
 
 from ..banco_dados import SessionLocal
-from ..modelos import Jogo, HistoricoPreco
+from ..modelos import HistoricoPreco
+from .gravacao_lote import atualizar_precos_base as gravar_precos_base
 from ..servicos.egdata import buscar_precos_por_oferta
 from ..servicos.itad import buscar_precos_epic
 
@@ -229,13 +230,9 @@ def _gravar_registros(db, registros, precos_base, agora):
         return 0, 0
 
     def atualizar_precos_base(ids):
-        valores = [
-            {"id": jogo_id, "preco_base_epic": precos_base[jogo_id], "updated_at": agora}
-            for jogo_id in ids
-            if jogo_id in precos_base
-        ]
+        valores = {jogo_id: precos_base[jogo_id] for jogo_id in ids if jogo_id in precos_base}
         if valores:
-            db.execute(update(Jogo), valores)
+            gravar_precos_base(db, "preco_base_epic", valores, agora)
 
     try:
         for inicio in range(0, len(registros), 1000):

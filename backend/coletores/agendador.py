@@ -14,6 +14,12 @@ despercebidas como "parcial".
 Modos de execução:
 - sem argumentos: mantém um agendador residente e executa no horário configurado.
 - --agora: executa uma coleta imediatamente e encerra.
+- --etapas steam,epic,...: com --agora, executa só as etapas escolhidas
+  (steam, epic, alertas, limpeza, precos_atuais), na ordem padrão.
+
+No uso diário, quem dispara a coleta é o DESCTRL Manager
+(backend/desctrl_manager/executor.py), que abre o túnel, evita execuções
+simultâneas e guarda um log por execução.
 
 O horário padrão é 03:00 e pode ser alterado pela variável
 COLETA_HORARIO no arquivo .env.
@@ -42,6 +48,38 @@ HORARIO_PADRAO = "03:00"
 ARQUIVO_LOG_EXECUCOES = (
     Path(__file__).resolve().parents[2] / "logs" / "execucoes_coleta.jsonl"
 )
+
+# Ordem fixa das etapas: (chave, título exibido no log).
+ETAPAS = (
+    ("steam", "Coleta histórica da Steam"),
+    ("epic", "Coleta histórica da Epic (ITAD + EGDATA)"),
+    ("alertas", "Avaliação dos alertas de preço e envio de e-mails"),
+    ("limpeza", "Limpeza de promoções encerradas (recomendações e vitrine)"),
+    ("precos_atuais", "Atualização dos preços atuais usados no catálogo"),
+)
+CHAVES_ETAPAS = tuple(chave for chave, _ in ETAPAS)
+
+# Chave da etapa -> nome usado no resumo e no registro de execuções.
+NOME_RESULTADO = {
+    "steam": "steam",
+    "epic": "epic",
+    "alertas": "alertas_preco",
+    "limpeza": "recomendacoes_comunidade",
+    "precos_atuais": "precos_atuais",
+}
+
+
+def normalizar_etapas(etapas):
+    """Valida a lista de etapas e devolve na ordem padrão (todas se vazia)."""
+    if not etapas:
+        return list(CHAVES_ETAPAS)
+    desconhecidas = [e for e in etapas if e not in CHAVES_ETAPAS]
+    if desconhecidas:
+        raise ValueError(
+            f"Etapa(s) desconhecida(s): {', '.join(desconhecidas)}. "
+            f"Use: {', '.join(CHAVES_ETAPAS)}."
+        )
+    return [chave for chave in CHAVES_ETAPAS if chave in etapas]
 
 
 def _registrar_execucao(registro):
@@ -103,12 +141,13 @@ class AgendadorColeta:
         except KeyboardInterrupt:
             print("\nAgendador encerrado pelo usuário.")
 
-    def executar_agora(self):
-        """Executa uma coleta imediatamente e encerra o processo."""
-        self._executar_coleta()
+    def executar_agora(self, etapas=None, origem="manual", arquivo_log=None):
+        """Executa a coleta (ou só as etapas pedidas) e retorna o status geral."""
+        return self._executar_coleta(etapas, origem, arquivo_log)
 
-    def _executar_coleta(self):
-        """Executa a rotina assíncrona completa uma única vez."""
+    def _executar_coleta(self, etapas=None, origem="agendador", arquivo_log=None):
+        """Executa a rotina assíncrona uma única vez."""
+        etapas = normalizar_etapas(etapas)
         if self._coleta_em_execucao:
             print("Já existe uma coleta em execução. Ignorando nova chamada.")
             return
@@ -119,6 +158,7 @@ class AgendadorColeta:
         print("\n" + "=" * 60)
         print("INÍCIO DA COLETA")
         print(f"Data/hora: {inicio.strftime('%d/%m/%Y %H:%M:%S')}")
+        print(f"Etapas: {', '.join(etapas)} | origem: {origem}")
         print("=" * 60)
 
         resultado = None
@@ -126,7 +166,7 @@ class AgendadorColeta:
         status_geral = "falha"
 
         try:
-            resultado = asyncio.run(self._coletar_ambas())
+            resultado = asyncio.run(self._executar_etapas(etapas))
             status_etapas = [
                 valor.get("status")
                 for valor in resultado.values()
@@ -171,6 +211,9 @@ class AgendadorColeta:
                 "duracao_segundos": round(duracao.total_seconds(), 2),
                 "status": status_geral,
                 "erro": erro_execucao,
+                "origem": origem,
+                "etapas_solicitadas": etapas,
+                "log": str(arquivo_log) if arquivo_log else None,
                 "etapas": resultado,
             })
             print("=" * 60)
@@ -182,54 +225,46 @@ class AgendadorColeta:
             print("=" * 60)
             self._coleta_em_execucao = False
 
-    async def _coletar_ambas(self):
-        """
-        Executa as duas rotinas de histórico.
+        return status_geral
 
-        Steam:
-            coletar_historico_precos() já faz a consulta GetItems em lote.
+    async def _executar_etapas(self, etapas):
+        """Executa as etapas pedidas, na ordem padrão, e devolve os resultados."""
+        titulos = dict(ETAPAS)
+        resultados = {}
+        for indice, chave in enumerate(etapas, start=1):
+            print(f"\n[{indice}/{len(etapas)}] {titulos[chave]}")
+            resultados[NOME_RESULTADO[chave]] = await self._executar_etapa(chave)
+        return resultados
 
-        Epic:
-            coletar_historico_epic() usa EGDATA e é assíncrona.
-        """
-        print("\n[1/5] Coleta histórica da Steam")
-        resultado_steam = await coletar_historico_precos()
-        print(f"Resultado Steam: {resultado_steam}")
+    async def _executar_etapa(self, chave):
+        if chave == "steam":
+            resultado = await coletar_historico_precos()
+            print(f"Resultado Steam: {resultado}")
+            return resultado or {"status": "sem_resumo", "fonte": "Steam"}
 
-        print("\n[2/5] Coleta histórica da Epic (ITAD + EGDATA)")
-        resultado_epic = await coletar_historico_epic()
+        if chave == "epic":
+            resultado = await coletar_historico_epic()
+            return resultado or {"status": "sem_resumo", "fonte": "ITAD+EGDATA"}
 
-        print("\n[3/5] Avaliação dos alertas de preço e envio de e-mails")
-        from backend.servicos.avaliador_alertas_preco import avaliar_alertas_preco
-        resultado_alertas = await asyncio.to_thread(avaliar_alertas_preco)
-        print(f"Alertas avaliados: {resultado_alertas}")
+        if chave == "alertas":
+            from backend.servicos.avaliador_alertas_preco import avaliar_alertas_preco
+            resultado = await asyncio.to_thread(avaliar_alertas_preco)
+            print(f"Alertas avaliados: {resultado}")
+            return resultado
 
-        print("\n[4/5] Limpeza de promoções encerradas (recomendações e vitrine)")
-        from backend.servicos.expirar_recomendacoes_comunidade import expirar_recomendacoes
-        resultado_recomendacoes = await asyncio.to_thread(expirar_recomendacoes)
-        print(f"Limpeza de promoções: {resultado_recomendacoes}")
+        if chave == "limpeza":
+            from backend.servicos.expirar_recomendacoes_comunidade import expirar_recomendacoes
+            resultado = await asyncio.to_thread(expirar_recomendacoes)
+            print(f"Limpeza de promoções: {resultado}")
+            return resultado
 
-        print("\n[5/5] Atualização dos preços atuais usados no catálogo")
         from backend.servicos.precos_atuais import atualizar_precos_atuais
         try:
-            resultado_precos = await asyncio.to_thread(atualizar_precos_atuais)
+            resultado = await asyncio.to_thread(atualizar_precos_atuais)
         except Exception as erro:
-            resultado_precos = {"status": "falha", "erro": str(erro)}
-        print(f"Preços atuais: {resultado_precos}")
-
-        return {
-            "steam": resultado_steam or {
-                "status": "sem_resumo",
-                "fonte": "Steam",
-            },
-            "epic": resultado_epic or {
-                "status": "sem_resumo",
-                "fonte": "EGDATA",
-            },
-            "alertas_preco": resultado_alertas,
-            "recomendacoes_comunidade": resultado_recomendacoes,
-            "precos_atuais": resultado_precos,
-        }
+            resultado = {"status": "falha", "erro": str(erro)}
+        print(f"Preços atuais: {resultado}")
+        return resultado
 
 
 def main():
@@ -242,11 +277,19 @@ def main():
         help="executa a coleta imediatamente e encerra.",
     )
 
+    parser.add_argument(
+        "--etapas",
+        default="",
+        help=f"com --agora, executa só estas etapas (separadas por vírgula): {', '.join(CHAVES_ETAPAS)}",
+    )
+
     args = parser.parse_args()
     agendador = AgendadorColeta()
 
     if args.agora:
-        agendador.executar_agora()
+        etapas = [e.strip() for e in args.etapas.split(",") if e.strip()]
+        status = agendador.executar_agora(etapas)
+        raise SystemExit(0 if status in {"concluida", "concluida_com_avisos"} else 1)
     else:
         agendador.iniciar()
 

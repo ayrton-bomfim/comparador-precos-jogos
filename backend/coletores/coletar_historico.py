@@ -28,11 +28,12 @@ if ROOT_DIR not in sys.path:
 import time
 from collections import Counter
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import func, and_, cast, Date, insert, text, update
+from sqlalchemy import func, and_, cast, Date, insert, text
 from dotenv import load_dotenv
 from backend.coletores.steam_coletor import SteamColetor
 from backend.banco_dados import SessionLocal
 from backend.modelos import Jogo, HistoricoPreco
+from backend.coletores.gravacao_lote import atualizar_precos_base
 
 # Reutiliza a classificação de disponibilidade regional do coletor de dados
 # Steam. O módulo não executa sua rotina principal ao ser importado.
@@ -664,13 +665,7 @@ async def _coletar_precos_diarios(db, coletor, limite_jogos=None):
             del novos[:1000]
             gravados += len(bloco)
         if precos_base:
-            db.execute(
-                update(Jogo),
-                [
-                    {"id": jogo_id, "preco_base_steam": valor, "updated_at": agora}
-                    for jogo_id, valor in precos_base.items()
-                ],
-            )
+            atualizar_precos_base(db, "preco_base_steam", precos_base, agora)
             precos_base.clear()
         db.commit()
         return gravados
