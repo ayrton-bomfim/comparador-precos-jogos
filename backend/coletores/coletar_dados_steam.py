@@ -24,7 +24,7 @@ Regras de disponibilidade
 4. Sem preço próprio e não marcado como coming_soon:
        consulta a página individual da loja com cc=br.
 5. coming_soon == True e sem preço próprio:
-       INDETERMINADO (aguardando lançamento); não consulta a Store.
+       EM_BREVE (aguardando lançamento); não consulta a Store.
 6. Se a página indicar indisponibilidade regional:
        INDISPONIVEL
 7. Caso não exista evidência suficiente:
@@ -477,7 +477,7 @@ def classificar_disponibilidade(data, html_store=None):
     release_info = data.get("release_date") or {}
     if release_info.get("coming_soon") is True:
         return (
-            "INDETERMINADO",
+            "EM_BREVE",
             "coming_soon=true; aguardando lançamento, sem preço próprio",
         )
 

@@ -74,6 +74,45 @@ MIGRACOES = [
         );
         """,
     ),
+    (
+        "2026-11-24: marcos da atualização diária do catálogo",
+        """
+        CREATE TABLE IF NOT EXISTS controle_coleta (
+            chave VARCHAR(60) PRIMARY KEY,
+            valor TEXT NOT NULL,
+            atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS ix_jogos_steam_disponibilidade_br
+            ON jogos (steam_disponibilidade_br);
+        """,
+    ),
+    (
+        "2026-11-24: sequências de ID alinhadas ao maior ID gravado",
+        # Algumas cargas antigas gravaram IDs explícitos sem avançar a
+        # sequência (epic_catalogo e epic_ofertas estavam ~40 IDs atrás), e
+        # o cadastro de jogos novos da Epic falhava com chave duplicada.
+        # Só avança: nunca volta uma sequência.
+        """
+        SELECT setval(seq, GREATEST(maior, ultimo))
+        FROM (
+            SELECT 'epic_catalogo_id_seq'::regclass AS seq,
+                   (SELECT coalesce(max(id), 1) FROM epic_catalogo) AS maior,
+                   (SELECT last_value FROM epic_catalogo_id_seq) AS ultimo
+            UNION ALL
+            SELECT 'epic_ofertas_id_seq'::regclass,
+                   (SELECT coalesce(max(id), 1) FROM epic_ofertas),
+                   (SELECT last_value FROM epic_ofertas_id_seq)
+            UNION ALL
+            SELECT 'steam_catalogo_id_seq'::regclass,
+                   (SELECT coalesce(max(id), 1) FROM steam_catalogo),
+                   (SELECT last_value FROM steam_catalogo_id_seq)
+            UNION ALL
+            SELECT 'jogos_id_seq'::regclass,
+                   (SELECT coalesce(max(id), 1) FROM jogos),
+                   (SELECT last_value FROM jogos_id_seq)
+        ) AS s;
+        """,
+    ),
 ]
 
 

@@ -19,7 +19,7 @@ A coleta usa o Python do `venv` do projeto, não o do EXE.
 ## Telas
 
 - **Painel**: última coleta, cobertura da Steam e da Epic, próxima execução e a coleta em andamento ao vivo.
-- **Executar**: coleta completa ou só algumas etapas (Steam, Epic, alertas, limpeza, preços atuais).
+- **Executar**: coleta completa ou só algumas etapas (catálogo, Steam, Epic, alertas, limpeza, preços atuais).
 - **Histórico**: todas as coletas de produção, com status, duração e cobertura. Clique duplo abre o log.
 - **Agendamento**: cria, muda ou remove a tarefa "DESCTRL - Coleta diaria" do Agendador de Tarefas do Windows.
 - **Infraestrutura**: teste de conexão com o banco e diagnóstico da EC2 e da API (somente leitura).

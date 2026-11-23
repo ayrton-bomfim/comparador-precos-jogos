@@ -77,7 +77,7 @@ ARQUIVO_DISPONIBILIDADE_BR = os.path.join(
     ROOT_DIR, "logs", "coleta_disponibilidade_br_diaria.csv"
 )
 STATUS_DISPONIBILIDADE_BR_VALIDOS = {
-    "DISPONIVEL", "GRATUITO", "INDISPONIVEL", "INDETERMINADO"
+    "DISPONIVEL", "GRATUITO", "INDISPONIVEL", "INDETERMINADO", "EM_BREVE"
 }
 
 
@@ -288,14 +288,14 @@ def _disponibilidade_precisa_de_verificacao(jogo, forcar=False):
 
     - DISPONIVEL/GRATUITO: só revalida se a coleta diária não conseguiu
       confirmar preço, ou seja, quando forcar=True.
-    - INDISPONIVEL/INDETERMINADO: não reconsulta automaticamente; ficam para
-      revisão individual conforme a regra do projeto.
+    - INDISPONIVEL/INDETERMINADO/EM_BREVE: não consulta aqui; a etapa de
+      catálogo (catalogo_diario) reavalia esses jogos em rodízio pelo GetItems.
     - NULL: consulta quando nunca foi atualizado ou quando o último dado
       Steam tem pelo menos 30 dias.
     """
     status = (getattr(jogo, "steam_disponibilidade_br", None) or "").upper()
 
-    if status in {"INDISPONIVEL", "INDETERMINADO"}:
+    if status in {"INDISPONIVEL", "INDETERMINADO", "EM_BREVE"}:
         return False
 
     if forcar:

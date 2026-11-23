@@ -69,7 +69,7 @@ def _jogo_visivel_catalogo():
     EXCLUSIVO_STEAM), a disponibilidade regional da Steam também é respeitada:
     - NULL: ainda não processado, continua visível se houver valor-base;
     - DISPONIVEL / GRATUITO: visível se houver valor-base;
-    - INDISPONIVEL / INDETERMINADO: oculto.
+    - INDISPONIVEL / INDETERMINADO / EM_BREVE (não lançado): oculto.
 
     Jogos com Epic não dependem do status regional da Steam, mas ainda precisam
     ter valor-base em pelo menos uma das lojas.

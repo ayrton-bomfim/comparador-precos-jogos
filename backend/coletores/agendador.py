@@ -3,9 +3,11 @@
 Agendador de coleta diária de preços.
 
 Fluxo diário:
-1. Steam -> histórico via IStoreBrowseService/GetItems em lote.
-2. Epic  -> histórico via ITAD em lote (EGDATA como reserva).
-3. Alertas de preço, limpeza de promoções encerradas e precos_atuais.
+1. Catálogo -> jogos novos da Steam e da Epic e reavaliação da disponibilidade
+   no Brasil (não lançados, fora de venda), em backend/coletores/catalogo_diario.py.
+2. Steam -> histórico via IStoreBrowseService/GetItems em lote.
+3. Epic  -> histórico via ITAD em lote (EGDATA como reserva).
+4. Alertas de preço, limpeza de promoções encerradas e precos_atuais.
 
 Cada loja informa a cobertura (fração do catálogo com preço obtido). Abaixo
 de 90%, a etapa é marcada como falha, para que quebras de fonte não passem
@@ -15,7 +17,7 @@ Modos de execução:
 - sem argumentos: mantém um agendador residente e executa no horário configurado.
 - --agora: executa uma coleta imediatamente e encerra.
 - --etapas steam,epic,...: com --agora, executa só as etapas escolhidas
-  (steam, epic, alertas, limpeza, precos_atuais), na ordem padrão.
+  (catalogo, steam, epic, alertas, limpeza, precos_atuais), na ordem padrão.
 
 No uso diário, quem dispara a coleta é o DESCTRL Manager
 (backend/desctrl_manager/executor.py), que abre o túnel, evita execuções
@@ -51,6 +53,7 @@ ARQUIVO_LOG_EXECUCOES = (
 
 # Ordem fixa das etapas: (chave, título exibido no log).
 ETAPAS = (
+    ("catalogo", "Catálogo: jogos novos e disponibilidade no Brasil"),
     ("steam", "Coleta histórica da Steam"),
     ("epic", "Coleta histórica da Epic (ITAD + EGDATA)"),
     ("alertas", "Avaliação dos alertas de preço e envio de e-mails"),
@@ -61,6 +64,7 @@ CHAVES_ETAPAS = tuple(chave for chave, _ in ETAPAS)
 
 # Chave da etapa -> nome usado no resumo e no registro de execuções.
 NOME_RESULTADO = {
+    "catalogo": "catalogo",
     "steam": "steam",
     "epic": "epic",
     "alertas": "alertas_preco",
@@ -237,6 +241,10 @@ class AgendadorColeta:
         return resultados
 
     async def _executar_etapa(self, chave):
+        if chave == "catalogo":
+            from .catalogo_diario import atualizar_catalogo
+            return await asyncio.to_thread(atualizar_catalogo)
+
         if chave == "steam":
             resultado = await coletar_historico_precos()
             print(f"Resultado Steam: {resultado}")

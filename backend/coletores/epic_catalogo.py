@@ -32,7 +32,10 @@ class EpicCatalogo:
         self.max_tentativas = max(1, max_tentativas)
         self.pausa_retry = max(0.0, pausa_retry)
         self.session = requests.Session()
-        self.session.headers.update({"Content-Type": "application/json"})
+        self.session.headers.update({
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (DESCTRL; comparador de precos)",
+        })
 
     @staticmethod
     def _normalizar_texto(valor: Any) -> str:
@@ -695,7 +698,12 @@ oferta: dict[str, Any], motivos: list[str]) -> dict[str, Any]:
                 "Use BASE_GAME, EDITION ou EXPERIENCE."
             )
 
-        payload = {
+        # Desde 11/2026 a EGDATA só aceita a busca por GET, com os filtros na
+        # URL. O POST antigo responde 303 para a versão GET e o catálogo
+        # deixava de ser atualizado.
+        parametros = {
+            "country": self.PAIS,
+            "locale": self.LOCALE,
             "offerType": offer_type,
             "sortBy": "lastModifiedDate",
             "sortDir": "desc",
@@ -707,11 +715,11 @@ oferta: dict[str, Any], motivos: list[str]) -> dict[str, Any]:
 
         for tentativa in range(1, self.max_tentativas + 1):
             try:
-                resposta = self.session.post(
+                resposta = self.session.get(
                     self.URL_BUSCA,
-                    params={"country": self.PAIS, "locale": self.LOCALE},
-                    json=payload,
+                    params=parametros,
                     timeout=self.timeout,
+                    allow_redirects=False,
                 )
 
                 # 500/502/503/504 podem ser falhas transitórias do serviço.
@@ -759,7 +767,7 @@ oferta: dict[str, Any], motivos: list[str]) -> dict[str, Any]:
         raise RuntimeError(f"Falha ao consultar a página {pagina}.")
 
 
-    def coletar(self, max_paginas: int | None = None) -> dict[str, Any]:
+    def coletar(self, max_paginas: int | None = None, desde: str | None = None) -> dict[str, Any]:
         """
         Coleta BASE_GAME, EDITION e EXPERIENCE paginados, registra
         descartes e deduplica pela identidade pública de cada tipo de oferta.
@@ -767,6 +775,11 @@ oferta: dict[str, Any], motivos: list[str]) -> dict[str, Any]:
         max_paginas limita deliberadamente a quantidade de páginas
         consultadas por tipo para testes rápidos.
         Quando None, cada tipo segue até o fim do catálogo.
+
+        desde (ISO 8601, ex.: "2026-11-20T00:00:00Z"): modo incremental. Como a
+        busca vem ordenada pela última modificação, cada tipo para na primeira
+        página cuja oferta mais antiga é anterior a essa data, e só as
+        ofertas modificadas depois dela são aproveitadas.
         """
         todas: list[dict[str, Any]] = []
         totais_por_tipo: dict[str, int | None] = {
@@ -838,6 +851,11 @@ oferta: dict[str, Any], motivos: list[str]) -> dict[str, Any]:
                 if not ofertas:
                     break
 
+                if desde is not None:
+                    mais_antiga = min(str(o.get("lastModifiedDate") or "") for o in ofertas)
+                    if mais_antiga < desde:
+                        break
+
                 if total_tipo is not None:
                     coletadas_tipo = sum(
                         1
@@ -859,6 +877,9 @@ oferta: dict[str, Any], motivos: list[str]) -> dict[str, Any]:
             f"\n✓ Coleta concluída: {sum(paginas_por_tipo.values())} páginas, "
             f"{len(todas)} ofertas em {tempo_total:.2f}s"
         )
+
+        if desde is not None:
+            todas = [o for o in todas if str(o.get("lastModifiedDate") or "") >= desde]
 
         descartes: list[dict[str, Any]] = []
         elegiveis: list[dict[str, Any]] = []

@@ -58,6 +58,7 @@ ARQUIVO_CONFIG = PASTA_MANAGER / "logs" / "config.json"
 CHAVE_SSH_PADRAO = str(RAIZ.parent / "desctrl-aws.pem")
 
 ETAPAS = (
+    ("catalogo", "Catálogo"),
     ("steam", "Steam"),
     ("epic", "Epic"),
     ("alertas", "Alertas de preço"),

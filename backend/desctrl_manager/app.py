@@ -366,6 +366,7 @@ class Manager(tk.Tk):
         painel = self._painel(self.principal, "Etapas", "Útil para refazer só a Epic, ou só atualizar os preços do catálogo depois de uma correção.")
         painel.pack(fill="x")
         descricoes = {
+            "catalogo": "jogos novos na Steam e na Epic e reavaliação dos não lançados e fora de venda",
             "steam": "preços de ~91 mil jogos via GetItems em lote (≈5 min de consulta)",
             "epic": "preços de ~6,5 mil ofertas via ITAD, com conferência na EGDATA (≈2 min)",
             "alertas": "avalia os alertas de preço dos usuários e envia e-mails",
@@ -654,7 +655,7 @@ class Manager(tk.Tk):
         for texto in (
             "• O PC precisa estar ligado e com a sua sessão do Windows aberta (pode estar bloqueado).",
             "• Se o PC estiver desligado no horário, a coleta roda assim que ele for ligado.",
-            "• A coleta abre o túnel SSH sozinha, roda as 5 etapas, fecha o túnel e guarda o log em logs/coleta.",
+            "• A coleta abre o túnel SSH sozinha, roda as 6 etapas, fecha o túnel e guarda o log em logs/coleta.",
             "• Se já houver uma coleta rodando (por exemplo, uma manual), a agendada não começa outra.",
             "• O serviço de coleta da EC2 continua desligado: só este PC coleta, para não gravar em dobro.",
         ):
