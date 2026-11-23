@@ -208,6 +208,15 @@ def unir(conexao, manter_id, remover_id, criterio, detalhes):
               AND NOT EXISTS (SELECT 1 FROM {tabela} WHERE jogo_id = :manter)
         """), p).rowcount
 
+    # Se a auditoria do removido ficou para trás (o mantido já tinha uma), o
+    # histórico dela passa para a do mantido; senão o ON DELETE CASCADE da
+    # auditoria removida apagaria esse histórico.
+    movidos["auditorias_historico_religadas"] = conexao.execute(text("""
+        UPDATE auditorias_conteudo_historico h SET auditoria_id = m.id
+        FROM auditorias_conteudo r, auditorias_conteudo m
+        WHERE r.jogo_id = :remover AND m.jogo_id = :manter AND h.auditoria_id = r.id
+    """), p).rowcount
+
     for tabela in TABELAS_USUARIO_JOGO:
         movidos[tabela] = conexao.execute(text(f"""
             UPDATE {tabela} t SET jogo_id = :manter
