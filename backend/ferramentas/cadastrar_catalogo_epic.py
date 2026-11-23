@@ -32,6 +32,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from ..banco_dados import SessionLocal
+from ..servicos.identidade_jogos import appids_steam_das_ofertas_epic, nomes_compativeis
 from ..modelos import (
     EpicCatalogo as EpicCatalogoModel,
     EpicOferta,
@@ -324,6 +325,11 @@ def _carregar_indices(db: Session) -> dict[str, dict[Any, Any]]:
             for jogo in jogos
             if jogo.url_epic
         },
+        "jogos_por_steam_id": {
+            str(jogo.steam_id): jogo
+            for jogo in jogos
+            if jogo.steam_id
+        },
         "catalogos_por_epic_id": {
             catalogo.epic_id: catalogo
             for catalogo in catalogos
@@ -417,7 +423,11 @@ def _atualizar_jogo(
     if epic_id:
         jogo.epic_id = epic_id
 
-    if nome:
+    # Em jogo que também está na Steam, a Steam é a fonte dos dados gerais
+    # (nome, estúdio, gênero, lançamento); a Epic só completa os seus campos.
+    so_epic = not jogo.steam_id
+
+    if nome and so_epic:
         jogo.nome = nome
 
     jogo.descricao_epic = (
@@ -433,14 +443,14 @@ def _atualizar_jogo(
     if url_epic:
         jogo.url_epic = url_epic
 
-    if dados.get("desenvolvedor"):
+    if dados.get("desenvolvedor") and (so_epic or not jogo.desenvolvedor):
         jogo.desenvolvedor = dados["desenvolvedor"]
 
-    if dados.get("publicadora"):
+    if dados.get("publicadora") and (so_epic or not jogo.publicadora):
         jogo.publicadora = dados["publicadora"]
 
     generos = extrair_generos(dados.get("tags"))
-    if generos:
+    if generos and (so_epic or not jogo.genero):
         jogo.genero = ", ".join(generos)
 
     data_lancamento = _converter_data(
@@ -448,7 +458,7 @@ def _atualizar_jogo(
         or dados.get("data_lancamento_pc")
     )
 
-    if data_lancamento:
+    if data_lancamento and (so_epic or not jogo.data_lancamento):
         jogo.data_lancamento = data_lancamento
 
     # O preço atual e o histórico serão tratados pela etapa de histórico
@@ -633,6 +643,41 @@ def _salvar_oferta(
     return oferta, criada
 
 
+def _buscar_vinculos_steam(indices, jogos):
+    """{offer_id: (itad_id, [AppIDs Steam])} para as ofertas da carga.
+
+    Falha do ITAD não interrompe o cadastro: os jogos são criados como antes
+    e eventuais duplicatas podem ser unidas depois por unificar_jogos_lojas.
+    """
+    offers = [d.get("epic_offer_id") for d in jogos if d.get("epic_offer_id")]
+    if not offers:
+        return {}
+    try:
+        vinculos = appids_steam_das_ofertas_epic(offers)
+    except Exception as erro:
+        print(f"⚠️ ITAD indisponível ({erro}); jogos novos não serão casados com a Steam.")
+        return {}
+    print(f"ITAD: {len(vinculos)} de {len(offers)} ofertas reconhecidas.")
+    return vinculos
+
+
+def _jogo_steam_correspondente(indices, dados, vinculos_steam):
+    """Jogo só-Steam que é o mesmo da oferta Epic, ou None.
+
+    Exige um único AppID no ITAD, jogo Steam ainda sem Epic e nome compatível
+    (o ITAD erra em títulos genéricos como "Deluxe Edition").
+    """
+    _, appids = vinculos_steam.get(dados.get("epic_offer_id")) or (None, [])
+    candidatos = [indices["jogos_por_steam_id"].get(a) for a in appids]
+    candidatos = [c for c in candidatos if c is not None]
+    if len(candidatos) != 1:
+        return None
+    jogo = candidatos[0]
+    if jogo.epic_id or not nomes_compativeis(jogo.nome, dados.get("nome")):
+        return None
+    return jogo
+
+
 def cadastrar_catalogo(
     db: Session,
     jogos: list[dict[str, Any]],
@@ -665,11 +710,25 @@ def cadastrar_catalogo(
         f"{len(indices['ofertas_por_offer_id'])} ofertas por offer_id."
     )
 
+    # Antes de criar jogos novos, procura o mesmo jogo já cadastrado pela
+    # Steam (via ITAD). Sem isso, cada jogo presente nas duas lojas virava
+    # duas linhas na tabela jogos.
+    vinculos_steam = _buscar_vinculos_steam(indices, jogos)
+    vinculados_steam = 0
+
     # Primeira fase: encontrar/criar/atualizar os Jogo.
     itens_processados = []
 
     for indice, dados in enumerate(jogos, 1):
         jogo, origem = _buscar_jogo_existente_indices(indices, dados)
+
+        if jogo is None:
+            jogo = _jogo_steam_correspondente(indices, dados, vinculos_steam)
+            if jogo is not None:
+                origem = "steam via itad"
+                vinculados_steam += 1
+
+        itad_id = (vinculos_steam.get(dados.get("epic_offer_id")) or (None,))[0]
 
         if jogo is None:
             jogo = _criar_jogo(dados)
@@ -685,6 +744,9 @@ def cadastrar_catalogo(
             )
             _atualizar_jogo(jogo, dados)
             atualizados += 1
+
+        if itad_id and not jogo.itad_id:
+            jogo.itad_id = itad_id
 
         itens_processados.append((jogo, dados, origem))
 
@@ -833,6 +895,7 @@ def cadastrar_catalogo(
 
     resultado = {
         "jogos_novos": novos,
+        "jogos_vinculados_steam": vinculados_steam,
         "jogos_atualizados": atualizados,
         "catalogos_novos": catalogos_novos,
         "catalogos_atualizados": catalogos_atualizados,

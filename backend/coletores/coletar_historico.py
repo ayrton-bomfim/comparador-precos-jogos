@@ -25,12 +25,14 @@ ROOT_DIR = os.path.abspath(
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
+import time
+from collections import Counter
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import func, and_, cast, Date
+from sqlalchemy import func, and_, cast, Date, insert, text, update
 from dotenv import load_dotenv
 from backend.coletores.steam_coletor import SteamColetor
 from backend.banco_dados import SessionLocal
-from backend.modelos import Jogo, HistoricoPreco, AuditoriaConteudo
+from backend.modelos import Jogo, HistoricoPreco
 
 # Reutiliza a classificação de disponibilidade regional do coletor de dados
 # Steam. O módulo não executa sua rotina principal ao ser importado.
@@ -46,11 +48,25 @@ OVERLAP_HOURS = 48
 PRIMEIRA_JANELA_DIAS = 30
 STEAM_API_KEY_NAMES = ["STEAM_API_KEY", "STEAM_WEB_API_KEY", "STEAM_KEY"]
 
-# Fallback individual: usado somente quando o GetItems não resolve
-# o preço ou quando detectamos uma mudança de estado que precisa
-# de confirmação antes de gravar no histórico.
-FALLBACK_INTERVAL_SECONDS = 2.0
+# Consulta individual (AppDetails -> página da loja): usada somente quando o
+# GetItems não traz preço ou quando não foi possível identificar o pacote do
+# próprio jogo. O AppDetails aceita ~200 consultas a cada 5 minutos.
+FALLBACK_INTERVAL_SECONDS = 1.5
+# Teto de consultas individuais por execução. Se o GetItems estiver fora do
+# ar, isso evita que a coleta volte a levar horas; o restante fica para o
+# dia seguinte e a execução é marcada como parcial.
+MAX_FALLBACKS_POR_EXECUCAO = 300
+# Jogo DISPONIVEL sem preço já verificado individualmente há menos destes
+# dias não é consultado de novo. Sem isso, os mesmos ~100 jogos (fora de
+# venda, sem conclusão de disponibilidade) custavam ~14 min todo dia.
+REVERIFICAR_SEM_PRECO_DIAS = 7
 COMMIT_PROGRESSO_A_CADA = 100
+# Abaixo desta fração de jogos com preço obtido, a etapa é marcada como falha.
+COBERTURA_MINIMA = 0.9
+# Até esta fração de erros a etapa conta como concluída com avisos.
+TOLERANCIA_ERROS = 0.01
+# Quantas mudanças são detalhadas no log; as demais entram só no resumo.
+EXEMPLOS_NO_LOG = 15
 
 # Evita reconsultar diariamente casos sem conclusão ou explicitamente
 # indisponíveis, que serão avaliados manualmente. Para registros sem status,
@@ -414,162 +430,381 @@ def _verificar_disponibilidade_br_diaria(
     }
 
 
-def _classificar_por_getitems(jogo, dados, tentados, resumo):
-    """Usa preço retornado pelo GetItems em contexto BR como evidência positiva."""
-    status_atual = (getattr(jogo, "steam_disponibilidade_br", None) or "").upper()
-    if status_atual or not dados or "erro" in dados:
-        return False
+def _carregar_candidatos_diarios(db):
+    """Jogos DISPONIVEL na Steam BR, exceto os excluídos pela curadoria.
 
-    preco_texto = str(dados.get("preco") or "").strip()
-    preco_lower = preco_texto.lower()
-    if preco_lower in {"grátis", "gratis", "free"}:
-        status_novo = "GRATUITO"
-        is_free = True
-        observacao = "GetItems com contexto BR retornou o jogo como gratuito"
-    else:
-        preco = _parse_preco(dados.get("preco"))
-        if preco is None or preco <= 0:
-            return False
-        status_novo = "DISPONIVEL"
-        is_free = False
-        observacao = "GetItems com contexto BR retornou preço próprio"
-
-    jogo.steam_disponibilidade_br = status_novo
-    if hasattr(jogo, "steam_is_free"):
-        jogo.steam_is_free = is_free
-    tentados.add(jogo.id)
-    resumo["verificacoes_ok"] += 1
-    resumo[f"status_{status_novo.lower()}"] += 1
-    print(
-        f"  Disponibilidade BR: NULL -> {status_novo} | evidência: {observacao}"
-    )
-    _registrar_diagnostico_disponibilidade({
-        "data_verificacao": datetime.now().isoformat(timespec="seconds"),
-        "modo_execucao": "APLICACAO",
-        "jogo_id": jogo.id,
-        "steam_id": jogo.steam_id,
-        "nome": jogo.nome,
-        "status_anterior": "",
-        "status_novo": status_novo,
-        "observacao": observacao,
-        "classificacao_execucao": "OK_GETITEMS",
-        "http_status_appdetails": "",
-        "http_status_store": "",
-        "steam_is_free": is_free,
-        "preco_base_steam": getattr(jogo, "preco_base_steam", None),
-        "erro": "",
-    })
-    return True
+    Carrega só as colunas usadas na comparação. Antes, 190 mil linhas
+    completas (descrições, requisitos em JSON etc.) eram trazidas como
+    objetos ORM, e cada commit as expirava, gerando uma consulta ao banco por
+    jogo no restante do laço.
+    """
+    return db.execute(text("""
+        SELECT j.id, j.nome, j.steam_id, j.steam_dados_atualizados_em
+        FROM jogos j
+        WHERE j.steam_id IS NOT NULL
+          AND upper(j.steam_disponibilidade_br) = 'DISPONIVEL'
+          AND NOT EXISTS (
+              SELECT 1 FROM auditorias_conteudo a
+              WHERE a.jogo_id = j.id AND a.status = 'excluido'
+          )
+        ORDER BY j.id
+    """)).all()
 
 
-def _preco_from_verificacao_disponibilidade(resultado):
-    """Reutiliza os dados de preço da resposta AppDetails usada na classificação."""
-    if not resultado:
+def _carregar_ultimos_estados_steam(db):
+    """Último estado Steam de cada jogo, em uma única consulta."""
+    linhas = db.execute(text("""
+        SELECT DISTINCT ON (jogo_id)
+               jogo_id, preco_atual, preco_sem_desconto, desconto,
+               promocao_id, promocao_nome, promocao_tipo,
+               promocao_inicio, promocao_fim
+        FROM historico_precos
+        WHERE plataforma = 'Steam'
+        ORDER BY jogo_id, data_coleta DESC, id DESC
+    """)).all()
+    return {linha.jogo_id: linha for linha in linhas}
+
+
+def _estado_de_dados(dados):
+    """Converte a resposta da Steam no estado comparável com o histórico."""
+    preco = _parse_preco(dados.get("preco"))
+    if preco is None:
         return None
-    dados = resultado.get("dados") or {}
-    status = dados.get("steam_disponibilidade_br")
-    atual = dados.get("steam_preco_atual_brl")
-    original = dados.get("steam_preco_original_brl")
-    desconto = dados.get("steam_desconto_percentual", 0)
 
-    if status == "GRATUITO":
-        return {
-            "preco": "Grátis",
-            "preco_sem_desconto": "Grátis",
-            "desconto": "0%",
-            "fonte": "APPDETAILS_V10_REUTILIZADO",
-        }
-    if status != "DISPONIVEL" or atual is None:
-        return None
+    original = _parse_preco(dados.get("preco_sem_desconto"))
     if original is None:
-        original = atual
+        original = preco
+
+    try:
+        desconto = int(str(dados.get("desconto") or "0").replace("%", "").replace("-", "").strip() or 0)
+    except ValueError:
+        desconto = 0
+
     return {
-        "preco": _formatar_moeda(atual),
-        "preco_sem_desconto": _formatar_moeda(original),
-        "desconto": f"{int(desconto or 0)}%",
-        "fonte": "APPDETAILS_V10_REUTILIZADO",
+        "preco_atual": preco,
+        "preco_sem_desconto": original,
+        "desconto": desconto,
+        **_promocao_de_dados(dados),
     }
 
 
-def _carregar_ultimos_historicos_steam_todos_disponiveis(db, jogo_ids):
-    """Carrega apenas o histórico Steam mais recente de cada jogo informado."""
-    if not jogo_ids:
-        return {}
+def _promocao_de_dados(dados):
+    """Campos de promoção informados pelo GetItems (vazios se não houver)."""
+    dados = dados or {}
+    return {
+        campo: dados.get(campo)
+        for campo in (
+            "promocao_id", "promocao_nome", "promocao_tipo",
+            "promocao_inicio", "promocao_fim",
+        )
+    }
 
-    ultima_data = (
-        db.query(
-            HistoricoPreco.jogo_id.label("jogo_id"),
-            func.max(HistoricoPreco.data_coleta).label("ultima_data"),
+
+def _motivos_mudanca(ultimo, estado):
+    """Lista as mudanças de estado; vazia quando nada relevante mudou.
+
+    A simples mudança de dia não gera registro.
+    """
+    if ultimo is None:
+        return ["Primeiro registro"]
+
+    motivos = []
+    preco_anterior = round(float(ultimo.preco_atual), 2)
+    if abs(estado["preco_atual"] - preco_anterior) > 0.01:
+        motivos.append(
+            f"Preço alterado (R$ {preco_anterior:.2f} -> R$ {estado['preco_atual']:.2f})"
         )
-        .filter(
-            HistoricoPreco.jogo_id.in_(jogo_ids),
-            HistoricoPreco.plataforma == "Steam",
-        )
-        .group_by(HistoricoPreco.jogo_id)
-        .subquery()
+
+    if ultimo.preco_sem_desconto is None:
+        motivos.append("Preço original passou a ser informado")
+    elif abs(estado["preco_sem_desconto"] - round(float(ultimo.preco_sem_desconto), 2)) > 0.01:
+        motivos.append("Preço original alterado")
+
+    if estado["desconto"] != (ultimo.desconto or 0):
+        motivos.append(f"Desconto alterado ({ultimo.desconto or 0}% -> {estado['desconto']}%)")
+
+    for campo, rotulo in (
+        ("promocao_id", "ID da promoção alterado"),
+        ("promocao_nome", "Nome da promoção alterado"),
+        ("promocao_tipo", "Tipo da promoção alterado"),
+        ("promocao_inicio", "Início da promoção alterado"),
+        ("promocao_fim", "Fim da promoção alterado"),
+    ):
+        if estado[campo] != getattr(ultimo, campo):
+            motivos.append(rotulo)
+
+    return motivos
+
+
+def _aplicar_preco_confirmado(estado, dados_confirmacao):
+    """Substitui preço/original/desconto pelos da fonte individual."""
+    preco, original, desconto = _extrair_preco_fallback(dados_confirmacao or {})
+    if preco is None:
+        return None
+    if not desconto:
+        # A fonte individual não vê promoção: não herda a do GetItems.
+        estado = {**estado, **_promocao_de_dados(None)}
+    return {
+        **estado,
+        "preco_atual": preco,
+        "preco_sem_desconto": original if original is not None else preco,
+        "desconto": desconto,
+    }
+
+
+def _resumo_disponibilidade_vazio():
+    return {
+        "verificacoes_ok": 0,
+        "status_disponivel": 0,
+        "status_gratuito": 0,
+        "status_indisponivel": 0,
+        "status_indeterminado": 0,
+        "nao_classificados_com_sucesso": 0,
+        "erros_disponibilidade": 0,
+    }
+
+
+async def _coletar_precos_diarios(db, coletor, limite_jogos=None):
+    """Coleta diária: GetItems em lote, comparação em memória e gravação em lote.
+
+    Consultas individuais (AppDetails) ficam restritas a:
+    - jogos sem preço no GetItems (até MAX_FALLBACKS_POR_EXECUCAO);
+    - mudanças em que não foi possível identificar o pacote do próprio jogo.
+    """
+    inicio = time.monotonic()
+    agora = datetime.now()
+
+    total_catalogo = db.execute(
+        text("SELECT count(*) FROM jogos WHERE steam_id IS NOT NULL")
+    ).scalar()
+    candidatos = _carregar_candidatos_diarios(db)
+    total_candidatos = len(candidatos)
+    if limite_jogos is not None:
+        candidatos = candidatos[:limite_jogos]
+
+    print(f"\nJogos com Steam no banco: {total_catalogo:,}")
+    print(f"Jogos elegíveis (DISPONIVEL, fora da exclusão): {total_candidatos:,}")
+    if limite_jogos is not None:
+        print(f"Limite desta execução: {limite_jogos}")
+    print(f"Seleção carregada em {time.monotonic() - inicio:.1f}s")
+
+    if not candidatos:
+        db.commit()
+        return {
+            "status": "sem_itens",
+            "fonte": "Steam",
+            "modo": "historico_precos",
+            "total_catalogo": total_catalogo,
+            "total_candidatos": total_candidatos,
+            "total_processado": 0,
+            "novos_registros": 0,
+            "ignorados": 0,
+            "erros": 0,
+        }
+
+    dados_lote = await coletor.coletar_precos_lote([c.steam_id for c in candidatos])
+
+    t_hist = time.monotonic()
+    ultimos = _carregar_ultimos_estados_steam(db)
+    print(f"Últimos estados carregados: {len(ultimos):,} jogos ({time.monotonic() - t_hist:.1f}s)")
+
+    novos = []
+    precos_base = {}
+    sem_preco = []
+    a_confirmar = []
+    ignorados = 0
+    erros_lote = 0
+    motivos_contagem = Counter()
+
+    def registrar(candidato, estado, motivos):
+        novos.append({
+            "jogo_id": candidato.id,
+            "nome_jogo": candidato.nome,
+            "plataforma": "Steam",
+            "data_coleta": agora,
+            **estado,
+        })
+        for motivo in motivos:
+            motivos_contagem[motivo.split(" (")[0]] += 1
+        if len(novos) <= EXEMPLOS_NO_LOG:
+            print(f"  [{candidato.steam_id}] {candidato.nome}: {' | '.join(motivos)}")
+        if estado["preco_sem_desconto"] > 0:
+            precos_base[candidato.id] = estado["preco_sem_desconto"]
+
+    print(f"\nComparando com o histórico (primeiras {EXEMPLOS_NO_LOG} mudanças):")
+    for candidato in candidatos:
+        steam_id = str(candidato.steam_id)
+        if steam_id in coletor.ids_lotes_falhos:
+            erros_lote += 1
+            continue
+
+        dados = dados_lote.get(steam_id)
+        estado = _estado_de_dados(dados) if dados and "erro" not in dados else None
+        if estado is None:
+            sem_preco.append(candidato)
+            continue
+
+        motivos = _motivos_mudanca(ultimos.get(candidato.id), estado)
+        if not motivos:
+            ignorados += 1
+            continue
+
+        if not dados.get("opcao_confiavel", True):
+            a_confirmar.append((candidato, estado, motivos))
+            continue
+
+        registrar(candidato, estado, motivos)
+
+    def gravar_pendentes():
+        """Grava os registros novos e o preço base em poucas instruções."""
+        gravados = 0
+        while novos:
+            bloco = novos[:1000]
+            db.execute(insert(HistoricoPreco), bloco)
+            del novos[:1000]
+            gravados += len(bloco)
+        if precos_base:
+            db.execute(
+                update(Jogo),
+                [
+                    {"id": jogo_id, "preco_base_steam": valor, "updated_at": agora}
+                    for jogo_id, valor in precos_base.items()
+                ],
+            )
+            precos_base.clear()
+        db.commit()
+        return gravados
+
+    gravados = gravar_pendentes()
+    print(
+        f"\nGravados {gravados:,} registros do lote "
+        f"({time.monotonic() - inicio:.0f}s desde o início)."
     )
-    registros = (
-        db.query(HistoricoPreco)
-        .join(
-            ultima_data,
-            and_(
-                HistoricoPreco.jogo_id == ultima_data.c.jogo_id,
-                HistoricoPreco.data_coleta == ultima_data.c.ultima_data,
-                HistoricoPreco.plataforma == "Steam",
-            ),
+
+    # Mudanças sem pacote do jogo identificado: confirma pelo AppDetails.
+    confirmadas = descartadas = 0
+    if a_confirmar:
+        print(f"\nConfirmando {len(a_confirmar)} mudança(s) sem pacote do jogo identificado...")
+    for candidato, estado, motivos in a_confirmar:
+        confirmacao = await _executar_fallback_preco(coletor, candidato)
+        estado_confirmado = _aplicar_preco_confirmado(estado, confirmacao)
+        if estado_confirmado is None:
+            descartadas += 1
+            continue
+        motivos = _motivos_mudanca(ultimos.get(candidato.id), estado_confirmado)
+        if motivos:
+            confirmadas += 1
+            registrar(candidato, estado_confirmado, motivos)
+        else:
+            descartadas += 1
+            ignorados += 1
+
+    # Jogos sem preço no GetItems: AppDetails -> página da loja e, se nada
+    # funcionar, revalida a disponibilidade regional.
+    resumo_disponibilidade = _resumo_disponibilidade_vazio()
+    disponibilidade_tentados = set()
+    resolvidos_fallback = 0
+    limite_reverificacao = agora - timedelta(days=REVERIFICAR_SEM_PRECO_DIAS)
+    a_verificar = [
+        c for c in sem_preco
+        if c.steam_dados_atualizados_em is None
+        or c.steam_dados_atualizados_em.replace(tzinfo=None) < limite_reverificacao
+    ]
+    sem_preco_em_espera = len(sem_preco) - len(a_verificar)
+    sem_preco_nao_verificados = max(0, len(a_verificar) - MAX_FALLBACKS_POR_EXECUCAO)
+    if sem_preco:
+        print(
+            f"\nSem preço no GetItems: {len(sem_preco)} jogo(s); "
+            f"{sem_preco_em_espera} verificados há menos de {REVERIFICAR_SEM_PRECO_DIAS} dias; "
+            f"consultando {min(len(a_verificar), MAX_FALLBACKS_POR_EXECUCAO)} individualmente"
+            + (f" ({sem_preco_nao_verificados} ficam para a próxima execução)" if sem_preco_nao_verificados else "")
+            + "..."
         )
-        .all()
+    for candidato in a_verificar[:MAX_FALLBACKS_POR_EXECUCAO]:
+        dados_fallback = await _executar_fallback_preco(coletor, candidato)
+        estado = _aplicar_preco_confirmado(
+            _promocao_de_dados(dados_lote.get(str(candidato.steam_id))),
+            dados_fallback,
+        )
+        if estado is None:
+            jogo = db.get(Jogo, candidato.id)
+            _verificar_disponibilidade_br_diaria(
+                db,
+                jogo,
+                disponibilidade_tentados,
+                resumo_disponibilidade,
+                motivo="preço não confirmado pelo GetItems/fallback",
+                forcar=True,
+            )
+            ignorados += 1
+            continue
+
+        resolvidos_fallback += 1
+        motivos = _motivos_mudanca(ultimos.get(candidato.id), estado)
+        if motivos:
+            registrar(candidato, estado, motivos)
+        else:
+            ignorados += 1
+
+    gravados += gravar_pendentes()
+
+    duracao = time.monotonic() - inicio
+    com_preco = len(candidatos) - erros_lote - len(sem_preco) + resolvidos_fallback
+    cobertura = com_preco / len(candidatos) if candidatos else 1.0
+    erros = erros_lote + sem_preco_nao_verificados
+
+    print("\n" + "=" * 60)
+    print("RESUMO DA COLETA STEAM")
+    print("=" * 60)
+    print(f"  Jogos consultados: {len(candidatos):,}")
+    print(f"  Com preço obtido: {com_preco:,} ({cobertura:.1%})")
+    print(f"  Novos registros: {gravados:,}")
+    print(f"  Sem mudança: {ignorados:,}")
+    print(f"  Em lotes que falharam: {erros_lote:,}")
+    print(
+        f"  Sem preço no GetItems: {len(sem_preco):,} (resolvidos individualmente: "
+        f"{resolvidos_fallback}; aguardando reverificação: {sem_preco_em_espera})"
     )
-    ultimos = {}
-    for registro in registros:
-        if registro.jogo_id not in ultimos:
-            ultimos[registro.jogo_id] = registro
-    return ultimos
+    print(f"  Mudanças confirmadas pelo AppDetails: {confirmadas} (descartadas: {descartadas})")
+    if motivos_contagem:
+        print("  Motivos: " + ", ".join(f"{m}={q}" for m, q in motivos_contagem.most_common()))
+    print(
+        "  Disponibilidade revalidada: "
+        f"ok={resumo_disponibilidade['verificacoes_ok']}, "
+        f"erros={resumo_disponibilidade['erros_disponibilidade']}"
+    )
+    print(f"  Duração: {duracao:.0f}s")
 
-
-def _promocao_ainda_ativa(historico, agora_utc):
-    """Indica se o último histórico informa uma promoção com fim futuro."""
-    if historico is None or historico.promocao_fim is None:
-        return False
-    fim = historico.promocao_fim
-    if fim.tzinfo is None:
-        fim = fim.replace(tzinfo=timezone.utc)
+    if cobertura < COBERTURA_MINIMA:
+        status = "falha"
+    elif erros > len(candidatos) * TOLERANCIA_ERROS:
+        status = "parcial"
+    elif erros or resumo_disponibilidade["erros_disponibilidade"]:
+        status = "concluida_com_avisos"
     else:
-        fim = fim.astimezone(timezone.utc)
-    return fim > agora_utc
+        status = "concluida"
 
-
-def _carregar_ultimos_historicos_steam(db, jogo_ids):
-    """
-    Carrega de uma vez o último histórico Steam de cada jogo.
-
-    Evita uma consulta SQL individual para cada jogo durante o processamento.
-    A lógica de escolha do último registro continua sendo baseada em
-    data_coleta, como no fluxo original.
-    """
-    if not jogo_ids:
-        return {}
-
-    historicos = (
-        db.query(HistoricoPreco)
-        .filter(
-            HistoricoPreco.jogo_id.in_(jogo_ids),
-            HistoricoPreco.plataforma == "Steam",
-        )
-        .order_by(
-            HistoricoPreco.jogo_id.asc(),
-            HistoricoPreco.data_coleta.desc(),
-        )
-        .all()
-    )
-
-    ultimos = {}
-
-    for historico in historicos:
-        if historico.jogo_id not in ultimos:
-            ultimos[historico.jogo_id] = historico
-
-    return ultimos
+    return {
+        "status": status,
+        "fonte": "Steam",
+        "modo": "historico_precos",
+        "total_catalogo": total_catalogo,
+        "total_candidatos": total_candidatos,
+        "total_processado": len(candidatos),
+        "com_preco": com_preco,
+        "cobertura": round(cobertura, 4),
+        "novos_registros": gravados,
+        "ignorados": ignorados,
+        "erros": erros,
+        "lotes_falhos_ids": erros_lote,
+        "sem_preco_getitems": len(sem_preco),
+        "sem_preco_em_espera": sem_preco_em_espera,
+        "resolvidos_fallback": resolvidos_fallback,
+        "confirmacoes": {"confirmadas": confirmadas, "descartadas": descartadas},
+        "resumo_disponibilidade": resumo_disponibilidade,
+        "erros_disponibilidade": resumo_disponibilidade["erros_disponibilidade"],
+        "duracao_segundos": round(duracao, 1),
+    }
 
 
 async def coletar_historico_precos(
@@ -579,25 +814,20 @@ async def coletar_historico_precos(
     simular_disponibilidade_br=False,
 ):
     """
-    Coleta preços/promoções da Steam em lote e salva somente mudanças reais.
-
-    Os últimos históricos Steam são carregados em uma única consulta SQL
-    antes do processamento, evitando uma consulta individual por jogo.
+    Coleta preços/promoções da Steam e salva somente mudanças reais.
 
     Um novo registro é criado quando muda pelo menos um dos campos de estado:
-    - preço atual;
-    - preço original;
-    - desconto;
-    - promoção (ID, nome, tipo, início ou fim).
+    preço atual, preço original, desconto ou promoção (ID, nome, tipo,
+    início ou fim). A simples mudança de dia não cria registro.
 
-    A simples mudança de dia/data_coleta não cria um novo registro.
+    Com somente_disponibilidade_br=True, apenas reavalia a disponibilidade
+    regional dos apps modificados recentemente, sem tocar no histórico.
     """
     print("=" * 60)
     print("COLETANDO HISTÓRICO DE PREÇOS (STEAM)")
     print("Consulta principal: IStoreBrowseService/GetItems em lote")
-    print("Fallback: AppDetails -> página individual Steam, somente quando necessário")
-    print("Disponibilidade BR: classificação do coletor de dados Steam para status ausente e casos suspeitos")
-    print("Coleta diária: somente DISPONIVEL; promoções com fim futuro são adiadas")
+    print("Preço: pacote do próprio jogo (bundles são ignorados)")
+    print("Consulta individual: só sem preço no lote ou pacote não identificado")
     print("Novo registro: mudança de estado do preço/promoção")
     print("=" * 60)
     print(f"Início: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
@@ -606,591 +836,102 @@ async def coletar_historico_precos(
     coletor = SteamColetor()
 
     try:
-        # A lista incremental da Steam fica restrita ao modo de verificação
-        # de disponibilidade. A coleta diária de preços não depende mais dela.
-        apps_modificados = set()
-        if somente_disponibilidade_br:
-            inicio_janela = _obter_janela_incremental(db, primeira_coleta)
-            apps_modificados = _buscar_apps_steam_modificados(inicio_janela)
+        if not somente_disponibilidade_br:
+            return await _coletar_precos_diarios(db, coletor, limite_jogos)
+
+        inicio_janela = _obter_janela_incremental(db, primeira_coleta)
+        apps_modificados = _buscar_apps_steam_modificados(inicio_janela)
 
         jogos_catalogo = (
             db.query(Jogo)
             .filter(Jogo.steam_id.isnot(None))
             .all()
         )
-
-        if somente_disponibilidade_br:
-            ids_catalogo = {str(jogo.steam_id) for jogo in jogos_catalogo}
-            # Mantém o modo separado de diagnóstico de disponibilidade
-            # baseado na lista incremental de aplicativos modificados.
-            jogos = [
-                jogo
-                for jogo in jogos_catalogo
-                if str(jogo.steam_id) in apps_modificados
-                and (getattr(jogo, "steam_disponibilidade_br", None) or "").upper()
-                != "GRATUITO"
-            ]
-            total_candidatos_diarios = len(jogos)
-            jogos = [
-                jogo for jogo in jogos
-                if _disponibilidade_precisa_de_verificacao(jogo, forcar=False)
-            ]
-        else:
-            # Na coleta diária de preços, exclui jogos com auditoria explicitamente
-            # EXCLUIDA. PENDENTE não é excluído e continua dependendo do status
-            # regional para entrar na coleta.
-            auditorias_excluidas = {
-                registro.jogo_id
-                for registro in db.query(AuditoriaConteudo.jogo_id)
-                .filter(AuditoriaConteudo.status == "excluido")
-                .all()
-            }
-            jogos_catalogo_precos = [
-                jogo for jogo in jogos_catalogo
-                if jogo.id not in auditorias_excluidas
-            ]
-            ids_catalogo = {str(jogo.steam_id) for jogo in jogos_catalogo_precos}
-
-            # A tabela jogos é a fonte principal: somente DISPONIVEL é elegível.
-            jogos_disponiveis = [
-                jogo for jogo in jogos_catalogo_precos
-                if (getattr(jogo, "steam_disponibilidade_br", None) or "").upper()
-                == "DISPONIVEL"
-            ]
-            ultimos_historicos_selecao = (
-                _carregar_ultimos_historicos_steam_todos_disponiveis(
-                    db, [jogo.id for jogo in jogos_disponiveis]
-                )
-            )
-            agora_utc = datetime.now(timezone.utc)
-            # Promoção com fim futuro: adiar. Sem fim conhecido ou fim atingido:
-            # consultar normalmente na coleta diária.
-            jogos = [
-                jogo for jogo in jogos_disponiveis
-                if not _promocao_ainda_ativa(
-                    ultimos_historicos_selecao.get(jogo.id), agora_utc
-                )
-            ]
-            total_candidatos_diarios = len(jogos)
+        ids_catalogo = {str(jogo.steam_id) for jogo in jogos_catalogo}
+        jogos = [
+            jogo
+            for jogo in jogos_catalogo
+            if str(jogo.steam_id) in apps_modificados
+            and (getattr(jogo, "steam_disponibilidade_br", None) or "").upper()
+            != "GRATUITO"
+        ]
+        jogos = [
+            jogo for jogo in jogos
+            if _disponibilidade_precisa_de_verificacao(jogo, forcar=False)
+        ]
 
         if limite_jogos is not None:
             jogos = jogos[:limite_jogos]
 
         print(f"\nJogos com Steam no banco: {len(jogos_catalogo):,}")
-        print(f"Jogos elegíveis para esta execução: {total_candidatos_diarios:,}")
         print(f"Apps Steam fora do catálogo: {len(apps_modificados - ids_catalogo):,}")
-        if limite_jogos is not None:
-            print(f"Limite desta execução: {limite_jogos}")
 
         if not jogos:
-            if somente_disponibilidade_br:
-                print("Nenhum candidato elegível para verificação de disponibilidade BR nesta execução.")
-                if simular_disponibilidade_br:
-                    db.rollback()
-                else:
-                    db.commit()
+            print("Nenhum candidato elegível para verificação de disponibilidade BR nesta execução.")
+            if simular_disponibilidade_br:
+                db.rollback()
             else:
-                print("Nenhum jogo elegível para coleta diária nesta execução.")
                 db.commit()
             return {
                 "status": "sem_itens",
                 "fonte": "Steam",
+                "modo": "somente_disponibilidade_br",
                 "total_catalogo": len(jogos_catalogo),
-                "total_candidatos": total_candidatos_diarios,
                 "total_processado": 0,
                 "novos_registros": 0,
                 "ignorados": 0,
                 "erros": 0,
-                "modo": "somente_disponibilidade_br" if somente_disponibilidade_br else "historico_precos",
             }
 
-        if somente_disponibilidade_br:
-            print("\nMODO SOMENTE DISPONIBILIDADE BR")
-            print(f"Candidatos elegíveis: {len(jogos):,}")
-            print(f"Simulação sem gravar no PostgreSQL: {simular_disponibilidade_br}")
+        print("\nMODO SOMENTE DISPONIBILIDADE BR")
+        print(f"Candidatos elegíveis: {len(jogos):,}")
+        print(f"Simulação sem gravar no PostgreSQL: {simular_disponibilidade_br}")
 
-            resumo_disponibilidade = {
-                "verificacoes_ok": 0,
-                "status_disponivel": 0,
-                "status_gratuito": 0,
-                "status_indisponivel": 0,
-                "status_indeterminado": 0,
-                "nao_classificados_com_sucesso": 0,
-                "erros_disponibilidade": 0,
-            }
-            disponibilidade_tentados = set()
-
-            for i, jogo in enumerate(jogos, 1):
-                print(
-                    f"\n[{i}/{len(jogos)}] {jogo.nome} "
-                    f"(Steam ID: {jogo.steam_id})"
-                )
-                _verificar_disponibilidade_br_diaria(
-                    db,
-                    jogo,
-                    disponibilidade_tentados,
-                    resumo_disponibilidade,
-                    motivo="modo somente disponibilidade",
-                    forcar=False,
-                    simular=simular_disponibilidade_br,
-                )
-                if not simular_disponibilidade_br and i % COMMIT_PROGRESSO_A_CADA == 0:
-                    db.commit()
-                    print(f"  [CHECKPOINT] Disponibilidade salva: {i}/{len(jogos)}")
-
-            if simular_disponibilidade_br:
-                db.rollback()
-                print("\nSIMULAÇÃO: nenhuma alteração foi gravada no PostgreSQL.")
-            else:
-                db.commit()
-                print("\nAtualizações de disponibilidade confirmadas no PostgreSQL.")
-
-            print(f"CSV de diagnóstico: {ARQUIVO_DISPONIBILIDADE_BR}")
-            print(
-                "Resumo: "
-                f"OK={resumo_disponibilidade['verificacoes_ok']}, "
-                f"erros={resumo_disponibilidade['erros_disponibilidade']}, "
-                f"não classificáveis={resumo_disponibilidade['nao_classificados_com_sucesso']}"
-            )
-            erros_disponibilidade = resumo_disponibilidade["erros_disponibilidade"]
-            return {
-                "status": "parcial" if erros_disponibilidade else "concluida",
-                "fonte": "Steam",
-                "modo": "somente_disponibilidade_br",
-                "total_processado": len(jogos),
-                "novos_registros": 0,
-                "ignorados": resumo_disponibilidade["nao_classificados_com_sucesso"],
-                "erros": erros_disponibilidade,
-                "resumo_disponibilidade": resumo_disponibilidade,
-            }
-
-        ids = [jogo.steam_id for jogo in jogos]
-        dados_lote = await coletor.coletar_precos_lote(ids)
-
-        print("\nCarregando últimos históricos da Steam em uma única consulta...")
-        ultimos_historicos = _carregar_ultimos_historicos_steam(
-            db,
-            [jogo.id for jogo in jogos],
-        )
-        print(
-            f"Últimos históricos carregados: "
-            f"{len(ultimos_historicos)} jogos."
-        )
-
-        alterados = 0
-        erros = 0
-        ignorados = 0
+        resumo_disponibilidade = _resumo_disponibilidade_vazio()
         disponibilidade_tentados = set()
-        resumo_disponibilidade = {
-            "verificacoes_ok": 0,
-            "status_disponivel": 0,
-            "status_gratuito": 0,
-            "status_indisponivel": 0,
-            "status_indeterminado": 0,
-            "nao_classificados_com_sucesso": 0,
-            "erros_disponibilidade": 0,
-        }
 
         for i, jogo in enumerate(jogos, 1):
             print(
-                f"\n[{i}/{len(jogos)}] "
-                f"Processando: {jogo.nome} "
+                f"\n[{i}/{len(jogos)}] {jogo.nome} "
                 f"(Steam ID: {jogo.steam_id})"
             )
+            _verificar_disponibilidade_br_diaria(
+                db,
+                jogo,
+                disponibilidade_tentados,
+                resumo_disponibilidade,
+                motivo="modo somente disponibilidade",
+                forcar=False,
+                simular=simular_disponibilidade_br,
+            )
+            if not simular_disponibilidade_br and i % COMMIT_PROGRESSO_A_CADA == 0:
+                db.commit()
+                print(f"  [CHECKPOINT] Disponibilidade salva: {i}/{len(jogos)}")
 
-            try:
-                dados = dados_lote.get(str(jogo.steam_id))
+        if simular_disponibilidade_br:
+            db.rollback()
+            print("\nSIMULAÇÃO: nenhuma alteração foi gravada no PostgreSQL.")
+        else:
+            db.commit()
+            print("\nAtualizações de disponibilidade confirmadas no PostgreSQL.")
 
-                # GetItems já foi consultado em lote com country_code=BR.
-                # Se retornou preço próprio ou gratuito, usamos isso como
-                # evidência positiva e evitamos outro AppDetails individual.
-                _classificar_por_getitems(
-                    jogo,
-                    dados,
-                    disponibilidade_tentados,
-                    resumo_disponibilidade,
-                )
-
-                # Sem evidência positiva no lote, aplica o classificador de disponibilidade.
-                # INDETERMINADO/INDISPONIVEL continuam reservados para revisão.
-                resultado_disponibilidade = _verificar_disponibilidade_br_diaria(
-                    db,
-                    jogo,
-                    disponibilidade_tentados,
-                    resumo_disponibilidade,
-                    motivo="status ausente/desatualizado",
-                    forcar=False,
-                )
-
-                # GetItems continua sendo a fonte principal.
-                # Quando não existe preço utilizável, usamos o fallback
-                # individual controlado: AppDetails -> página Steam.
-                if not dados or dados.get("preco") in ("N/A", None):
-                    status_regional = (
-                        getattr(jogo, "steam_disponibilidade_br", None) or ""
-                    ).upper()
-
-                    # Não repetir AppDetails + Playwright quando a consulta
-                    # regional já deixou o caso inconclusivo/indisponível.
-                    if status_regional in {"INDETERMINADO", "INDISPONIVEL"}:
-                        print(
-                            f"  Fallback ignorado: status regional {status_regional}; "
-                            "caso reservado para revisão manual."
-                        )
-                        ignorados += 1
-                        continue
-
-                    # Se o classificador já consultou AppDetails e obteve preço, reutiliza-o.
-                    dados_fallback = _preco_from_verificacao_disponibilidade(
-                        resultado_disponibilidade
-                    )
-                    if dados_fallback is None:
-                        dados_fallback = await _executar_fallback_preco(
-                            coletor,
-                            jogo,
-                        )
-
-                    preco_fb, preco_original_fb, desconto_fb = (
-                        _extrair_preco_fallback(dados_fallback)
-                    )
-
-                    if preco_fb is None:
-                        # Se o jogo já constava como comercializado, mas tanto
-                        # GetItems quanto o fallback falharam em obter preço,
-                        # revalidamos o status regional. Em caso de erro/429,
-                        # o status atual é preservado.
-                        _verificar_disponibilidade_br_diaria(
-                            db,
-                            jogo,
-                            disponibilidade_tentados,
-                            resumo_disponibilidade,
-                            motivo="preço não confirmado pelo GetItems/fallback",
-                            forcar=True,
-                        )
-                        print(
-                            "  Fallback não conseguiu determinar o preço. "
-                            "Ignorando nesta execução."
-                        )
-                        ignorados += 1
-                        continue
-
-                    print(
-                        f"  Fallback resolveu o preço: "
-                        f"{_formatar_moeda(preco_fb)} "
-                        f"(fonte={dados_fallback.get('fonte', 'desconhecida')})"
-                    )
-
-                    dados = {
-                        **(dados or {}),
-                        "preco": dados_fallback.get("preco"),
-                        "preco_sem_desconto": (
-                            dados_fallback.get("preco_sem_desconto")
-                        ),
-                        "desconto": dados_fallback.get("desconto"),
-                    }
-
-                if "erro" in dados:
-                    erro = dados.get("erro", "Dados não disponíveis")
-                    print(f"  Erro retornado pelo GetItems: {erro}")
-                    erros += 1
-                    continue
-
-                # Conversão de preço atual
-                preco_str = dados.get("preco", "N/A")
-
-                preco_num = _parse_preco(preco_str)
-
-                if preco_num is None:
-                    _verificar_disponibilidade_br_diaria(
-                        db,
-                        jogo,
-                        disponibilidade_tentados,
-                        resumo_disponibilidade,
-                        motivo="preço não interpretável na coleta diária",
-                        forcar=True,
-                    )
-                    print(
-                        "  Preço indisponível. "
-                        "O histórico não será atualizado."
-                    )
-                    ignorados += 1
-                    continue
-
-                # Conversão de preço original
-                preco_original_str = dados.get(
-                    "preco_sem_desconto",
-                    "N/A",
-                )
-
-                preco_original_num = _parse_preco(preco_original_str)
-
-                if preco_original_num is None:
-                    preco_original_num = preco_num
-
-                desconto_str = dados.get("desconto", "0%")
-                try:
-                    desconto = (
-                        int(desconto_str.replace("%", ""))
-                        if desconto_str
-                        else 0
-                    )
-                except (ValueError, AttributeError):
-                    desconto = 0
-
-                # Dados da promoção retornados pelo GetItems.
-                promocao_id = dados.get("promocao_id")
-                promocao_nome = dados.get("promocao_nome")
-                promocao_tipo = dados.get("promocao_tipo")
-                promocao_inicio = dados.get("promocao_inicio")
-                promocao_fim = dados.get("promocao_fim")
-
-                ultimo_registro = ultimos_historicos.get(jogo.id)
-
-                deve_criar = False
-                motivos = []
-
-                if ultimo_registro is None:
-                    deve_criar = True
-                    motivos.append("Primeiro registro")
-                else:
-                    preco_atual_float = round(float(preco_num), 2)
-                    preco_anterior_float = round(
-                        float(ultimo_registro.preco_atual),
-                        2,
-                    )
-
-                    if abs(
-                        preco_atual_float - preco_anterior_float
-                    ) > 0.01:
-                        deve_criar = True
-                        motivos.append(
-                            "Preço alterado "
-                            f"(R$ {preco_anterior_float:.2f} -> "
-                            f"R$ {preco_atual_float:.2f})"
-                        )
-
-                    preco_original_anterior = (
-                        float(ultimo_registro.preco_sem_desconto)
-                        if ultimo_registro.preco_sem_desconto is not None
-                        else None
-                    )
-
-                    if (
-                        preco_original_anterior is None
-                        and preco_original_num is not None
-                    ):
-                        deve_criar = True
-                        motivos.append(
-                            "Preço original passou a ser informado"
-                        )
-                    elif (
-                        preco_original_anterior is not None
-                        and preco_original_num is not None
-                        and abs(
-                            round(preco_original_num, 2)
-                            - round(preco_original_anterior, 2)
-                        ) > 0.01
-                    ):
-                        deve_criar = True
-                        motivos.append(
-                            f"Preço original alterado "
-                            f"({_formatar_moeda(preco_original_anterior)} -> "
-                            f"{_formatar_moeda(preco_original_num)})"
-                        )
-
-                    if desconto != (ultimo_registro.desconto or 0):
-                        deve_criar = True
-                        motivos.append(
-                            "Desconto alterado "
-                            f"({ultimo_registro.desconto or 0}% -> {desconto}%)"
-                        )
-
-                    if promocao_id != ultimo_registro.promocao_id:
-                        deve_criar = True
-                        motivos.append("ID da promoção alterado")
-
-                    if promocao_nome != ultimo_registro.promocao_nome:
-                        deve_criar = True
-                        motivos.append("Nome da promoção alterado")
-
-                    if promocao_tipo != ultimo_registro.promocao_tipo:
-                        deve_criar = True
-                        motivos.append("Tipo da promoção alterado")
-
-                    if (
-                        promocao_inicio
-                        != ultimo_registro.promocao_inicio
-                    ):
-                        deve_criar = True
-                        motivos.append("Início da promoção alterado")
-
-                    if promocao_fim != ultimo_registro.promocao_fim:
-                        deve_criar = True
-                        motivos.append("Fim da promoção alterado")
-
-                if not deve_criar:
-                    print(
-                        f"  Nenhuma mudança de estado "
-                        f"({_formatar_moeda(preco_num)}, {desconto}%, "
-                        f"promoção={promocao_tipo or 'nenhuma'})"
-                    )
-                    ignorados += 1
-                    continue
-
-                # A mudança detectada pelo GetItems será confirmada por uma
-                # fonte individual antes de entrar no histórico.
-                #
-                # Isso protege casos como:
-                # GetItems -> R$ 13,99
-                # Página Steam -> R$ 39,99
-                #
-                # A confirmação é feita somente quando já existe uma mudança
-                # real a registrar, evitando scraping em massa.
-                dados_confirmacao = await _executar_fallback_preco(
-                    coletor,
-                    jogo,
-                )
-
-                (
-                    preco_confirmado,
-                    preco_original_confirmado,
-                    desconto_confirmado,
-                ) = _extrair_preco_fallback(dados_confirmacao)
-
-                if preco_confirmado is not None:
-                    if abs(preco_confirmado - preco_num) > 0.01:
-                        print(
-                            "  ATENÇÃO: divergência entre GetItems e "
-                            "fonte individual."
-                        )
-                        print(
-                            f"    GetItems: "
-                            f"{_formatar_moeda(preco_num)}"
-                        )
-                        print(
-                            f"    Confirmado: "
-                            f"{_formatar_moeda(preco_confirmado)}"
-                        )
-
-                        preco_num = preco_confirmado
-                        preco_original_num = (
-                            preco_original_confirmado
-                            if preco_original_confirmado is not None
-                            else preco_confirmado
-                        )
-                        desconto = desconto_confirmado
-
-                        # Recalcula a mudança contra o último histórico para
-                        # evitar gravar uma falsa alteração causada apenas
-                        # pelo GetItems.
-                        if ultimo_registro is not None:
-                            preco_anterior_float = round(
-                                float(ultimo_registro.preco_atual),
-                                2,
-                            )
-
-                            if abs(
-                                preco_num - preco_anterior_float
-                            ) <= 0.01:
-                                deve_criar = False
-                                print(
-                                    "  Divergência descartada: a fonte "
-                                    "individual confirma o preço anterior."
-                                )
-
-                if not deve_criar:
-                    ignorados += 1
-                    continue
-
-                historico = HistoricoPreco(
-                    jogo_id=jogo.id,
-                    nome_jogo=jogo.nome,
-                    plataforma="Steam",
-                    preco_atual=preco_num,
-                    preco_sem_desconto=preco_original_num,
-                    desconto=desconto,
-                    data_coleta=datetime.now(),
-                    promocao_id=promocao_id,
-                    promocao_nome=promocao_nome,
-                    promocao_tipo=promocao_tipo,
-                    promocao_inicio=promocao_inicio,
-                    promocao_fim=promocao_fim,
-                )
-
-                db.add(historico)
-
-                print("  " + " | ".join(motivos))
-                print(
-                    f"  Novo registro: {_formatar_moeda(preco_num)} "
-                    f"(original: {_formatar_moeda(preco_original_num)}, "
-                    f"desconto de {desconto}%)"
-                )
-
-                if promocao_tipo:
-                    print(
-                        f"  Tipo de promoção Steam: {promocao_tipo}"
-                    )
-
-                if promocao_fim:
-                    print(
-                        "  Fim da promoção: "
-                        f"{promocao_fim.strftime('%d/%m/%Y %H:%M UTC')}"
-                    )
-
-                alterados += 1
-
-                if preco_original_num > 0:
-                    jogo.preco_base_steam = preco_original_num
-                    jogo.updated_at = datetime.now()
-
-            except Exception as erro:
-                print(f"  Erro: {erro}")
-                erros += 1
-            finally:
-                # Checkpoint periódico para não perder horas de progresso se
-                # a coleta for interrompida durante a primeira varredura.
-                if i % COMMIT_PROGRESSO_A_CADA == 0:
-                    db.commit()
-                    print(f"  [CHECKPOINT] Progresso salvo: {i}/{len(jogos)} jogos")
-
-        db.commit()
-
-        print("\n" + "=" * 60)
-        print("RESUMO DA COLETA")
-        print("=" * 60)
-        print(f"  Novos registros: {alterados}")
-        print(f"  Ignorados (sem mudança): {ignorados}")
-        print(f"  Erros: {erros}")
-        print(f"  Total: {len(jogos)}")
-        print("\n  DISPONIBILIDADE STEAM BR:")
-        print(f"    Verificações válidas: {resumo_disponibilidade['verificacoes_ok']}")
-        print(f"    Disponível: {resumo_disponibilidade['status_disponivel']}")
-        print(f"    Gratuito: {resumo_disponibilidade['status_gratuito']}")
-        print(f"    Indisponível: {resumo_disponibilidade['status_indisponivel']}")
-        print(f"    Indeterminado: {resumo_disponibilidade['status_indeterminado']}")
+        print(f"CSV de diagnóstico: {ARQUIVO_DISPONIBILIDADE_BR}")
         print(
-            "    Sem classificação comercial (resposta válida): "
-            f"{resumo_disponibilidade['nao_classificados_com_sucesso']}"
+            "Resumo: "
+            f"OK={resumo_disponibilidade['verificacoes_ok']}, "
+            f"erros={resumo_disponibilidade['erros_disponibilidade']}, "
+            f"não classificáveis={resumo_disponibilidade['nao_classificados_com_sucesso']}"
         )
-        print(f"    Erros de verificação: {resumo_disponibilidade['erros_disponibilidade']}")
-        print(f"    Diagnóstico CSV: {ARQUIVO_DISPONIBILIDADE_BR}")
-        print(
-            f"  Fim: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
-        )
-
-        erros_totais = erros + resumo_disponibilidade["erros_disponibilidade"]
+        erros_disponibilidade = resumo_disponibilidade["erros_disponibilidade"]
         return {
-            "status": "parcial" if erros_totais else "concluida",
+            "status": "parcial" if erros_disponibilidade else "concluida",
             "fonte": "Steam",
-            "modo": "historico_precos",
-            "total_catalogo": len(jogos_catalogo),
-            "total_candidatos": total_candidatos_diarios,
+            "modo": "somente_disponibilidade_br",
             "total_processado": len(jogos),
-            "novos_registros": alterados,
-            "ignorados": ignorados,
-            "erros": erros,
+            "novos_registros": 0,
+            "ignorados": resumo_disponibilidade["nao_classificados_com_sucesso"],
+            "erros": erros_disponibilidade,
             "resumo_disponibilidade": resumo_disponibilidade,
-            "erros_disponibilidade": resumo_disponibilidade["erros_disponibilidade"],
         }
 
     except Exception as erro:

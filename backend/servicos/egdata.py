@@ -124,6 +124,108 @@ def _encontrar_promocao(applied_rules, offer_id):
     return candidatos[0]
 
 
+def normalizar_resposta_preco(dados, offer_id):
+    """Converte a resposta de /offers/{id}/price no contrato da aplicação.
+
+    Retorna None quando a resposta não traz preço original e atual.
+    """
+    preco = (dados or {}).get("price") or {}
+
+    original = converter_preco(preco.get("originalPrice"))
+    atual = converter_preco(preco.get("discountPrice"))
+
+    if original is None or atual is None:
+        return None
+
+    promocao = _encontrar_promocao(dados.get("appliedRules"), offer_id)
+
+    # O percentual é sempre calculado a partir dos próprios preços (ver
+    # comentário em buscar_preco_atual sobre o caso Watch Dogs 2).
+    return {
+        "offer_id": dados.get("offerId") or offer_id,
+        "preco": atual,
+        "preco_sem_desconto": original,
+        "desconto": int(calcular_desconto(original, atual) or 0),
+        "promocao_inicio": promocao["inicio"],
+        "promocao_fim": promocao["fim"],
+        "promocao_id": promocao["id"],
+        "promocao_nome": promocao["nome"],
+        "updated_at": converter_data(dados.get("updatedAt")),
+    }
+
+
+# Consulta por oferta. A EGDATA anuncia limite de 1.200 requisições por
+# minuto, mas aplica "tarpit" a consultas em sequência (resposta 204 após
+# ~5s, cabeçalho X-Egdata-Mitigation). Por isso ela é só a fonte reserva da
+# Epic, consultada uma oferta por vez e em volume limitado; o 204 se resolve
+# tentando de novo depois de alguns segundos.
+EGDATA_WORKERS = 1
+EGDATA_MAX_TENTATIVAS = 4
+EGDATA_ESPERA_INICIAL = 3.0
+
+
+def buscar_precos_por_oferta(offer_ids, country="BR", workers=EGDATA_WORKERS, progresso=None):
+    """Consulta o preço de várias ofertas em paralelo controlado.
+
+    Retorna (precos, sem_preco, falhas):
+        precos: {offer_id: dados normalizados}
+        sem_preco: offer_ids que a EGDATA respondeu sem preço válido (ou 404)
+        falhas: {offer_id: motivo} para erros que persistiram após as tentativas
+    """
+    import time
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    sessao = requests.Session()
+    sessao.headers.update({"Accept": "application/json", "User-Agent": "DESCTRL-Coleta/1.0"})
+
+    def consultar(offer_id):
+        espera = EGDATA_ESPERA_INICIAL
+        motivo = None
+        for _ in range(EGDATA_MAX_TENTATIVAS):
+            try:
+                resposta = sessao.get(
+                    EGDATA_PRECO_URL.format(offer_id=offer_id),
+                    params={"country": country},
+                    timeout=30,
+                )
+            except requests.RequestException as erro:
+                motivo = type(erro).__name__
+            else:
+                if resposta.status_code == 200:
+                    try:
+                        return offer_id, "ok", normalizar_resposta_preco(resposta.json(), offer_id)
+                    except ValueError:
+                        motivo = "JSON inválido"
+                elif resposta.status_code == 404:
+                    return offer_id, "ok", None
+                else:
+                    motivo = f"HTTP {resposta.status_code}"
+                    try:
+                        espera = max(espera, float(resposta.headers.get("Retry-After")))
+                    except (TypeError, ValueError):
+                        pass
+            time.sleep(espera)
+            espera = min(espera * 2, 30.0)
+        return offer_id, "falha", motivo
+
+    precos, sem_preco, falhas = {}, set(), {}
+    ids = list(dict.fromkeys(str(o) for o in offer_ids if o))
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futuros = [executor.submit(consultar, offer_id) for offer_id in ids]
+        for concluidos, futuro in enumerate(as_completed(futuros), 1):
+            offer_id, situacao, resultado = futuro.result()
+            if situacao == "falha":
+                falhas[offer_id] = resultado
+            elif resultado is None:
+                sem_preco.add(offer_id)
+            else:
+                precos[offer_id] = resultado
+            if progresso:
+                progresso(concluidos, len(ids), len(falhas))
+
+    return precos, sem_preco, falhas
+
+
 def buscar_preco_atual(offer_id, country="BR"):
     """
     Consulta o preço atual da oferta na EGDATA.

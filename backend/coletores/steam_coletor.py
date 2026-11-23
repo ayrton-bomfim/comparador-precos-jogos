@@ -8,6 +8,8 @@ com fallback para scraping direto quando necessário.
 import asyncio
 import json
 import re
+import time
+import unicodedata
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -18,8 +20,71 @@ from ..lista_jogos import JOGOS_STEAM
 
 
 # Número de lotes GetItems processados simultaneamente.
-# Valor inicial conservador para o teste de concorrência.
 GETITEMS_WORKERS = 4
+
+# A Steam responde 429 quando recebe lotes rápido demais. Em vez de
+# abandonar o lote (o que antes jogava 50 jogos para a consulta individual),
+# esperamos e tentamos de novo.
+GETITEMS_MAX_TENTATIVAS = 6
+GETITEMS_ESPERA_INICIAL = 5.0
+GETITEMS_ESPERA_MAXIMA = 60.0
+
+
+def _normalizar_nome(texto):
+    texto = unicodedata.normalize("NFKD", texto or "")
+    texto = texto.encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]+", "", texto)
+
+
+def _eh_pacote_do_jogo(opcao):
+    """Opção de compra que vende só este jogo (e não um bundle)."""
+    return (
+        opcao.get("packageid") is not None
+        and opcao.get("bundleid") is None
+        and (opcao.get("included_game_count") or 1) == 1
+    )
+
+
+def escolher_opcao_compra(item):
+    """Escolhe a opção de compra que representa o preço do próprio jogo.
+
+    O `best_purchase_option` da Steam é a opção mais barata para o usuário e,
+    às vezes, é um bundle (ex.: jogo + trilha sonora por R$ 16,00 enquanto o
+    jogo sozinho custa R$ 16,99). Esses casos geravam mudanças de preço falsas.
+
+    Retorna (opcao, confiavel). `confiavel` é False quando não foi possível
+    identificar com segurança o pacote do jogo; nesse caso, uma mudança de
+    preço deve ser confirmada por outra fonte antes de entrar no histórico.
+    """
+    best = item.get("best_purchase_option") or {}
+    opcoes = item.get("purchase_options") or []
+
+    if best and _eh_pacote_do_jogo(best):
+        return best, True
+
+    pacotes = [opcao for opcao in opcoes if _eh_pacote_do_jogo(opcao)]
+    if not pacotes:
+        # Nada além de bundles (ou nenhuma opção): mantém o comportamento
+        # anterior, mas sinaliza que o valor precisa de confirmação.
+        return best, not best
+
+    nome_jogo = _normalizar_nome(item.get("name"))
+    for opcao in pacotes:
+        if _normalizar_nome(opcao.get("purchase_option_name")) == nome_jogo:
+            return opcao, True
+
+    if len(pacotes) == 1:
+        return pacotes[0], True
+
+    def preco_original(opcao):
+        try:
+            return int(opcao.get("original_price_in_cents") or opcao.get("final_price_in_cents") or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    # Várias edições sem nome exato: a edição padrão costuma ser a de menor
+    # preço cheio. Não é garantido, por isso pede confirmação.
+    return min(pacotes, key=preco_original), False
 
 
 class SteamColetor(ColetorBase):
@@ -45,6 +110,8 @@ class SteamColetor(ColetorBase):
         }
         self.batch_size_store = 50
         self._cache_precos = {}
+        # AppIDs cujo lote não pôde ser consultado mesmo após as tentativas.
+        self.ids_lotes_falhos = set()
 
     def _limpar_descricao(self, texto):
         """Remove tags HTML e limpa a descrição."""
@@ -148,7 +215,7 @@ class SteamColetor(ColetorBase):
         Não são preenchidos aqui ID/nome/início da campanha, pois o
         endpoint testado não os fornece de forma confiável.
         """
-        best = item.get("best_purchase_option") or {}
+        best, opcao_confiavel = escolher_opcao_compra(item)
 
         active_discounts = best.get("active_discounts") or []
 
@@ -161,7 +228,8 @@ class SteamColetor(ColetorBase):
 
         basic_info = item.get("basic_info") or {}
         is_free_getitems = bool(
-            basic_info.get("is_free")
+            item.get("is_free")
+            or basic_info.get("is_free")
             or basic_info.get("is_free_to_play")
         )
 
@@ -224,6 +292,8 @@ class SteamColetor(ColetorBase):
             "promocao_fim": promocao_fim,
             "promocao_tipo": promocao_tipo,
             "package_id": package_id,
+            "bundle_id": best.get("bundleid"),
+            "opcao_confiavel": opcao_confiavel or is_free_getitems,
         }
 
     def _consultar_getitems_lote(self, jogos_ids):
@@ -269,42 +339,57 @@ class SteamColetor(ColetorBase):
                 )
             )
 
-            try:
-                response = requests.get(
-                    url,
-                    headers={
-                        "Accept": "application/json",
-                        "User-Agent": "Comparador-TCC/1.0",
-                    },
-                    timeout=15,
-                )
-                response.raise_for_status()
+            ultimo_erro = None
+            espera = GETITEMS_ESPERA_INICIAL
 
-                dados = response.json()
-                itens = dados.get("response", {}).get(
-                    "store_items",
-                    [],
-                )
+            for tentativa in range(1, GETITEMS_MAX_TENTATIVAS + 1):
+                try:
+                    response = requests.get(
+                        url,
+                        headers={
+                            "Accept": "application/json",
+                            "User-Agent": "Comparador-TCC/1.0",
+                        },
+                        timeout=20,
+                    )
 
-                return lote, itens, None
+                    if response.status_code == 429 or response.status_code >= 500:
+                        try:
+                            espera_servidor = float(response.headers.get("Retry-After"))
+                        except (TypeError, ValueError):
+                            espera_servidor = None
+                        ultimo_erro = f"HTTP {response.status_code}"
+                        tentativas_extra[0] += 1
+                        time.sleep(min(espera_servidor or espera, GETITEMS_ESPERA_MAXIMA))
+                        espera = min(espera * 2, GETITEMS_ESPERA_MAXIMA)
+                        continue
 
-            except requests.exceptions.RequestException as erro:
-                return lote, [], f"Erro na consulta em lote da Steam: {erro}"
+                    response.raise_for_status()
+                    itens = response.json().get("response", {}).get("store_items", [])
+                    return lote, itens, None
 
-            except ValueError as erro:
-                return (
-                    lote,
-                    [],
-                    "Erro ao interpretar JSON do GetItems da Steam: "
-                    f"{erro}",
-                )
+                except (requests.exceptions.RequestException, ValueError) as erro:
+                    ultimo_erro = f"{type(erro).__name__}: {erro}"
+                    tentativas_extra[0] += 1
+                    time.sleep(min(espera, GETITEMS_ESPERA_MAXIMA))
+                    espera = min(espera * 2, GETITEMS_ESPERA_MAXIMA)
+
+            return (
+                lote,
+                [],
+                f"Lote GetItems abandonado após {GETITEMS_MAX_TENTATIVAS} "
+                f"tentativas ({ultimo_erro}).",
+            )
 
         resultados = {}
+        tentativas_extra = [0]
+        lotes_falhos = 0
+        inicio = time.monotonic()
+        marco_progresso = max(1, len(lotes) // 10)
 
         print(
-            f"Steam GetItems concorrente: {len(lotes)} lotes de "
-            f"até {self.batch_size_store} IDs, "
-            f"{GETITEMS_WORKERS} requisições simultâneas."
+            f"Steam GetItems: {len(lotes)} lotes de até "
+            f"{self.batch_size_store} IDs, {GETITEMS_WORKERS} simultâneos."
         )
 
         with ThreadPoolExecutor(max_workers=GETITEMS_WORKERS) as executor:
@@ -313,26 +398,34 @@ class SteamColetor(ColetorBase):
                 for lote in lotes
             ]
 
-            for futuro in as_completed(futuros):
+            for concluidos, futuro in enumerate(as_completed(futuros), 1):
                 lote, itens, erro = futuro.result()
 
                 if erro:
-                    print(erro)
-                    continue
+                    lotes_falhos += 1
+                    self.ids_lotes_falhos.update(str(jogo_id) for jogo_id in lote)
+                    print(f"  {erro}")
+                else:
+                    for item in itens:
+                        dados_item = self._extrair_dados_getitems(item)
+                        appid = dados_item.get("id")
 
-                for item in itens:
-                    dados_item = self._extrair_dados_getitems(item)
-                    appid = dados_item.get("id")
+                        if appid:
+                            resultados[appid] = dados_item
+                            self._cache_precos[appid] = dados_item
 
-                    if appid:
-                        resultados[appid] = dados_item
-                        self._cache_precos[appid] = dados_item
+                if concluidos % marco_progresso == 0 or concluidos == len(lotes):
+                    print(
+                        f"  GetItems: {concluidos}/{len(lotes)} lotes "
+                        f"({time.monotonic() - inicio:.0f}s, "
+                        f"{tentativas_extra[0]} novas tentativas)"
+                    )
 
-                print(
-                    f"Steam GetItems: lote {len(lote)} IDs -> "
-                    f"{len(itens)} itens retornados."
-                )
-
+        print(
+            f"Steam GetItems concluído: {len(resultados):,} itens, "
+            f"{lotes_falhos} lotes falhos, {tentativas_extra[0]} novas "
+            f"tentativas, {time.monotonic() - inicio:.0f}s."
+        )
         return resultados
 
     async def _scrape_preco_direto(self, jogo_id, ignorar_cache=False):

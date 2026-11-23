@@ -54,6 +54,26 @@ MIGRACOES = [
         CREATE UNIQUE INDEX IF NOT EXISTS precos_atuais_jogo_id ON precos_atuais (jogo_id);
         """,
     ),
+    (
+        "2026-11-23: identidade entre lojas (ITAD) e registro de mesclagens",
+        """
+        ALTER TABLE jogos ADD COLUMN IF NOT EXISTS itad_id VARCHAR(40);
+        CREATE INDEX IF NOT EXISTS ix_jogos_itad_id ON jogos (itad_id);
+        CREATE TABLE IF NOT EXISTS mesclagens_jogos (
+            id BIGSERIAL PRIMARY KEY,
+            jogo_mantido_id INTEGER NOT NULL,
+            jogo_removido_id INTEGER NOT NULL,
+            nome_mantido VARCHAR(255),
+            nome_removido VARCHAR(255),
+            steam_id VARCHAR(50),
+            epic_id VARCHAR(255),
+            itad_id VARCHAR(40),
+            criterio VARCHAR(40) NOT NULL,
+            detalhes JSONB,
+            criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        """,
+    ),
 ]
 
 

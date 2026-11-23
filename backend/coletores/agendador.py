@@ -4,7 +4,12 @@ Agendador de coleta diária de preços.
 
 Fluxo diário:
 1. Steam -> histórico via IStoreBrowseService/GetItems em lote.
-2. Epic  -> histórico via EGDATA.
+2. Epic  -> histórico via ITAD em lote (EGDATA como reserva).
+3. Alertas de preço, limpeza de promoções encerradas e precos_atuais.
+
+Cada loja informa a cobertura (fração do catálogo com preço obtido). Abaixo
+de 90%, a etapa é marcada como falha, para que quebras de fonte não passem
+despercebidas como "parcial".
 
 Modos de execução:
 - sem argumentos: mantém um agendador residente e executa no horário configurado.
@@ -82,7 +87,7 @@ class AgendadorColeta:
         print("=" * 60)
         print(f"Horário configurado: {self.horario}")
         print("Steam: IStoreBrowseService/GetItems em lote")
-        print("Epic: EGDATA")
+        print("Epic: ITAD em lote (EGDATA como reserva)")
         print("Pressione Ctrl+C para encerrar o agendador.")
         print("=" * 60)
 
@@ -131,11 +136,26 @@ class AgendadorColeta:
                 status_geral = "falha"
             elif "parcial" in status_etapas:
                 status_geral = "parcial"
-            elif any(status in {"sem_ofertas", "sem_itens"} for status in status_etapas):
+            elif any(
+                status in {"sem_ofertas", "sem_itens", "concluida_com_avisos"}
+                for status in status_etapas
+            ):
                 status_geral = "concluida_com_avisos"
             else:
                 status_geral = "concluida"
 
+            print("\nResumo por etapa:")
+            for nome, valor in resultado.items():
+                if not isinstance(valor, dict):
+                    continue
+                detalhes = [f"status={valor.get('status', '-')}"]
+                if "cobertura" in valor:
+                    detalhes.append(f"cobertura={valor['cobertura']:.1%}")
+                if "novos_registros" in valor:
+                    detalhes.append(f"novos={valor['novos_registros']}")
+                if "duracao_segundos" in valor:
+                    detalhes.append(f"{valor['duracao_segundos']:.0f}s")
+                print(f"  {nome}: " + ", ".join(detalhes))
             print(f"Status geral da execução: {status_geral}")
         except Exception as erro:
             erro_execucao = f"{type(erro).__name__}: {erro}"
@@ -145,6 +165,7 @@ class AgendadorColeta:
             fim = datetime.now()
             duracao = fim - inicio
             _registrar_execucao({
+                "ambiente": os.getenv("DESCTRL_ENV") or "producao",
                 "inicio": inicio.isoformat(timespec="seconds"),
                 "fim": fim.isoformat(timespec="seconds"),
                 "duracao_segundos": round(duracao.total_seconds(), 2),
@@ -175,7 +196,7 @@ class AgendadorColeta:
         resultado_steam = await coletar_historico_precos()
         print(f"Resultado Steam: {resultado_steam}")
 
-        print("\n[2/5] Coleta histórica da Epic (EGDATA)")
+        print("\n[2/5] Coleta histórica da Epic (ITAD + EGDATA)")
         resultado_epic = await coletar_historico_epic()
 
         print("\n[3/5] Avaliação dos alertas de preço e envio de e-mails")

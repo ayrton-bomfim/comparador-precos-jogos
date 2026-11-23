@@ -70,6 +70,9 @@ class Jogo(Base):
     # Identificadores
     steam_id = Column(String(50), unique=True, nullable=True)
     epic_id = Column(String(255), unique=True, nullable=True)
+    # Identificador do jogo no IsThereAnyDeal: o mesmo para todas as lojas.
+    # É a chave usada para reconhecer o mesmo jogo na Steam e na Epic.
+    itad_id = Column(String(40), nullable=True, index=True)
 
     # Dados específicos das plataformas
     descricao_steam = Column(Text)

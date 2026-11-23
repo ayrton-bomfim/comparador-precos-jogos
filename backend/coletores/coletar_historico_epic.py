@@ -2,13 +2,11 @@
 """
 Coleta histórica da Epic usando EGDATA.
 
-Esta versão substitui a coleta histórica baseada no Playwright/GraphQL,
-mas mantém a mesma função pública `coletar_historico_epic()` para não
-quebrar chamadas existentes do projeto/agendador.
+Mantém a função pública `coletar_historico_epic()` usada pelo agendador.
 
 Regras do histórico:
     - usa EpicOferta.offer_id;
-    - consulta o preço atual na EGDATA;
+    - consulta o preço atual de cada oferta na EGDATA (/offers/{id}/price);
     - registra preço, preço original, desconto e dados da promoção;
     - NÃO cria registro apenas porque a data da coleta mudou;
     - cria novo registro quando algum dado relevante do estado mudar;
@@ -20,13 +18,27 @@ como legado/fallback em testes específicos.
 
 import argparse
 import asyncio
+import time
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import and_
+from sqlalchemy import and_, insert, text, update
 
 from ..banco_dados import SessionLocal
-from ..modelos import Jogo, EpicOferta, HistoricoPreco
+from ..modelos import Jogo, HistoricoPreco
+from ..servicos.egdata import buscar_precos_por_oferta
+from ..servicos.itad import buscar_precos_epic
 
+
+# Abaixo desta fração de ofertas respondidas, a etapa é marcada como falha.
+COBERTURA_MINIMA = 0.9
+# Quantas mudanças são detalhadas no log; as demais entram só no resumo.
+EXEMPLOS_NO_LOG = 15
+# Teto de consultas à EGDATA (fonte reserva) por execução.
+MAX_CONSULTAS_EGDATA = 300
+# Variação do preço cheio (vs. último registro) que torna um preço do ITAD
+# suspeito de mapeamento errado.
+VARIACAO_SUSPEITA_ORIGINAL = 0.2
 
 # Um preço zero sem promoção e sem atualização recente pode ser um dado
 # obsoleto da fonte, e não uma confirmação de que o jogo é gratuito.
@@ -118,21 +130,25 @@ def dados_relevantes_mudaram(ultimo, dados):
             f"Desconto alterado ({desconto_anterior}% -> {desconto_atual}%)",
         )
 
-    comparacoes_promocao = (
-        ("promocao_id", "Identificador da promoção alterado"),
-        ("promocao_nome", "Nome da promoção alterado"),
-        ("promocao_inicio", "Início da promoção alterado"),
-        ("promocao_fim", "Fim da promoção alterado"),
-    )
-
-    for campo, motivo in comparacoes_promocao:
-        valor_anterior = getattr(ultimo, campo, None)
-        valor_atual = dados.get(campo)
-
-        if valor_anterior != valor_atual:
-            return True, motivo
+    # Só o fim da promoção é comparado: é o único campo de promoção usado pelo
+    # site (regra única de promoção) e o único informado pelas duas fontes
+    # (ITAD e EGDATA). ID, nome e início continuam gravados quando a fonte os
+    # fornece, mas sua ausência não deve gerar registro novo.
+    fim_anterior = _minuto_utc(getattr(ultimo, "promocao_fim", None))
+    fim_atual = _minuto_utc(dados.get("promocao_fim"))
+    if fim_anterior != fim_atual:
+        return True, "Fim da promoção alterado"
 
     return False, ""
+
+
+def _minuto_utc(valor):
+    """Normaliza datas de fim de promoção para comparação (UTC, ao minuto)."""
+    if valor is None:
+        return None
+    if valor.tzinfo is None:
+        valor = valor.replace(tzinfo=timezone.utc)
+    return valor.astimezone(timezone.utc).replace(second=0, microsecond=0)
 
 
 def buscar_ultima_historico_epic(db, jogo_id):
@@ -150,449 +166,146 @@ def buscar_ultima_historico_epic(db, jogo_id):
     )
 
 
-class _BuscaCatalogoEpic:
-    """
-    Consulta o endpoint de busca da EGDATA em lote.
-
-    A busca já devolve o preço regional junto de cada oferta, evitando
-    uma chamada /offers/{id}/price para cada jogo.
-    """
-
-    URL = "https://api.egdata.app/search/v2/search"
-    PAIS = "BR"
-    LOCALE = "pt-BR"
-    LIMITE = 100
-    PAUSA_PAGINA = 0.15
-    MAX_TENTATIVAS = 4
-    TIMEOUT = 30
-
-    def __init__(self):
-        import requests
-
-        self.session = requests.Session()
-        self.session.headers.update(
-            {"Content-Type": "application/json"}
-        )
-
-    def _buscar_pagina(self, offer_type, pagina):
-        payload = {
-            "offerType": offer_type,
-            "sortBy": "lastModifiedDate",
-            "sortDir": "desc",
-            "page": pagina,
-            "limit": self.LIMITE,
-        }
-
-        ultima_erro = None
-
-        for tentativa in range(1, self.MAX_TENTATIVAS + 1):
-            try:
-                resposta = self.session.post(
-                    self.URL,
-                    params={
-                        "country": self.PAIS,
-                        "locale": self.LOCALE,
-                    },
-                    json=payload,
-                    timeout=self.TIMEOUT,
-                )
-
-                if resposta.status_code == 429:
-                    retry_after = resposta.headers.get("Retry-After")
-
-                    try:
-                        espera = float(retry_after)
-                    except (TypeError, ValueError):
-                        espera = min(2.0 * tentativa, 10.0)
-
-                    print(
-                        f"  ⚠️ EGDATA respondeu 429 na página "
-                        f"{pagina} ({offer_type}). "
-                        f"Aguardando {espera:.1f}s..."
-                    )
-                    import time
-
-                    time.sleep(espera)
-                    continue
-
-                resposta.raise_for_status()
-                dados = resposta.json()
-
-                ofertas = dados.get("offers") or []
-                total = int(dados.get("total") or 0)
-
-                return ofertas, total
-
-            except Exception as erro:
-                ultima_erro = erro
-
-                if tentativa >= self.MAX_TENTATIVAS:
-                    break
-
-                import time
-
-                espera = min(2.0 * tentativa, 10.0)
-                print(
-                    f"  ⚠️ Falha na página {pagina} ({offer_type}): "
-                    f"{erro}. Retry em {espera:.1f}s..."
-                )
-                time.sleep(espera)
-
-        raise RuntimeError(
-            f"Falha ao consultar página {pagina} ({offer_type}) "
-            f"após {self.MAX_TENTATIVAS} tentativas: {ultima_erro}"
-        )
-
-    def coletar_precos(self, offer_ids, max_paginas_por_tipo=None, max_resultados=None):
-        """
-        Retorna {offer_id: dados_normalizados} para os offer IDs solicitados.
-
-        A busca é feita por BASE_GAME, EDITION e EXPERIENCE. Em testes limitados,
-        max_paginas_por_tipo restringe a busca e max_resultados permite parar assim
-        que houver dados suficientes para montar uma amostra real do catálogo.
-        """
-        import time
-
-        restantes = {str(offer_id) for offer_id in offer_ids}
-        resultados = {}
-
-        for offer_type in ("BASE_GAME", "EDITION", "EXPERIENCE"):
-            if not restantes:
-                break
-
-            pagina = 1
-            total_tipo = None
-
-            while restantes:
-                if max_paginas_por_tipo is not None and pagina > max_paginas_por_tipo:
-                    print(
-                        f"  Limite de {max_paginas_por_tipo} páginas atingido em "
-                        f"{offer_type}; {len(restantes)} offer ID(s) ainda não encontrados."
-                    )
-                    break
-
-                ofertas, total = self._buscar_pagina(
-                    offer_type,
-                    pagina,
-                )
-
-                if total_tipo is None:
-                    total_tipo = total
-
-                print(
-                    f"  Busca {offer_type}: página {pagina} "
-                    f"({len(ofertas)} ofertas)"
-                )
-
-                for oferta in ofertas:
-                    offer_id = str(oferta.get("id") or "").strip()
-
-                    if not offer_id or offer_id not in restantes:
-                        continue
-
-                    dados = self._normalizar_oferta(oferta, offer_id)
-
-                    if dados is None:
-                        continue
-
-                    resultados[offer_id] = dados
-                    restantes.discard(offer_id)
-
-                    if max_resultados is not None and len(resultados) >= max_resultados:
-                        print(
-                            f"  Limite de {max_resultados} ofertas encontradas; "
-                            "encerrando a busca de teste."
-                        )
-                        return resultados, restantes
-
-                if not ofertas or not restantes:
-                    if not restantes:
-                        print(
-                            "  Todos os offer IDs solicitados foram encontrados; "
-                            "encerrando a busca paginada."
-                        )
-                    break
-
-                paginas_total = max(
-                    1,
-                    (total_tipo + self.LIMITE - 1) // self.LIMITE,
-                )
-
-                if pagina >= paginas_total:
-                    break
-
-                pagina += 1
-                time.sleep(self.PAUSA_PAGINA)
-
-        return resultados, restantes
-
-    @staticmethod
-    def _normalizar_oferta(oferta, offer_id):
-        """
-        Converte o bloco de preço da busca para o mesmo contrato usado por
-        buscar_preco_atual().
-        """
-        from ..servicos.egdata import (
-            _encontrar_promocao,
-            calcular_desconto,
-            converter_data,
-            converter_preco,
-        )
-
-        bloco = oferta.get("price") or {}
-        preco = bloco.get("price") or {}
-
-        original = converter_preco(preco.get("originalPrice"))
-        atual = converter_preco(preco.get("discountPrice"))
-
-        if original is None or atual is None:
-            return None
-
-        promocao = _encontrar_promocao(
-            bloco.get("appliedRules"),
-            offer_id,
-        )
-
-        desconto = calcular_desconto(
-            original,
-            atual,
-        )
-
-        return {
-            "offer_id": oferta.get("id") or offer_id,
-            "preco": atual,
-            "preco_sem_desconto": original,
-            "desconto": int(desconto or 0),
-            "promocao_inicio": promocao["inicio"],
-            "promocao_fim": promocao["fim"],
-            "promocao_id": promocao["id"],
-            "promocao_nome": promocao["nome"],
-            "updated_at": converter_data(
-                bloco.get("updatedAt")
-            ),
-        }
+def _carregar_ofertas_ativas(db):
+    """Ofertas Epic ativas com o jogo correspondente (só as colunas usadas)."""
+    return db.execute(text("""
+        SELECT j.id AS jogo_id, j.nome, o.offer_id
+        FROM epic_ofertas o
+        JOIN jogos j ON j.id = o.jogo_id
+        WHERE o.ativo IS TRUE
+          AND j.epic_id IS NOT NULL
+          AND j.epic_id <> 'EXCLUSIVO_STEAM'
+        ORDER BY j.id, o.id
+    """)).all()
 
 
-def _carregar_ultimos_historicos(db, jogos_ofertas):
-    """
-    Carrega de uma vez o último histórico Epic de cada jogo.
-    Evita uma consulta SQL por oferta.
-    """
-    jogo_ids = {jogo.id for jogo, _ in jogos_ofertas}
-
-    if not jogo_ids:
-        return {}
-
-    historicos = (
-        db.query(HistoricoPreco)
-        .filter(
-            and_(
-                HistoricoPreco.jogo_id.in_(jogo_ids),
-                HistoricoPreco.plataforma == "Epic",
-            )
-        )
-        .order_by(
-            HistoricoPreco.jogo_id.asc(),
-            HistoricoPreco.id.desc(),
-        )
-        .all()
-    )
-
-    ultimos = {}
-    for historico in historicos:
-        if historico.jogo_id not in ultimos:
-            ultimos[historico.jogo_id] = historico
-
-    return ultimos
-
-def _criar_historico(jogo, dados):
-    """Cria uma nova instância de HistoricoPreco a partir dos dados coletados."""
-    return HistoricoPreco(
-        jogo_id=jogo.id,
-        nome_jogo=jogo.nome,
-        plataforma="Epic",
-        preco_atual=dados["preco"],
-        preco_sem_desconto=dados["preco_sem_desconto"],
-        desconto=dados["desconto"],
-        data_coleta=datetime.now(),
-        promocao_id=dados.get("promocao_id"),
-        promocao_nome=dados.get("promocao_nome"),
-        promocao_inicio=dados.get("promocao_inicio"),
-        promocao_fim=dados.get("promocao_fim"),
-    )
+def _carregar_ultimos_estados_epic(db):
+    """Último estado Epic de cada jogo, em uma única consulta."""
+    linhas = db.execute(text("""
+        SELECT DISTINCT ON (jogo_id)
+               jogo_id, preco_atual, preco_sem_desconto, desconto,
+               promocao_id, promocao_nome, promocao_inicio, promocao_fim
+        FROM historico_precos
+        WHERE plataforma = 'Epic'
+        ORDER BY jogo_id, id DESC
+    """)).all()
+    return {linha.jogo_id: linha for linha in linhas}
 
 
-def _diagnosticar_tamanhos(jogo, dados):
-    """
-    Identifica valores textuais que excedem 255 caracteres.
-
-    O banco atualmente reportou StringDataRightTruncation em uma coluna
-    varchar(255). Não truncamos o valor automaticamente, pois isso alteraria
-    o dado histórico. Apenas informamos o campo suspeito.
-    """
-    campos = {
-        "nome_jogo": jogo.nome,
+def _registro_historico(oferta, dados, agora):
+    return {
+        "jogo_id": oferta.jogo_id,
+        "nome_jogo": oferta.nome,
         "plataforma": "Epic",
+        "preco_atual": dados["preco"],
+        "preco_sem_desconto": dados["preco_sem_desconto"],
+        "desconto": dados["desconto"],
+        "data_coleta": agora,
         "promocao_id": dados.get("promocao_id"),
         "promocao_nome": dados.get("promocao_nome"),
+        "promocao_inicio": dados.get("promocao_inicio"),
+        "promocao_fim": dados.get("promocao_fim"),
     }
 
+
+def _diagnosticar_tamanhos(registro):
+    """Campos textuais acima de 255 caracteres (o banco recusaria o registro).
+
+    Não truncamos o valor automaticamente, pois isso alteraria o dado.
+    """
     return [
-        (campo, valor)
-        for campo, valor in campos.items()
-        if isinstance(valor, str) and len(valor) > 255
+        (campo, len(registro[campo]))
+        for campo in ("nome_jogo", "promocao_id", "promocao_nome")
+        if isinstance(registro.get(campo), str) and len(registro[campo]) > 255
     ]
 
 
-def _salvar_lote_com_fallback(db, pendencias):
-    """
-    Tenta salvar o lote inteiro.
+def _gravar_registros(db, registros, precos_base, agora):
+    """Grava em lote; se o lote falhar, grava um a um para isolar o problema.
 
-    Se um único registro quebrar o commit, faz rollback e salva os registros
-    individualmente. Assim, um registro inválido não derruba os outros 99.
     Retorna (salvos, erros).
     """
-    if not pendencias:
+    if not registros:
         return 0, 0
 
+    def atualizar_precos_base(ids):
+        valores = [
+            {"id": jogo_id, "preco_base_epic": precos_base[jogo_id], "updated_at": agora}
+            for jogo_id in ids
+            if jogo_id in precos_base
+        ]
+        if valores:
+            db.execute(update(Jogo), valores)
+
     try:
-        for item in pendencias:
-            db.add(_criar_historico(item["jogo"], item["dados"]))
-            preco_base = item["dados"].get("preco_sem_desconto")
-            if preco_base is not None and float(preco_base) > 0:
-                item["jogo"].preco_base_epic = preco_base
-
+        for inicio in range(0, len(registros), 1000):
+            db.execute(insert(HistoricoPreco), registros[inicio:inicio + 1000])
+        atualizar_precos_base({r["jogo_id"] for r in registros})
         db.commit()
-        return len(pendencias), 0
-
+        return len(registros), 0
     except Exception as erro_lote:
         db.rollback()
+        print(f"  ⚠️ Falha ao gravar o lote ({erro_lote}); gravando registro por registro.")
 
-        print(
-            "  ⚠️ Falha ao salvar o lote. "
-            "O lote será reprocessado registro por registro."
-        )
-        print(f"  Motivo do lote: {erro_lote}")
-
-        salvos = 0
-        erros = 0
-
-        for item in pendencias:
-            jogo = item["jogo"]
-            dados = item["dados"]
-
-            problemas = _diagnosticar_tamanhos(jogo, dados)
-            if problemas:
-                detalhes = ", ".join(
-                    f"{campo}={len(valor)} caracteres"
-                    for campo, valor in problemas
-                )
-                print(
-                    f"  ⚠️ Registro rejeitado por tamanho: "
-                    f"{jogo.nome} ({detalhes})"
-                )
-                erros += 1
-                continue
-
-            try:
-                db.add(_criar_historico(jogo, dados))
-
-                preco_base = dados.get("preco_sem_desconto")
-                if preco_base is not None and float(preco_base) > 0:
-                    jogo.preco_base_epic = preco_base
-
-                db.commit()
-                salvos += 1
-
-            except Exception as erro:
-                db.rollback()
-                erros += 1
-                print(
-                    f"  ⚠️ Registro rejeitado: {jogo.nome} "
-                    f"(jogo_id={jogo.id})"
-                )
-                print(f"     {erro}")
-
-        print(
-            f"  ✓ Fallback concluído: {salvos} salvos, "
-            f"{erros} rejeitados."
-        )
-
-        return salvos, erros
-
-
+    salvos = erros = 0
+    for registro in registros:
+        problemas = _diagnosticar_tamanhos(registro)
+        if problemas:
+            erros += 1
+            detalhes = ", ".join(f"{campo}={tamanho} caracteres" for campo, tamanho in problemas)
+            print(f"  ⚠️ Registro rejeitado por tamanho: {registro['nome_jogo']} ({detalhes})")
+            continue
+        try:
+            db.execute(insert(HistoricoPreco), [registro])
+            atualizar_precos_base({registro["jogo_id"]})
+            db.commit()
+            salvos += 1
+        except Exception as erro:
+            db.rollback()
+            erros += 1
+            print(f"  ⚠️ Registro rejeitado: {registro['nome_jogo']} (jogo_id={registro['jogo_id']}): {erro}")
+    return salvos, erros
 
 
 async def coletar_historico_epic(limite_ofertas=None):
     """
     Coleta o estado atual das ofertas Epic ativas.
 
+    Fonte principal: ITAD (preços em lote). Fonte reserva: EGDATA, oferta a
+    oferta, só para o que o ITAD não resolve. A busca paginada da EGDATA usada
+    antes deixou de funcionar em 06/11/2026 (303/429 e tarpit), e a coleta
+    passou a encontrar só ~9% das ofertas.
+
     Args:
-        limite_ofertas: limita a quantidade de jogos/ofertas processados nesta
-            execução. None mantém o comportamento completo.
-
-    Otimizações:
-        1. Últimos históricos carregados em uma única consulta SQL.
-        2. Preços obtidos pelo endpoint de busca da EGDATA em lotes de 100.
-        3. Registros persistidos em lotes.
-
-    A busca em lote devolve o preço regional junto da oferta, reduzindo
-    milhares de requisições individuais para aproximadamente uma centena.
+        limite_ofertas: consulta só as N primeiras ofertas (para testes).
     """
-    TAMANHO_LOTE_COMMIT = 100
+    inicio = time.monotonic()
+    agora = datetime.now()
 
     print("=" * 70)
-    print("COLETANDO HISTÓRICO DA EPIC — EGDATA")
+    print("COLETANDO HISTÓRICO DA EPIC — ITAD + EGDATA")
     print("=" * 70)
-    print("Fonte de preço atual: EGDATA")
-    print("Consulta de preço: busca de catálogo em lote")
+    print("Fonte principal: ITAD em lote; reserva: EGDATA por oferta")
     print("Histórico: somente alterações relevantes")
-    print(f"Commit em lotes de: {TAMANHO_LOTE_COMMIT}")
-    print(f"Início: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    print(f"Início: {agora.strftime('%d/%m/%Y %H:%M')}")
     print()
+
+    if limite_ofertas is not None and limite_ofertas < 1:
+        raise ValueError("limite_ofertas deve ser maior que zero.")
 
     db = SessionLocal()
 
-    novos = 0
-    ignorados = 0
-    erros = 0
-    pendentes_commit = 0
-    pendencias = []
-
     try:
-        jogos_ofertas = (
-            db.query(Jogo, EpicOferta)
-            .join(
-                EpicOferta,
-                EpicOferta.jogo_id == Jogo.id,
-            )
-            .filter(
-                and_(
-                    EpicOferta.ativo.is_(True),
-                    Jogo.epic_id.isnot(None),
-                    Jogo.epic_id != "EXCLUSIVO_STEAM",
-                )
-            )
-            .order_by(Jogo.id.asc(), EpicOferta.id.asc())
-            .all()
-        )
-
-        total_catalogo = len(jogos_ofertas)
-        if limite_ofertas is not None and limite_ofertas < 1:
-            raise ValueError("limite_ofertas deve ser maior que zero.")
-
-        print(
-            f"Encontrados {total_catalogo} jogos/ofertas ativos na Epic."
-        )
+        ofertas = _carregar_ofertas_ativas(db)
+        total_catalogo = len(ofertas)
         if limite_ofertas is not None:
-            print(
-                f"Modo de teste: selecionar até {limite_ofertas} ofertas "
-                "presentes nas primeiras 5 páginas de cada tipo."
-            )
-        print()
+            ofertas = ofertas[:limite_ofertas]
 
-        if not jogos_ofertas:
-            print("Nenhuma oferta Epic ativa encontrada.")
+        print(f"Ofertas ativas na Epic: {total_catalogo}")
+        if limite_ofertas is not None:
+            print(f"Modo de teste: {len(ofertas)} ofertas")
+
+        if not ofertas:
             return {
                 "status": "sem_ofertas",
                 "fonte": "EGDATA",
@@ -603,235 +316,169 @@ async def coletar_historico_epic(limite_ofertas=None):
                 "erros": 0,
             }
 
-        todos_offer_ids = {
-            str(oferta.offer_id)
-            for _, oferta in jogos_ofertas
-            if oferta.offer_id
-        }
+        offer_ids = [str(oferta.offer_id) for oferta in ofertas]
+        ultimos = _carregar_ultimos_estados_epic(db)
+
+        # 1) ITAD: catálogo inteiro em ~50 requisições.
+        precos, sem_mapeamento, sem_preco_itad = await asyncio.to_thread(
+            buscar_precos_epic, offer_ids
+        )
+        print(
+            f"ITAD: {len(precos)} preços, {len(sem_mapeamento)} ofertas sem "
+            f"correspondência única, {len(sem_preco_itad)} sem preço Epic BR "
+            f"({time.monotonic() - inicio:.0f}s)"
+        )
+
+        # 2) EGDATA, uma oferta por vez, só para o que o ITAD não resolveu e
+        # pode estar à venda: sem correspondência no ITAD, ou com último preço
+        # conhecido acima de zero. A EGDATA aplica tarpit em consultas em
+        # massa, por isso o volume é limitado.
+        jogo_por_oferta = {str(o.offer_id): o.jogo_id for o in ofertas}
+
+        def ultimo_preco_positivo(offer_id):
+            ultimo = ultimos.get(jogo_por_oferta.get(offer_id))
+            return ultimo is not None and float(ultimo.preco_atual or 0) > 0
+
+        # O ITAD às vezes associa a oferta ao jogo errado (ex.: uma "Deluxe
+        # Edition" genérica ligada à Deluxe de outro jogo). Preço cheio muito
+        # diferente do último conhecido é tratado como suspeito e conferido na
+        # EGDATA antes de entrar no histórico. Sem registro anterior não há
+        # como comparar, então o primeiro registro também é conferido.
+        suspeitas = []
+        for offer_id, dados in list(precos.items()):
+            ultimo = ultimos.get(jogo_por_oferta.get(offer_id))
+            original_anterior = float(ultimo.preco_sem_desconto or 0) if ultimo else 0
+            if ultimo is None or (
+                original_anterior > 0
+                and abs(dados["preco_sem_desconto"] / original_anterior - 1) > VARIACAO_SUSPEITA_ORIGINAL
+            ):
+                suspeitas.append(offer_id)
+                del precos[offer_id]
+        if suspeitas:
+            print(
+                f"ITAD: {len(suspeitas)} preço(s) sem histórico ou com preço cheio "
+                f">{VARIACAO_SUSPEITA_ORIGINAL:.0%} diferente do último; conferindo na EGDATA."
+            )
+
+        reserva_total = sorted(
+            (sem_mapeamento | {o for o in sem_preco_itad if ultimo_preco_positivo(o)}) - set(suspeitas)
+        )
+        # Rodízio: a cada dia consulta uma fatia diferente, de modo que toda a
+        # reserva é revista a cada ceil(total / vagas) dias sem precisar
+        # guardar estado. As suspeitas sempre entram.
+        vagas = max(0, MAX_CONSULTAS_EGDATA - len(suspeitas))
+        fatias = max(1, -(-len(reserva_total) // vagas)) if vagas else 1
+        fatia = agora.toordinal() % fatias
+        reserva = suspeitas + (reserva_total[fatia * vagas:(fatia + 1) * vagas] if vagas else [])
+        em_rodizio = len(reserva_total) + len(suspeitas) - len(reserva)
+        sem_preco = sem_preco_itad - set(reserva_total)
+        falhas = {}
+        if reserva:
+            print(f"EGDATA (reserva): consultando {len(reserva)} oferta(s)...")
+            marco = max(1, len(reserva) // 5)
+
+            def progresso(concluidos, total, qtd_falhas):
+                if concluidos % marco == 0 or concluidos == total:
+                    print(f"  EGDATA: {concluidos}/{total} ({time.monotonic() - inicio:.0f}s, {qtd_falhas} falhas)")
+
+            precos_egdata, sem_preco_egdata, falhas = await asyncio.to_thread(
+                buscar_precos_por_oferta, reserva, workers=1, progresso=progresso
+            )
+            precos.update(precos_egdata)
+            sem_preco |= sem_preco_egdata
 
         print(
-            f"Consultando preços para encontrar "
-            f"{limite_ofertas if limite_ofertas is not None else len(todos_offer_ids)} "
-            "ofertas de teste/produção por páginas de catálogo..."
+            f"\n✓ Preços obtidos: {len(precos)}/{len(offer_ids)} "
+            f"(sem preço: {len(sem_preco)}, falhas: {len(falhas)}"
+            + (f", em rodízio para outros dias: {em_rodizio}" if em_rodizio else "")
+            + ")"
         )
+        if falhas:
+            print("  Motivos das falhas: " + ", ".join(
+                f"{motivo}={qtd}" for motivo, qtd in Counter(falhas.values()).most_common()
+            ))
+        fontes = Counter(dados.get("fonte", "EGDATA") for dados in precos.values())
 
-        busca = _BuscaCatalogoEpic()
-        max_paginas_por_tipo = 5 if limite_ofertas is not None else None
-        max_resultados = limite_ofertas if limite_ofertas is not None else None
-        precos, faltantes_busca = await asyncio.to_thread(
-            busca.coletar_precos,
-            todos_offer_ids,
-            max_paginas_por_tipo,
-            max_resultados,
-        )
+        registros = []
+        precos_base = {}
+        ignorados = 0
+        zeros_ignorados = 0
+        motivos = Counter()
 
-        if limite_ofertas is not None:
-            # A amostra é formada por ofertas que realmente apareceram na EGDATA.
-            # Não classificamos como erros os IDs do catálogo local que ficaram fora
-            # da janela curta de páginas usada exclusivamente pelo teste.
-            jogos_selecionados = []
-            ids_selecionados = set()
-            for jogo, oferta in jogos_ofertas:
-                offer_id = str(oferta.offer_id or "")
-                if offer_id in precos and offer_id not in ids_selecionados:
-                    jogos_selecionados.append((jogo, oferta))
-                    ids_selecionados.add(offer_id)
-                    if len(jogos_selecionados) >= limite_ofertas:
-                        break
-            jogos_ofertas = jogos_selecionados
-            offer_ids = ids_selecionados
-            precos = {offer_id: precos[offer_id] for offer_id in offer_ids}
-            faltantes = set()
-            print(
-                f"Ofertas selecionadas para processamento: {len(jogos_ofertas)}."
-            )
-            if len(jogos_ofertas) < limite_ofertas:
+        print(f"\nComparando com o histórico (primeiras {EXEMPLOS_NO_LOG} mudanças):")
+        for oferta in ofertas:
+            dados = precos.get(str(oferta.offer_id))
+            if dados is None:
+                continue
+
+            if _preco_zero_sem_confirmacao_recente(dados):
+                zeros_ignorados += 1
+                ignorados += 1
+                continue
+
+            deve_criar, motivo = dados_relevantes_mudaram(ultimos.get(oferta.jogo_id), dados)
+            if not deve_criar:
+                ignorados += 1
+                continue
+
+            registros.append(_registro_historico(oferta, dados, agora))
+            motivos[motivo.split(" (")[0]] += 1
+            if dados["preco_sem_desconto"] is not None and float(dados["preco_sem_desconto"]) > 0:
+                precos_base[oferta.jogo_id] = dados["preco_sem_desconto"]
+            if len(registros) <= EXEMPLOS_NO_LOG:
                 print(
-                    "AVISO: a busca limitada encontrou menos ofertas do que o "
-                    "solicitado; somente as ofertas encontradas serão processadas."
-                )
-        else:
-            offer_ids = todos_offer_ids
-            faltantes = faltantes_busca
-
-        total = len(jogos_ofertas)
-        if not jogos_ofertas:
-            print("Nenhuma oferta do catálogo local foi encontrada nas páginas consultadas.")
-            return {
-                "status": "sem_ofertas_encontradas_no_teste",
-                "fonte": "EGDATA",
-                "total_catalogo": total_catalogo,
-                "total_processado": 0,
-                "novos_registros": 0,
-                "ignorados": 0,
-                "erros": 0,
-                "offer_ids_consultados": 0,
-                "precos_encontrados": 0,
-                "offer_ids_faltantes": 0,
-            }
-
-        ultimos_historicos = _carregar_ultimos_historicos(
-            db,
-            jogos_ofertas,
-        )
-
-        print()
-        print(
-            f"✓ Preços encontrados em lote: {len(precos)}/{len(offer_ids)}"
-        )
-
-        if faltantes and limite_ofertas is None:
-            print(
-                f"⚠️ Offer IDs não encontrados na busca completa: "
-                f"{len(faltantes)}"
-            )
-        print()
-
-        for indice, (jogo, oferta) in enumerate(
-            jogos_ofertas,
-            1,
-        ):
-            print(
-                f"[{indice}/{total}] "
-                f"{jogo.nome}"
-            )
-            print(f"  Offer ID: {oferta.offer_id}")
-
-            try:
-                dados = precos.get(str(oferta.offer_id))
-
-                if dados is None:
-                    erros += 1
-                    print(
-                        "  Ação: erro — oferta não retornada "
-                        "pela busca de catálogo."
-                    )
-                    print()
-                    continue
-
-                atualizado_em = dados.get("updated_at")
-                if atualizado_em is not None:
-                    print(f"  Atualização informada pela EGDATA: {atualizado_em.isoformat()}")
-
-                if _preco_zero_sem_confirmacao_recente(dados):
-                    print(
-                        "  Ação: ignorado — preço 0/0 sem promoção e sem "
-                        f"atualização recente (limite: {IDADE_MAXIMA_PRECO_ZERO_DIAS} dias)."
-                    )
-                    ignorados += 1
-                    print()
-                    continue
-
-                ultimo = ultimos_historicos.get(jogo.id)
-
-                deve_criar, motivo = dados_relevantes_mudaram(
-                    ultimo,
-                    dados,
+                    f"  {oferta.nome}: {motivo} — R$ {dados['preco']:.2f} "
+                    f"(original R$ {dados['preco_sem_desconto']:.2f}, {dados['desconto']}%)"
                 )
 
-                print(
-                    f"  Atual: R$ {dados['preco']:.2f} | "
-                    f"Original: R$ {dados['preco_sem_desconto']:.2f} | "
-                    f"Desconto: {dados['desconto']}%"
-                )
+        novos, erros_gravacao = _gravar_registros(db, registros, precos_base, agora)
 
-                print(
-                    f"  Promoção: "
-                    f"{dados.get('promocao_nome') or 'Nenhuma'}"
-                )
-
-                if (
-                    dados.get("promocao_inicio")
-                    or dados.get("promocao_fim")
-                ):
-                    inicio = (
-                        dados["promocao_inicio"].isoformat()
-                        if dados.get("promocao_inicio")
-                        else "N/A"
-                    )
-                    fim = (
-                        dados["promocao_fim"].isoformat()
-                        if dados.get("promocao_fim")
-                        else "N/A"
-                    )
-                    print(
-                        f"  Período: {inicio} -> {fim}"
-                    )
-
-                if not deve_criar:
-                    print(
-                        "  Ação: ignorado — "
-                        "nenhuma alteração relevante."
-                    )
-                    ignorados += 1
-                    print()
-                    continue
-
-                pendencias.append(
-                    {
-                        "jogo": jogo,
-                        "dados": dados,
-                        "motivo": motivo,
-                    }
-                )
-                pendentes_commit += 1
-
-                print(
-                    f"  Ação: registro preparado — "
-                    f"{motivo}."
-                )
-
-                if pendentes_commit >= TAMANHO_LOTE_COMMIT:
-                    salvos_lote, erros_lote = _salvar_lote_com_fallback(
-                        db,
-                        pendencias,
-                    )
-                    novos += salvos_lote
-                    erros += erros_lote
-                    pendencias = []
-                    pendentes_commit = 0
-                    print("  ✓ Lote processado.")
-
-                print()
-
-            except Exception as erro:
-                db.rollback()
-                erros += 1
-                print(f"  Ação: erro — {erro}")
-                print()
-
-        if pendentes_commit:
-            salvos_lote, erros_lote = _salvar_lote_com_fallback(
-                db,
-                pendencias,
-            )
-            novos += salvos_lote
-            erros += erros_lote
-            print(
-                f"✓ Último lote processado "
-                f"({pendentes_commit} registros)."
-            )
+        duracao = time.monotonic() - inicio
+        consultadas = len(offer_ids)
+        avaliadas = consultadas - em_rodizio
+        respondidas = avaliadas - len(falhas)
+        cobertura = len(precos) / avaliadas if avaliadas else 1.0
+        erros = len(falhas) + erros_gravacao
 
         print("=" * 70)
-        print("RESUMO DA COLETA DA EPIC — EGDATA")
+        print("RESUMO DA COLETA DA EPIC")
         print("=" * 70)
+        print(f"  Ofertas consultadas: {consultadas}")
+        print(f"  Com preço: {len(precos)} ({cobertura:.1%}) — " + ", ".join(f"{f}={q}" for f, q in fontes.most_common()))
+        print(f"  Sem preço Epic BR (gratuitos/fora de venda): {len(sem_preco)}")
+        print(f"  Reserva EGDATA em rodízio (vistas em outro dia): {em_rodizio} de {len(reserva_total)}")
+        print(f"  Falhas de consulta: {len(falhas)}")
         print(f"  Novos registros: {novos}")
-        print(f"  Ignorados: {ignorados}")
-        print(f"  Erros: {erros}")
-        print(f"  Total processado: {total}")
-        print(f"  Fim: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        print(f"  Sem mudança: {ignorados} (preço 0/0 antigo ignorado: {zeros_ignorados})")
+        if motivos:
+            print("  Motivos: " + ", ".join(f"{m}={q}" for m, q in motivos.most_common()))
+        print(f"  Duração: {duracao:.0f}s")
+
+        if avaliadas and respondidas / avaliadas < COBERTURA_MINIMA:
+            status = "falha"
+        elif erros > avaliadas * 0.01:
+            status = "parcial"
+        elif erros:
+            status = "concluida_com_avisos"
+        else:
+            status = "concluida"
 
         return {
-            "status": "parcial" if erros else "concluida",
-            "fonte": "EGDATA",
+            "status": status,
+            "fonte": "ITAD+EGDATA",
+            "fontes": dict(fontes),
             "total_catalogo": total_catalogo,
-            "total_processado": total,
+            "total_processado": consultadas,
             "novos_registros": novos,
             "ignorados": ignorados,
             "erros": erros,
-            "offer_ids_consultados": len(offer_ids),
+            "offer_ids_consultados": consultadas,
             "precos_encontrados": len(precos),
-            "offer_ids_faltantes": len(faltantes),
+            "sem_preco": len(sem_preco),
+            "reserva_em_rodizio": em_rodizio,
+            "offer_ids_faltantes": len(falhas),
+            "cobertura": round(cobertura, 4),
+            "duracao_segundos": round(duracao, 1),
         }
 
     except Exception as erro:
